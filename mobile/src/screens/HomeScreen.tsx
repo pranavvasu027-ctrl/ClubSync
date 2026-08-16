@@ -46,13 +46,13 @@ export default function HomeScreen({
               <View style={styles.notifBadge} />
             </TouchableOpacity>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>RS</Text>
+              <Text style={styles.avatarText}>PV</Text>
             </View>
           </View>
         </View>
 
         <Text style={styles.greetingSub}>Good morning,</Text>
-        <Text style={styles.greetingName}>Rohan Sharma</Text>
+        <Text style={styles.greetingName}>Pranav Vasu</Text>
 
         {/* Search Bar */}
         <View style={styles.searchBox}>

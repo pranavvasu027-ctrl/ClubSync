@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import { DigitalTicket, MY_TICKETS } from '../data/mockData';
+import { CURRENT_USER } from '../services/clubSyncService';
 
 export default function TicketsScreen() {
   const [tickets, setTickets] = useState<DigitalTicket[]>(MY_TICKETS);
@@ -14,7 +16,7 @@ export default function TicketsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Digital Tickets</Text>
-        <Text style={styles.headerSub}>Show this QR code at the event check-in desk</Text>
+        <Text style={styles.headerSub}>Present this verified QR code at the event gate</Text>
       </View>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
@@ -70,24 +72,29 @@ export default function TicketsScreen() {
               <View style={styles.cutoutRight} />
             </View>
 
-            {/* QR Code Section */}
+            {/* High-Resolution Live QR Code */}
             <View style={styles.qrSection}>
               <View style={styles.qrBox}>
-                <MaterialCommunityIcons name="qrcode-scan" size={140} color="#0C447C" />
+                <QRCode
+                  value={activeTicket.qrCodeString}
+                  size={150}
+                  color="#0C447C"
+                  backgroundColor="#FFFFFF"
+                />
               </View>
-              <Text style={styles.qrInstructions}>Present this QR code to the event coordinator</Text>
+              <Text style={styles.qrInstructions}>Scan on Event Day for Live Attendance</Text>
               <Text style={styles.qrToken}>{activeTicket.qrCodeString}</Text>
             </View>
 
             {/* Attendee Info Footer */}
             <View style={styles.attendeeFooter}>
               <View>
-                <Text style={styles.attendeeLabel}>Attendee</Text>
-                <Text style={styles.attendeeName}>{activeTicket.attendeeName}</Text>
+                <Text style={styles.attendeeLabel}>Attendee Name</Text>
+                <Text style={styles.attendeeName}>{CURRENT_USER.name}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={styles.attendeeLabel}>PRN / College</Text>
-                <Text style={styles.attendeePRN}>{activeTicket.prn} · {activeTicket.college}</Text>
+                <Text style={styles.attendeePRN}>{CURRENT_USER.prn} · VIT Pune</Text>
               </View>
             </View>
           </View>
@@ -264,21 +271,29 @@ const styles = StyleSheet.create({
   },
   qrSection: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
   qrBox: {
-    padding: 12,
-    backgroundColor: '#F0F7FF',
+    padding: 14,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   qrInstructions: {
     fontSize: 12,
-    color: '#64748b',
+    fontWeight: '600',
+    color: '#0C447C',
     marginBottom: 4,
   },
   qrToken: {
-    fontSize: 10,
+    fontSize: 9.5,
     color: '#94a3b8',
     fontFamily: 'monospace',
   },

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { CURRENT_USER } from '../services/clubSyncService';
 
 export default function ProfileScreen() {
   return (
@@ -8,14 +9,15 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.avatarLarge}>
-          <Text style={styles.avatarText}>RS</Text>
+          <Text style={styles.avatarText}>PV</Text>
         </View>
-        <Text style={styles.userName}>Rohan Sharma</Text>
-        <Text style={styles.userSub}>B.Tech Computer Engineering · Third Year (TY)</Text>
+        <Text style={styles.userName}>{CURRENT_USER.name}</Text>
+        <Text style={styles.userEmail}>{CURRENT_USER.email}</Text>
+        <Text style={styles.userSub}>{CURRENT_USER.branch} · {CURRENT_USER.year}</Text>
 
         <View style={styles.collegeBadge}>
           <Ionicons name="school" size={13} color="#fff" />
-          <Text style={styles.collegeBadgeText}>Vishwakarma Institute of Technology, Pune</Text>
+          <Text style={styles.collegeBadgeText}>{CURRENT_USER.collegeName}</Text>
         </View>
       </View>
 
@@ -26,14 +28,14 @@ export default function ProfileScreen() {
             <Text style={styles.passportTitle}>CLUBSYNC STUDENT PASSPORT</Text>
             <View style={styles.verifiedTag}>
               <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
-              <Text style={styles.verifiedText}>VERIFIED</Text>
+              <Text style={styles.verifiedText}>VIT VERIFIED</Text>
             </View>
           </View>
 
           <View style={styles.passportGrid}>
             <View style={styles.gridItem}>
               <Text style={styles.gridLabel}>PRN / Roll No</Text>
-              <Text style={styles.gridValue}>12210892</Text>
+              <Text style={styles.gridValue}>{CURRENT_USER.prn}</Text>
             </View>
             <View style={styles.gridItem}>
               <Text style={styles.gridLabel}>Academic Year</Text>
@@ -41,11 +43,11 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.gridItem}>
               <Text style={styles.gridLabel}>Cumulative CGPA</Text>
-              <Text style={[styles.gridValue, { color: '#16a34a' }]}>8.74 / 10.0</Text>
+              <Text style={[styles.gridValue, { color: '#16a34a' }]}>{CURRENT_USER.cgpa} / 10.0</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>Committee Eligibility</Text>
-              <Text style={[styles.gridValue, { color: '#0C447C' }]}>Eligible (≥ 7.0)</Text>
+              <Text style={styles.gridLabel}>Core Committee</Text>
+              <Text style={[styles.gridValue, { color: '#0C447C' }]}>Eligible (≥ 7.0 ✓)</Text>
             </View>
           </View>
         </View>
@@ -118,7 +120,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0C447C',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 22,
     alignItems: 'center',
   },
   avatarLarge: {
@@ -128,7 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#378ADD',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
     borderWidth: 2,
     borderColor: '#fff',
   },
@@ -141,12 +143,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 20,
     fontWeight: '700',
-    marginBottom: 2,
+    marginBottom: 1,
   },
-  userSub: {
+  userEmail: {
     color: '#B5D4F4',
     fontSize: 12,
-    marginBottom: 10,
+    fontFamily: 'monospace',
+    marginBottom: 4,
+  },
+  userSub: {
+    color: '#E0E7FF',
+    fontSize: 12,
+    marginBottom: 8,
   },
   collegeBadge: {
     flexDirection: 'row',
