@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClubSync — Events</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #EFEFEA;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 24px 12px;
+  }
+  .phone {
+    width: 380px;
+    background: #F7F7F4;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid #DCDBD4;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .header {
+    background: #0C447C;
+    color: #fff;
+    padding: 18px 16px 14px;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .header-top span.title { font-size: 19px; font-weight: 600; }
+  .pills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+  .pills::-webkit-scrollbar { display: none; }
+  .pill {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 15px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .pill.active { background: #fff; color: #0C447C; }
+  .pill.tech   { background: #185FA5; color: #E6F1FB; }
+  .pill.cult   { background: #854F0B; color: #FAEEDA; }
+  .pill.sport  { background: #3B6D11; color: #EAF3DE; }
+  .pill.other  { background: #534AB7; color: #EEEDFE; }
+
+  .list { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .card {
+    background: #fff;
+    border: 1px solid #E4E3DC;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .date-box {
+    width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .date-box .mon { font-size: 11px; font-weight: 600; }
+  .date-box .day { font-size: 17px; font-weight: 700; }
+  .info { flex: 1; min-width: 0; }
+  .info .name { font-size: 14.5px; font-weight: 600; color: #1a1a18; margin-bottom: 3px; }
+  .info .sub { font-size: 12px; color: #6b6a63; margin-bottom: 3px; }
+  .info .loc { font-size: 12px; color: #96958c; display: flex; align-items: center; gap: 3px; }
+  .rsvp {
+    font-size: 12px; font-weight: 600; color: #0C447C;
+    border: 1px solid #0C447C; border-radius: 8px;
+    padding: 7px 13px; background: none; flex-shrink: 0; cursor: pointer;
+  }
+  .rsvp:hover { background: #E6F1FB; }
+
+  .tech-box  { background: #E6F1FB; } .tech-box .mon { color: #185FA5; } .tech-box .day { color: #0C447C; }
+  .cult-box  { background: #FAEEDA; } .cult-box .mon { color: #854F0B; } .cult-box .day { color: #633806; }
+  .sport-box { background: #EAF3DE; } .sport-box .mon { color: #3B6D11; } .sport-box .day { color: #27500A; }
+  .other-box { background: #EEEDFE; } .other-box .mon { color: #534AB7; } .other-box .day { color: #26215C; }
+
+  .bottomnav {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 10px 0 16px; margin-top: 6px; border-top: 1px solid #E4E3DC;
+  }
+  .navitem { display: flex; flex-direction: column; align-items: center; gap: 3px; color: #9c9b93; }
+  .navitem i { font-size: 21px; }
+  .navitem span { font-size: 10px; }
+  .navitem.active { color: #0C447C; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="header">
+    <div class="header-top">
+      <span class="title">Events</span>
+      <i class="ti ti-search" style="font-size:20px;"></i>
+    </div>
+    <div class="pills">
+      <div class="pill active">All</div>
+      <div class="pill tech">Technical</div>
+      <div class="pill cult">Cultural</div>
+      <div class="pill sport">Sports</div>
+      <div class="pill other">Others</div>
+    </div>
+  </div>
+
+  <div class="list">
+
+    <div class="card">
+      <div class="date-box tech-box"><span class="mon">AUG</span><span class="day">14</span></div>
+      <div class="info">
+        <div class="name">Smart India Hackathon prep</div>
+        <div class="sub">Hackathons@VIT · Technical</div>
+        <div class="loc"><i class="ti ti-map-pin"></i> Seminar hall 3, 4:00 PM</div>
+      </div>
+      <button class="rsvp">RSVP</button>
+    </div>
+
+    <div class="card">
+      <div class="date-box cult-box"><span class="mon">AUG</span><span class="day">17</span></div>
+      <div class="info">
+        <div class="name">Aaroh open mic night</div>
+        <div class="sub">Aaroh · Cultural</div>
+        <div class="loc"><i class="ti ti-map-pin"></i> Amphitheatre, 6:30 PM</div>
+      </div>
+      <button class="rsvp">RSVP</button>
+    </div>
+
+    <div class="card">
+      <div class="date-box sport-box"><span class="mon">AUG</span><span class="day">20</span></div>
+      <div class="info">
+        <div class="name">Inter-department cricket trials</div>
+        <div class="sub">Sports club · Sports</div>
+        <div class="loc"><i class="ti ti-map-pin"></i> Ground, 7:00 AM</div>
+      </div>
+      <button class="rsvp">RSVP</button>
+    </div>
+
+    <div class="card">
+      <div class="date-box other-box"><span class="mon">AUG</span><span class="day">22</span></div>
+      <div class="info">
+        <div class="name">TEDx VIT speaker auditions</div>
+        <div class="sub">TEDx VIT · Others</div>
+        <div class="loc"><i class="ti ti-map-pin"></i> AV hall, 2:00 PM</div>
+      </div>
+      <button class="rsvp">RSVP</button>
+    </div>
+
+    <div class="card">
+      <div class="date-box tech-box"><span class="mon">AUG</span><span class="day">26</span></div>
+      <div class="info">
+        <div class="name">GDG Campus meetup</div>
+        <div class="sub">Google Developer Groups on Campus VIT · Technical</div>
+        <div class="loc"><i class="ti ti-map-pin"></i> CS lab 2, 3:30 PM</div>
+      </div>
+      <button class="rsvp">RSVP</button>
+    </div>
+
+  </div>
+
+  <div class="bottomnav">
+    <div class="navitem"><i class="ti ti-home"></i><span>Home</span></div>
+    <div class="navitem active"><i class="ti ti-calendar-event"></i><span>Events</span></div>
+    <div class="navitem"><i class="ti ti-users"></i><span>Clubs</span></div>
+    <div class="navitem"><i class="ti ti-bell"></i><span>Alerts</span></div>
+    <div class="navitem"><i class="ti ti-user"></i><span>Profile</span></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,362 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 200px;
+  background: var(--color-background-primary);
+  border-right: 0.5px solid var(--color-border-tertiary);
+  padding: 1.25rem 0; display: flex; flex-direction: column; gap: 4px;
+  z-index: 10;
+}
+.logo {
+  font-size: 17px; font-weight: 500; padding: 0 1rem 1rem;
+  border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.logo-icon {
+  width: 28px; height: 28px; border-radius: 7px;
+  background: #185FA5; display: flex; align-items: center; justify-content: center;
+}
+.logo-icon svg { width: 16px; height: 16px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 1rem; font-size: 13px; color: var(--color-text-secondary);
+  cursor: pointer; border-radius: 0; transition: background 0.15s;
+  border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+.nav-item.active { background: var(--color-background-secondary); color: var(--color-text-primary); font-weight: 500; }
+.nav-icon { width: 16px; height: 16px; opacity: 0.6; }
+.nav-item.active .nav-icon { opacity: 1; }
+.section-label {
+  font-size: 10px; color: var(--color-text-tertiary); padding: 8px 1rem 4px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.main { margin-left: 200px; padding: 1.5rem; min-height: 100vh; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;
+}
+.page-title { font-size: 18px; font-weight: 500; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #E6F1FB; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; color: #185FA5;
+}
+.search-box {
+  display: flex; align-items: center; gap: 6px;
+  border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md);
+  padding: 5px 10px; font-size: 13px; color: var(--color-text-secondary);
+  background: var(--color-background-secondary); cursor: pointer; min-width: 160px;
+}
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+.stat-card {
+  background: var(--color-background-secondary); border-radius: var(--border-radius-md);
+  padding: 1rem; display: flex; flex-direction: column; gap: 4px;
+}
+.stat-label { font-size: 12px; color: var(--color-text-secondary); }
+.stat-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+.stat-sub { font-size: 11px; color: var(--color-text-tertiary); }
+.stat-up { color: #3B6D11; font-size: 11px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg); padding: 1rem 1.25rem;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.card-title { font-size: 14px; font-weight: 500; }
+.badge {
+  font-size: 11px; padding: 3px 8px; border-radius: 20px;
+}
+.badge-blue { background: #E6F1FB; color: #185FA5; }
+.badge-green { background: #EAF3DE; color: #3B6D11; }
+.badge-amber { background: #FAEEDA; color: #854F0B; }
+.badge-red { background: #FCEBEB; color: #A32D2D; }
+.badge-purple { background: #EEEDFE; color: #534AB7; }
+.event-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary);
+  font-size: 13px;
+}
+.event-row:last-child { border-bottom: none; }
+.event-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-blue { background: #185FA5; }
+.dot-green { background: #3B6D11; }
+.dot-amber { background: #854F0B; }
+.dot-purple { background: #534AB7; }
+.dot-red { background: #A32D2D; }
+.event-name { flex: 1; color: var(--color-text-primary); }
+.event-date { color: var(--color-text-tertiary); font-size: 12px; }
+.club-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary);
+  font-size: 13px;
+}
+.club-row:last-child { border-bottom: none; }
+.club-icon {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+  flex-shrink: 0;
+}
+.club-info { flex: 1; }
+.club-name { font-weight: 500; font-size: 13px; color: var(--color-text-primary); }
+.club-meta { font-size: 11px; color: var(--color-text-secondary); }
+.club-members { font-size: 12px; color: var(--color-text-tertiary); }
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 12px; }
+.bar-label { width: 70px; color: var(--color-text-secondary); text-align: right; }
+.bar-track { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; }
+.bar-count { width: 30px; color: var(--color-text-tertiary); }
+.notice-row {
+  display: flex; gap: 10px; padding: 8px 0;
+  border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px;
+  align-items: flex-start;
+}
+.notice-row:last-child { border-bottom: none; }
+.notice-icon { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+.notice-text { flex: 1; }
+.notice-title { color: var(--color-text-primary); font-weight: 500; margin-bottom: 2px; }
+.notice-desc { color: var(--color-text-secondary); font-size: 12px; }
+.notice-time { font-size: 11px; color: var(--color-text-tertiary); }
+.full-width { grid-column: 1 / -1; }
+.hackathon-card {
+  display: flex; align-items: center; gap: 12px; padding: 10px 0;
+  border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px;
+}
+.hackathon-card:last-child { border-bottom: none; }
+.hack-date {
+  min-width: 44px; height: 44px; border-radius: var(--border-radius-md);
+  background: #E6F1FB; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.hack-day { font-size: 15px; font-weight: 500; color: #185FA5; line-height: 1; }
+.hack-month { font-size: 9px; color: #185FA5; text-transform: uppercase; letter-spacing: 0.05em; }
+.hack-info { flex: 1; }
+.hack-name { font-weight: 500; color: var(--color-text-primary); }
+.hack-college { font-size: 12px; color: var(--color-text-secondary); }
+.hack-prize { font-size: 12px; color: var(--color-text-tertiary); }
+.view-all { font-size: 12px; color: #185FA5; cursor: pointer; }
+</style>
+
+<h2 class="sr-only">ClubSync student dashboard showing clubs, events, stats, and notifications</h2>
+
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="5" cy="5" r="2.5" fill="white"/>
+        <circle cx="11" cy="5" r="2.5" fill="white" opacity="0.6"/>
+        <circle cx="8" cy="11" r="2.5" fill="white" opacity="0.8"/>
+      </svg>
+    </div>
+    ClubSync
+  </div>
+
+  <div class="section-label">Main</div>
+  <button class="nav-item active" onclick="sendPrompt('Show me the ClubSync overview dashboard design in detail')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+    Overview
+  </button>
+  <button class="nav-item" onclick="sendPrompt('Design the ClubSync Events page showing upcoming and past events with filters')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="11" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.2"/></svg>
+    Events
+  </button>
+  <button class="nav-item" onclick="sendPrompt('Design the ClubSync Clubs directory page showing all 75+ clubs with categories and filters')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="6" cy="6" r="3.5" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="11" cy="10" r="3.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8.5 3.5L13 2M3 13.5L7.5 12" stroke="currentColor" stroke-width="1"/></svg>
+    Clubs
+  </button>
+  <button class="nav-item" onclick="sendPrompt('Design the ClubSync Hackathons page showing upcoming hackathons with prizes, colleges, and registration')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M3 12L6 4l2.5 5L11 7l2 5" stroke="currentColor" stroke-width="1.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Hackathons
+  </button>
+  <button class="nav-item" onclick="sendPrompt('Design the ClubSync Recruitment page showing club recruitment drives and how to apply')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+    Recruitment
+  </button>
+
+  <div class="section-label">My</div>
+  <button class="nav-item" onclick="sendPrompt('Design the ClubSync My Clubs page where a student manages their club memberships and roles')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 12s1.5-4 7-4 7 4 7 4" stroke="currentColor" stroke-width="1.2" fill="none"/><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+    My Clubs
+  </button>
+  <button class="nav-item" onclick="sendPrompt('Design the ClubSync Notifications page showing event reminders, recruitment updates, and announcements')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a5 5 0 00-5 5v3l-1.5 2h13L13 9V6a5 5 0 00-5-5z" stroke="currentColor" stroke-width="1.2" fill="none"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+    Notifications
+    <span class="badge badge-red" style="margin-left: auto; font-size: 10px; padding: 1px 6px;">3</span>
+  </button>
+  <button class="nav-item" onclick="sendPrompt('Design the ClubSync Finance Management page for club treasurers to track budgets and expenses')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1 7h14M5 10h2M10 10h1" stroke="currentColor" stroke-width="1.2"/></svg>
+    Finance
+  </button>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Good morning, Rohan</div>
+      <div style="font-size:12px; color:var(--color-text-secondary);">Sunday, 3 May 2026</div>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Search clubs, events...
+      </div>
+      <div class="avatar">RS</div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total clubs</div>
+      <div class="stat-value">78</div>
+      <div class="stat-sub"><span class="stat-up">+3 new</span> this semester</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Upcoming events</div>
+      <div class="stat-value">24</div>
+      <div class="stat-sub">Next 30 days</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Open recruitments</div>
+      <div class="stat-value">11</div>
+      <div class="stat-sub">Deadline this week: 3</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Hackathons</div>
+      <div class="stat-value">6</div>
+      <div class="stat-sub">Registered in: 2</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Upcoming events</span>
+        <span class="view-all" onclick="sendPrompt('Show all upcoming ClubSync events in a detailed calendar view')">View all</span>
+      </div>
+      <div class="event-row"><div class="event-dot dot-blue"></div><div class="event-name">GedIT Hackathon 2026</div><div class="event-date">May 10</div><span class="badge badge-blue">Tech</span></div>
+      <div class="event-row"><div class="event-dot dot-amber"></div><div class="event-name">Mélange Cultural Fest</div><div class="event-date">May 14</div><span class="badge badge-amber">Cultural</span></div>
+      <div class="event-row"><div class="event-dot dot-green"></div><div class="event-name">Inter-college Football</div><div class="event-date">May 17</div><span class="badge badge-green">Sports</span></div>
+      <div class="event-row"><div class="event-dot dot-purple"></div><div class="event-name">EDC Startup Pitch</div><div class="event-date">May 21</div><span class="badge badge-purple">Social</span></div>
+      <div class="event-row"><div class="event-dot dot-blue"></div><div class="event-name">IEEE Workshop: IoT</div><div class="event-date">May 24</div><span class="badge badge-blue">Tech</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Club categories</span>
+        <span class="badge badge-blue">78 total</span>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Technical</div>
+        <div class="bar-track"><div class="bar-fill" style="width:40%; background:#185FA5;"></div></div>
+        <div class="bar-count">31</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Cultural</div>
+        <div class="bar-track"><div class="bar-fill" style="width:24%; background:#854F0B;"></div></div>
+        <div class="bar-count">19</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Sports</div>
+        <div class="bar-track"><div class="bar-fill" style="width:14%; background:#3B6D11;"></div></div>
+        <div class="bar-count">11</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Social</div>
+        <div class="bar-track"><div class="bar-fill" style="width:22%; background:#534AB7;"></div></div>
+        <div class="bar-count">17</div>
+      </div>
+
+      <div style="margin-top: 1rem; border-top: 0.5px solid var(--color-border-tertiary); padding-top: 1rem;">
+        <div class="card-title" style="margin-bottom: 8px;">My clubs</div>
+        <div class="club-row">
+          <div class="club-icon" style="background:#E6F1FB;">💻</div>
+          <div class="club-info"><div class="club-name">GedIT</div><div class="club-meta">Technical · Member</div></div>
+          <span class="badge badge-green">Active</span>
+        </div>
+        <div class="club-row">
+          <div class="club-icon" style="background:#EEEDFE;">🎭</div>
+          <div class="club-info"><div class="club-name">Mélange</div><div class="club-meta">Cultural · Volunteer</div></div>
+          <span class="badge badge-amber">Event soon</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Hackathons</span>
+        <span class="view-all" onclick="sendPrompt('Show all upcoming hackathons with full details, prizes, and registration links')">View all</span>
+      </div>
+      <div class="hackathon-card">
+        <div class="hack-date"><div class="hack-day">10</div><div class="hack-month">May</div></div>
+        <div class="hack-info">
+          <div class="hack-name">GedIT Hack 2026</div>
+          <div class="hack-college">PCCOE, Pune · 36hrs</div>
+        </div>
+        <div><div class="badge badge-blue">₹50k prize</div></div>
+      </div>
+      <div class="hackathon-card">
+        <div class="hack-date"><div class="hack-day">18</div><div class="hack-month">May</div></div>
+        <div class="hack-info">
+          <div class="hack-name">HackVIT Spring</div>
+          <div class="hack-college">VIT Pune · 24hrs</div>
+        </div>
+        <div><div class="badge badge-purple">₹30k prize</div></div>
+      </div>
+      <div class="hackathon-card">
+        <div class="hack-date"><div class="hack-day">02</div><div class="hack-month">Jun</div></div>
+        <div class="hack-info">
+          <div class="hack-name">TRF Robotics Cup</div>
+          <div class="hack-college">COEP, Pune · 2 days</div>
+        </div>
+        <div><div class="badge badge-amber">₹20k prize</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Notifications</span>
+        <span class="badge badge-red">3 new</span>
+      </div>
+      <div class="notice-row">
+        <div class="notice-icon" style="background:#E6F1FB; color:#185FA5;">📋</div>
+        <div class="notice-text">
+          <div class="notice-title">GedIT recruitment open</div>
+          <div class="notice-desc">Apply before May 8 · Web Dev & AI tracks</div>
+        </div>
+        <div class="notice-time">2h ago</div>
+      </div>
+      <div class="notice-row">
+        <div class="notice-icon" style="background:#EAF3DE; color:#3B6D11;">🏆</div>
+        <div class="notice-text">
+          <div class="notice-title">Football results updated</div>
+          <div class="notice-desc">Last year winners added to archive</div>
+        </div>
+        <div class="notice-time">5h ago</div>
+      </div>
+      <div class="notice-row">
+        <div class="notice-icon" style="background:#FAEEDA; color:#854F0B;">🎭</div>
+        <div class="notice-text">
+          <div class="notice-title">Mélange — venue confirmed</div>
+          <div class="notice-desc">Main Auditorium · Seats limited, register now</div>
+        </div>
+        <div class="notice-time">1d ago</div>
+      </div>
+      <div class="notice-row">
+        <div class="notice-icon" style="background:#EEEDFE; color:#534AB7;">💼</div>
+        <div class="notice-text">
+          <div class="notice-title">EDC Startup Pitch — teams finalized</div>
+          <div class="notice-desc">12 teams selected · Mentorship session May 19</div>
+        </div>
+        <div class="notice-time">2d ago</div>
+      </div>
+    </div>
+  </div>
+</div>

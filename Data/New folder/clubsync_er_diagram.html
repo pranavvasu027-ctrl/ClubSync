@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ClubSync Unified Multi-College ER Diagram</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 24px; }
+  h1 { text-align: center; font-size: 24px; margin-bottom: 8px; color: #38bdf8; }
+  p.subtitle { text-align: center; color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+  #erd { background: #1e293b; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<h1>ClubSync — Unified Multi-College Architecture (ER Diagram v2.0)</h1>
+<p class="subtitle">Multi-Tenancy (Pune Colleges) · Multi-Year Archive (2+ Years) · Ticketing & Attendance · Competitions & Winners · Finance</p>
+
+<div id="erd"></div>
+
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  fontFamily: 'inherit',
+});
+
+const src = `erDiagram
+  COLLEGES ||--o{ USERS : enrolls
+  COLLEGES ||--o{ CLUBS : houses
+  COLLEGES ||--o{ EVENT_REGISTRATIONS : "origin of"
+  COLLEGES ||--o{ WINNERS : "awarded to"
+  
+  CLUBS ||--o{ MEMBERSHIPS : has
+  USERS ||--o{ MEMBERSHIPS : holds
+  CLUB_ROLES ||--o{ MEMBERSHIPS : defines
+  
+  CLUBS ||--o{ EVENTS : organizes
+  EVENTS ||--o{ EVENT_APPROVALS : requires
+  USERS ||--o{ EVENT_APPROVALS : approves
+  
+  EVENTS ||--o{ TICKETS : offers
+  EVENTS ||--o{ EVENT_REGISTRATIONS : receives
+  USERS ||--o{ EVENT_REGISTRATIONS : registers
+  TICKETS ||--o{ EVENT_REGISTRATIONS : validates
+  
+  EVENTS ||--o{ COMPETITIONS : hosts
+  COMPETITIONS ||--o{ TEAMS : enters
+  TEAMS ||--o{ TEAM_MEMBERS : includes
+  USERS ||--o{ TEAM_MEMBERS : joins
+  COMPETITIONS ||--o{ WINNERS : awards
+  TEAMS ||--o{ WINNERS : wins
+  
+  CLUBS ||--o{ FINANCE_TRANSACTIONS : records
+  EVENTS ||--o{ FINANCE_TRANSACTIONS : incurs
+  USERS ||--o{ FINANCE_TRANSACTIONS : logs
+  
+  CLUBS ||--o{ RECRUITMENT_DRIVES : runs
+  RECRUITMENT_DRIVES ||--o{ APPLICATIONS : receives
+  USERS ||--o{ APPLICATIONS : submits
+
+  COLLEGES {
+    string college_id PK
+    string name
+    string short_name
+    string email_domain
+    string city
+  }
+  USERS {
+    uuid user_id PK
+    string college_id FK
+    string prn_or_roll
+    string name
+    string email
+    string year_of_study
+    string branch
+    float cgpa
+    string user_type
+  }
+  CLUBS {
+    string club_id PK
+    string college_id FK
+    string name
+    string vertical
+    string campus
+    uuid faculty_mentor_id FK
+    string status
+  }
+  CLUB_ROLES {
+    string role_id PK
+    string role_name
+    int hierarchy_rank
+    boolean is_core_position
+  }
+  MEMBERSHIPS {
+    uuid membership_id PK
+    uuid user_id FK
+    string club_id FK
+    string role_id FK
+    string academic_year
+    string status
+  }
+  EVENTS {
+    uuid event_id PK
+    string club_id FK
+    string title
+    string event_type
+    string scope
+    string venue_name
+    datetime start_time
+    datetime end_time
+    string academic_year
+    string status
+  }
+  EVENT_APPROVALS {
+    uuid approval_id PK
+    uuid event_id FK
+    uuid approver_id FK
+    string approver_level
+    string decision
+    datetime decision_timestamp
+  }
+  TICKETS {
+    uuid ticket_id PK
+    uuid event_id FK
+    string tier_name
+    float price
+    int total_capacity
+    int sold_count
+  }
+  EVENT_REGISTRATIONS {
+    uuid registration_id PK
+    uuid event_id FK
+    uuid ticket_id FK
+    uuid user_id FK
+    string college_id FK
+    string academic_year
+    string payment_status
+    string qr_token
+    string check_in_status
+  }
+  COMPETITIONS {
+    uuid competition_id PK
+    uuid event_id FK
+    string title
+    string category
+    float total_prize_pool
+  }
+  TEAMS {
+    uuid team_id PK
+    uuid competition_id FK
+    string team_name
+    uuid lead_user_id FK
+    string representing_college_id FK
+  }
+  TEAM_MEMBERS {
+    uuid team_member_id PK
+    uuid team_id FK
+    uuid user_id FK
+    string role_in_team
+  }
+  WINNERS {
+    uuid winner_id PK
+    uuid competition_id FK
+    uuid team_id FK
+    string college_id FK
+    string position
+    int rank_order
+    float prize_amount
+    string certificate_verification_code
+  }
+  RECRUITMENT_DRIVES {
+    uuid drive_id PK
+    string club_id FK
+    string academic_year
+    string title
+    float min_cgpa
+    string status
+  }
+  APPLICATIONS {
+    uuid application_id PK
+    uuid drive_id FK
+    uuid applicant_id FK
+    string applied_role
+    float interview_score
+    string status
+  }
+  FINANCE_TRANSACTIONS {
+    uuid txn_id PK
+    string club_id FK
+    uuid event_id FK
+    uuid added_by_user_id FK
+    string academic_year
+    string txn_type
+    float amount
+    date txn_date
+  }`;
+
+const { svg } = await mermaid.render('erd-svg', src);
+document.getElementById('erd').innerHTML = svg;
+</script>
+</body>
+</html>
