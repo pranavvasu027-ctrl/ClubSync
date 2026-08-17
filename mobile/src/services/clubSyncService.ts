@@ -23,10 +23,12 @@ export async function getClubs(): Promise<Club[]> {
     }
     return data.map((c: any) => ({
       id: c.club_id,
+      clubNo: c.club_no || 'VIT/SA/25-26/T-001',
       name: c.name,
       shortName: c.short_name || c.name,
       collegeId: c.college_id,
       vertical: c.vertical,
+      tier: 'Tier 1 (Flagship)',
       campus: c.campus || 'Main Campus',
       facultyMentor: 'Faculty Mentor Assigned',
       establishedYear: c.established_year || 2015,

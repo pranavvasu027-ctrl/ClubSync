@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, SafeAreaView, StatusBar, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, View, StatusBar, TouchableOpacity, Text, Platform } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { EVENTS, EventItem } from './src/data/mockData';
 import HomeScreen from './src/screens/HomeScreen';
@@ -10,7 +11,8 @@ import ProfileScreen from './src/screens/ProfileScreen';
 
 type TabType = 'home' | 'events' | 'clubs' | 'tickets' | 'profile';
 
-export default function App() {
+function MainApp() {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [selectedCollege, setSelectedCollege] = useState('VIT Pune');
   const [events, setEvents] = useState<EventItem[]>(EVENTS);
@@ -24,8 +26,8 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0C447C" />
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#0C447C" translucent={false} />
 
       {/* Dynamic Screen Content */}
       <View style={styles.content}>
@@ -148,7 +150,15 @@ export default function App() {
           </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainApp />
+    </SafeAreaProvider>
   );
 }
 

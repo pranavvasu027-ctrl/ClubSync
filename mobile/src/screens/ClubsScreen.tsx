@@ -1,23 +1,37 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Club, CLUBS } from '../data/mockData';
 
 export default function ClubsScreen() {
-  const [selectedVertical, setSelectedVertical] = useState<string>('All');
+  const [selectedFilter, setSelectedFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [appliedRoles, setAppliedRoles] = useState<{ [key: string]: boolean }>({});
 
-  const verticals = ['All', 'Technical', 'Entrepreneurship', 'Literary', 'Cultural'];
+  const filterOptions = [
+    'All',
+    'Tier 1 (Flagship)',
+    'Technical',
+    'Tier 2 (Departmental)',
+    'Entrepreneurship',
+    'Literary',
+    'Cultural'
+  ];
 
   const filteredClubs = CLUBS.filter((club) => {
-    if (selectedVertical !== 'All' && club.vertical !== selectedVertical) return false;
+    // Filter by tier or vertical
+    if (selectedFilter === 'Tier 1 (Flagship)' && club.tier !== 'Tier 1 (Flagship)') return false;
+    if (selectedFilter === 'Tier 2 (Departmental)' && club.tier !== 'Tier 2 (Departmental)') return false;
+    if (selectedFilter !== 'All' && selectedFilter !== 'Tier 1 (Flagship)' && selectedFilter !== 'Tier 2 (Departmental)' && club.vertical !== selectedFilter) return false;
+
+    // Filter by search
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
       return (
         club.name.toLowerCase().includes(q) ||
         club.shortName.toLowerCase().includes(q) ||
+        club.facultyMentor.toLowerCase().includes(q) ||
         club.description.toLowerCase().includes(q)
       );
     }
@@ -28,35 +42,46 @@ export default function ClubsScreen() {
     setAppliedRoles(prev => ({ ...prev, [role]: true }));
   };
 
+  const openWebsite = (url?: string) => {
+    if (url) {
+      Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>College Clubs</Text>
-        <Text style={styles.headerSub}>Explore 75+ active clubs & recruitment drives</Text>
+        <Text style={styles.headerTitle}>College Clubs & Chapters</Text>
+        <Text style={styles.headerSub}>Explore 75+ Tier 1 & Tier 2 student organizations</Text>
 
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color="#B5D4F4" />
           <TextInput 
-            placeholder="Search clubs by name, track, or domain..." 
+            placeholder="Search clubs, mentors, racing teams..." 
             placeholderTextColor="#B5D4F4"
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={16} color="#B5D4F4" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* Filter Chips */}
       <View style={styles.chipsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
-          {verticals.map((v) => (
+          {filterOptions.map((f) => (
             <TouchableOpacity 
-              key={v}
-              style={[styles.chip, selectedVertical === v && styles.chipActive]}
-              onPress={() => setSelectedVertical(v)}
+              key={f}
+              style={[styles.chip, selectedFilter === f && styles.chipActive]}
+              onPress={() => setSelectedFilter(f)}
             >
-              <Text style={[styles.chipText, selectedVertical === v && styles.chipTextActive]}>{v}</Text>
+              <Text style={[styles.chipText, selectedFilter === f && styles.chipTextActive]}>{f}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -64,6 +89,10 @@ export default function ClubsScreen() {
 
       {/* Clubs List */}
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+        <View style={styles.resultCountRow}>
+          <Text style={styles.resultCountText}>Showing {filteredClubs.length} Active Clubs in VIT Pune</Text>
+        </View>
+
         {filteredClubs.map((club) => (
           <TouchableOpacity 
             key={club.id} 
@@ -77,6 +106,9 @@ export default function ClubsScreen() {
 
             <View style={styles.clubInfo}>
               <View style={styles.badgeRow}>
+                <Text style={[styles.tierBadge, club.tier === 'Tier 1 (Flagship)' ? styles.tier1Badge : styles.tier2Badge]}>
+                  {club.tier === 'Tier 1 (Flagship)' ? '★ Tier 1' : 'Tier 2'}
+                </Text>
                 <Text style={styles.verticalBadge}>{club.vertical}</Text>
                 {club.openRecruitment && (
                   <View style={styles.hiringBadge}>
@@ -84,7 +116,9 @@ export default function ClubsScreen() {
                   </View>
                 )}
               </View>
+
               <Text style={styles.clubName}>{club.name}</Text>
+              <Text style={styles.mentorText}>Mentor: {club.facultyMentor}</Text>
               <Text style={styles.clubDesc} numberOfLines={2}>{club.description}</Text>
 
               <View style={styles.statsRow}>
@@ -93,8 +127,8 @@ export default function ClubsScreen() {
                   <Text style={styles.statItemText}>{club.membersCount} members</Text>
                 </View>
                 <View style={styles.statItem}>
-                  <Ionicons name="school-outline" size={12} color="#64748b" />
-                  <Text style={styles.statItemText}>Est. {club.establishedYear}</Text>
+                  <Ionicons name="location-outline" size={12} color="#64748b" />
+                  <Text style={styles.statItemText}>{club.campus}</Text>
                 </View>
               </View>
             </View>
@@ -123,7 +157,7 @@ export default function ClubsScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.modalTitle}>{selectedClub.name}</Text>
-                    <Text style={styles.modalVertical}>{selectedClub.vertical} · {selectedClub.campus} Campus</Text>
+                    <Text style={styles.modalVertical}>{selectedClub.tier} · {selectedClub.vertical}</Text>
                   </View>
                 </View>
                 <TouchableOpacity onPress={() => setSelectedClub(null)} style={styles.closeBtn}>
@@ -132,22 +166,38 @@ export default function ClubsScreen() {
               </View>
 
               <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                <Text style={styles.sectionHeading}>About the Club</Text>
+                <Text style={styles.sectionHeading}>About the Organization</Text>
                 <Text style={styles.modalDesc}>{selectedClub.description}</Text>
 
                 <View style={styles.infoBox}>
                   <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Club Code</Text>
+                    <Text style={styles.infoValue}>{selectedClub.clubNo}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Faculty Mentor</Text>
-                    <Text style={styles.infoValue}>{selectedClub.facultyMentor}</Text>
+                    <Text style={[styles.infoValue, { color: '#0C447C' }]}>{selectedClub.facultyMentor}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Active Team</Text>
                     <Text style={styles.infoValue}>{selectedClub.membersCount} Students</Text>
                   </View>
                   <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Campus Location</Text>
+                    <Text style={styles.infoValue}>{selectedClub.campus}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Instagram Handle</Text>
                     <Text style={[styles.infoValue, { color: '#0C447C' }]}>{selectedClub.instagram}</Text>
                   </View>
+
+                  {selectedClub.websiteUrl && (
+                    <TouchableOpacity style={styles.websiteBtn} onPress={() => openWebsite(selectedClub.websiteUrl)}>
+                      <Ionicons name="globe-outline" size={15} color="#0C447C" />
+                      <Text style={styles.websiteBtnText}>Visit Official Website</Text>
+                      <Ionicons name="open-outline" size={13} color="#0C447C" />
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {/* Recruitment Section */}
@@ -157,9 +207,9 @@ export default function ClubsScreen() {
                       <Ionicons name="briefcase" size={16} color="#0C447C" />
                       <Text style={styles.recruitTitle}>Active Recruitment Drive</Text>
                     </View>
-                    <Text style={styles.recruitSub}>Deadline: {selectedClub.recruitmentDeadline} · Min CGPA: 7.0 (SY/TY)</Text>
+                    <Text style={styles.recruitSub}>Deadline: {selectedClub.recruitmentDeadline} · Min CGPA: 7.0 (SY & TY)</Text>
 
-                    <Text style={[styles.sectionHeading, { marginTop: 10 }]}>Open Positions:</Text>
+                    <Text style={[styles.sectionHeading, { marginTop: 10 }]}>Open Core Positions:</Text>
                     {selectedClub.recruitmentRoles?.map((role) => (
                       <View key={role} style={styles.roleRow}>
                         <Text style={styles.roleName}>{role}</Text>
@@ -256,6 +306,15 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
   },
+  resultCountRow: {
+    marginBottom: 8,
+  },
+  resultCountText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+    textTransform: 'uppercase',
+  },
   clubCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -268,8 +327,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   clubLogo: {
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -285,8 +344,24 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     marginBottom: 3,
+    flexWrap: 'wrap',
+  },
+  tierBadge: {
+    fontSize: 9,
+    fontWeight: '700',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  tier1Badge: {
+    backgroundColor: '#FEF3C7',
+    color: '#92400E',
+  },
+  tier2Badge: {
+    backgroundColor: '#F1F5F9',
+    color: '#475569',
   },
   verticalBadge: {
     fontSize: 9,
@@ -312,6 +387,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#1e293b',
+    marginBottom: 1,
+  },
+  mentorText: {
+    fontSize: 11,
+    color: '#0C447C',
+    fontWeight: '500',
     marginBottom: 2,
   },
   clubDesc: {
@@ -419,6 +500,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#1e293b',
+  },
+  websiteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#E6F1FB',
+    padding: 9,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  websiteBtnText: {
+    color: '#0C447C',
+    fontSize: 12,
+    fontWeight: '700',
   },
   recruitCard: {
     backgroundColor: '#EFF6FF',

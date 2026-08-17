@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClubSync — Multi-Screen UI Visualizer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root {
+    --primary: #0C447C;
+    --primary-light: #185FA5;
+    --bg: #0F172A;
+    --card: #FFFFFF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg); color: #F8FAFC; padding: 24px 20px; }
+
+  .header { text-align: center; margin-bottom: 28px; }
+  .header h1 { font-size: 26px; font-weight: 800; color: #38BDF8; margin-bottom: 6px; }
+  .header p { color: #94A3B8; font-size: 14px; }
+
+  .nav-pills { display: flex; justify-content: center; gap: 10px; margin-bottom: 24px; }
+  .pill-btn {
+    padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #B5D4F4;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .pill-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .pill-btn.active { background: #185FA5; color: #fff; border-color: #185FA5; }
+
+  .phones-grid {
+    display: flex; gap: 24px; justify-content: center; flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .phone-frame {
+    width: 360px; height: 740px; background: #F8FAFC; border-radius: 36px;
+    border: 8px solid #334155; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    display: flex; flex-direction: column; position: relative; color: #0F172A;
+  }
+  .phone-notch {
+    height: 24px; background: #0C447C; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; color: #fff; font-size: 11px; font-weight: 600;
+  }
+  .phone-screen { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  
+  .screen-title-tag {
+    text-align: center; margin-top: 12px; font-size: 14px; font-weight: 700; color: #94A3B8;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ClubSync — All Mobile Screens & Web UI Gallery</h1>
+  <p>Status bar fixed · Complete Tier 1 & Tier 2 Clubs · Live QR Passes · Instant Navigation</p>
+</div>
+
+<div class="nav-pills">
+  <button class="pill-btn active" onclick="showAll()">All 5 Screens View</button>
+  <button class="pill-btn" onclick="openWebPortal()">Open Full Web Admin Portal ➔</button>
+</div>
+
+<div class="phones-grid">
+
+  <!-- SCREEN 1: HOME -->
+  <div>
+    <div class="phone-frame">
+      <div class="phone-notch">
+        <span>3:42</span>
+        <span>5G · 92%</span>
+      </div>
+      <div class="phone-screen">
+        <div style="background:#0C447C; padding: 14px 14px 16px; color:#fff;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:28px; height:28px; border-radius:7px; background:#185FA5; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px;">CS</div>
+              <div>
+                <strong style="font-size:14px;">ClubSync</strong>
+                <div style="font-size:10px; color:#85B7EB;">🏛️ VIT Pune</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i class="ti ti-bell" style="font-size:18px;"></i>
+              <div style="width:28px; height:28px; border-radius:50%; background:#378ADD; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700;">PV</div>
+            </div>
+          </div>
+          <div style="font-size:11px; color:#85B7EB;">Good morning,</div>
+          <div style="font-size:18px; font-weight:700; margin-bottom:10px;">Pranav Vasu</div>
+          <div style="background:#185FA5; padding:7px 10px; border-radius:10px; font-size:11px; color:#B5D4F4; display:flex; align-items:center; gap:6px;">
+            <i class="ti ti-search"></i> Search clubs, racing teams, hackathons...
+          </div>
+        </div>
+
+        <div style="padding:12px;">
+          <!-- Quick Stats -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px;">
+            <div style="background:#fff; border:1px solid #E2E8F0; border-radius:10px; padding:10px;">
+              <span style="font-size:10px; color:#64748B;">Total Clubs</span>
+              <div style="font-size:18px; font-weight:800;">78</div>
+              <span style="font-size:9px; color:#16A34A; font-weight:600;">+3 this semester</span>
+            </div>
+            <div style="background:#fff; border:1px solid #E2E8F0; border-radius:10px; padding:10px;">
+              <span style="font-size:10px; color:#64748B;">Upcoming Events</span>
+              <div style="font-size:18px; font-weight:800;">24</div>
+              <span style="font-size:9px; color:#64748B;">Next 30 days</span>
+            </div>
+          </div>
+
+          <!-- Hackathon Banner -->
+          <div style="background:#0C447C; color:#fff; border-radius:12px; padding:12px; margin-bottom:12px;">
+            <div style="font-size:10px; color:#FBBF24; font-weight:700; margin-bottom:2px;">🏆 Inter-College Grand Hackathon · ₹1,00,000</div>
+            <strong style="font-size:13px;">Pune TechFest Hackathon 2026</strong>
+            <p style="font-size:10px; color:#93C5FD; margin:2px 0 8px;">Organized by GedIT & IEEE · Open to all Pune Colleges</p>
+            <div style="background:#fff; color:#0C447C; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:700; text-align:center;">View My Digital Pass ➔</div>
+          </div>
+
+          <!-- Featured Event -->
+          <strong style="font-size:13px; display:block; margin-bottom:6px;">Featured Events</strong>
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:10px; padding:10px; display:flex; gap:10px; align-items:center;">
+            <div style="background:#E6F1FB; color:#0C447C; width:38px; height:38px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:800;">
+              <span style="font-size:8px;">AUG</span>
+              <span style="font-size:13px;">22</span>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:12px; font-weight:700;">Earn & Sell 2026 — EDC</div>
+              <div style="font-size:10px; color:#64748B;">Bibwewadi Campus Ground</div>
+            </div>
+            <div style="border:1px solid #0C447C; color:#0C447C; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700;">RSVP</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fff; border-top:1px solid #E2E8F0; padding:8px 12px; display:flex; justify-content:space-around; font-size:9px; color:#94A3B8;">
+        <div style="color:#0C447C; font-weight:700; text-align:center;"><i class="ti ti-home" style="font-size:16px;"></i><br>Home</div>
+        <div style="text-align:center;"><i class="ti ti-calendar" style="font-size:16px;"></i><br>Events</div>
+        <div style="text-align:center;"><i class="ti ti-users" style="font-size:16px;"></i><br>Clubs</div>
+        <div style="text-align:center;"><i class="ti ti-ticket" style="font-size:16px;"></i><br>Tickets</div>
+        <div style="text-align:center;"><i class="ti ti-user" style="font-size:16px;"></i><br>Profile</div>
+      </div>
+    </div>
+    <div class="screen-title-tag">1. Home Screen</div>
+  </div>
+
+  <!-- SCREEN 2: CLUBS (TIER 1 & 2) -->
+  <div>
+    <div class="phone-frame">
+      <div class="phone-notch">
+        <span>3:42</span>
+        <span>5G · 92%</span>
+      </div>
+      <div class="phone-screen">
+        <div style="background:#0C447C; padding:14px 14px 12px; color:#fff;">
+          <strong style="font-size:16px; display:block;">College Clubs & Chapters</strong>
+          <span style="font-size:10px; color:#B5D4F4;">75+ Tier 1 & Tier 2 Organizations</span>
+          <div style="background:#185FA5; padding:6px 10px; border-radius:8px; font-size:11px; color:#B5D4F4; margin-top:8px;">
+            <i class="ti ti-search"></i> Search racing teams, mentors...
+          </div>
+        </div>
+
+        <div style="display:flex; gap:4px; padding:8px 10px; background:#fff; border-bottom:1px solid #E2E8F0; overflow-x:auto;">
+          <span style="background:#185FA5; color:#fff; padding:3px 8px; border-radius:12px; font-size:9.5px; font-weight:600;">All</span>
+          <span style="background:#FEF3C7; color:#92400E; padding:3px 8px; border-radius:12px; font-size:9.5px; font-weight:700;">★ Tier 1 (Flagship)</span>
+          <span style="background:#F1F5F9; color:#475569; padding:3px 8px; border-radius:12px; font-size:9.5px; font-weight:600;">Tier 2</span>
+        </div>
+
+        <div style="padding:10px; display:flex; flex-direction:column; gap:8px;">
+          <!-- Club 1: SAE Griffin -->
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+              <span style="background:#FEF3C7; color:#92400E; font-size:8.5px; font-weight:800; padding:1px 5px; border-radius:3px;">★ TIER 1</span>
+              <span style="background:#DCFCE7; color:#15803D; font-size:8.5px; font-weight:700; padding:1px 5px; border-radius:3px;">Hiring Open</span>
+            </div>
+            <strong style="font-size:12.5px; color:#0F172A;">SAE TEAM GRIFFIN (Formula Racing)</strong>
+            <div style="font-size:9.5px; color:#0C447C; font-weight:600;">Mentor: Prof. Sachin Komble</div>
+            <p style="font-size:10px; color:#64748B; margin:3px 0 6px;">Formula Student race car engineering team at Bibwewadi Workshop.</p>
+            <div style="font-size:9px; color:#64748B;">👥 65 members · Est. 2011</div>
+          </div>
+
+          <!-- Club 2: EDC / E-Cell -->
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+              <span style="background:#FEF3C7; color:#92400E; font-size:8.5px; font-weight:800; padding:1px 5px; border-radius:3px;">★ TIER 1</span>
+              <span style="background:#DCFCE7; color:#15803D; font-size:8.5px; font-weight:700; padding:1px 5px; border-radius:3px;">Hiring Open</span>
+            </div>
+            <strong style="font-size:12.5px; color:#0F172A;">EDC / E-Cell VIT Pune</strong>
+            <div style="font-size:9.5px; color:#0C447C; font-weight:600;">Mentor: Prof. Gambhire & Prof. Vaishali Mishra</div>
+            <p style="font-size:10px; color:#64748B; margin:3px 0 6px;">Startup incubator, venture pitches, and Earn & Sell expo.</p>
+            <span style="color:#0C447C; font-size:9px; font-weight:600;">🔗 ecellvitpune.in</span>
+          </div>
+
+          <!-- Club 3: CSI VIT -->
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+              <span style="background:#FEF3C7; color:#92400E; font-size:8.5px; font-weight:800; padding:1px 5px; border-radius:3px;">★ TIER 1</span>
+              <span style="background:#DCFCE7; color:#15803D; font-size:8.5px; font-weight:700; padding:1px 5px; border-radius:3px;">Hiring Open</span>
+            </div>
+            <strong style="font-size:12.5px; color:#0F172A;">CSI VIT (Computer Society of India)</strong>
+            <div style="font-size:9.5px; color:#0C447C; font-weight:600;">Mentor: Prof. Ghadekar P.P.</div>
+            <p style="font-size:10px; color:#64748B; margin:3px 0 6px;">National computing symposiums, code sprints & tech workshops.</p>
+            <div style="font-size:9px; color:#64748B;">👥 180 members · Est. 2014</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fff; border-top:1px solid #E2E8F0; padding:8px 12px; display:flex; justify-content:space-around; font-size:9px; color:#94A3B8;">
+        <div style="text-align:center;"><i class="ti ti-home" style="font-size:16px;"></i><br>Home</div>
+        <div style="text-align:center;"><i class="ti ti-calendar" style="font-size:16px;"></i><br>Events</div>
+        <div style="color:#0C447C; font-weight:700; text-align:center;"><i class="ti ti-users" style="font-size:16px;"></i><br>Clubs</div>
+        <div style="text-align:center;"><i class="ti ti-ticket" style="font-size:16px;"></i><br>Tickets</div>
+        <div style="text-align:center;"><i class="ti ti-user" style="font-size:16px;"></i><br>Profile</div>
+      </div>
+    </div>
+    <div class="screen-title-tag">2. 75+ Clubs Directory</div>
+  </div>
+
+  <!-- SCREEN 3: TICKETS (LIVE QR) -->
+  <div>
+    <div class="phone-frame">
+      <div class="phone-notch">
+        <span>3:42</span>
+        <span>5G · 92%</span>
+      </div>
+      <div class="phone-screen">
+        <div style="background:#0C447C; padding:14px 14px 12px; color:#fff;">
+          <strong style="font-size:16px; display:block;">My Digital Passes</strong>
+          <span style="font-size:10px; color:#B5D4F4;">Present this verified QR code at the gate</span>
+        </div>
+
+        <div style="padding:14px;">
+          <!-- Digital Ticket Card -->
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:16px; padding:14px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="background:#DCFCE7; color:#15803D; font-size:9.5px; font-weight:700; padding:2px 6px; border-radius:10px;">✓ CONFIRMED</span>
+              <span style="font-size:10px; color:#94A3B8; font-weight:600;">#TCK_99182</span>
+            </div>
+
+            <strong style="font-size:14px; color:#0F172A; display:block; margin-bottom:2px;">Pune TechFest Grand Hackathon 2026</strong>
+            <span style="font-size:10px; color:#185FA5; font-weight:600;">GedIT Technical Club · VIT Pune</span>
+
+            <div style="background:#F8FAFC; border-radius:8px; padding:8px; margin:10px 0; font-size:10.5px; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+              <div><span style="color:#94A3B8; font-size:8.5px; text-transform:uppercase;">Date</span><br><strong>26 Aug 2026</strong></div>
+              <div><span style="color:#94A3B8; font-size:8.5px; text-transform:uppercase;">Time</span><br><strong>09:00 AM IST</strong></div>
+              <div style="grid-column:1/-1;"><span style="color:#94A3B8; font-size:8.5px; text-transform:uppercase;">Venue</span><br><strong>Sharad Arena & Labs 1-4</strong></div>
+            </div>
+
+            <!-- Crisp QR simulation -->
+            <div style="text-align:center; padding:10px 0;">
+              <div style="display:inline-block; padding:10px; background:#fff; border:1px solid #E2E8F0; border-radius:12px;">
+                <i class="ti ti-qrcode" style="font-size:100px; color:#0C447C;"></i>
+              </div>
+              <div style="font-size:10.5px; font-weight:700; color:#0C447C; margin-top:6px;">Scan on Event Day for Live Attendance</div>
+              <div style="font-size:8.5px; color:#94A3B8; font-family:monospace;">CLUBSYNC-TKT-EVT01-1251070582-VALID</div>
+            </div>
+
+            <div style="border-top:1px solid #F1F5F9; padding-top:8px; display:flex; justify-content:space-between; font-size:10.5px;">
+              <div><span style="color:#94A3B8; font-size:8.5px;">Attendee</span><br><strong>Pranav Vasu</strong></div>
+              <div style="text-align:right;"><span style="color:#94A3B8; font-size:8.5px;">PRN / Roll</span><br><strong>1251070582</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fff; border-top:1px solid #E2E8F0; padding:8px 12px; display:flex; justify-content:space-around; font-size:9px; color:#94A3B8;">
+        <div style="text-align:center;"><i class="ti ti-home" style="font-size:16px;"></i><br>Home</div>
+        <div style="text-align:center;"><i class="ti ti-calendar" style="font-size:16px;"></i><br>Events</div>
+        <div style="text-align:center;"><i class="ti ti-users" style="font-size:16px;"></i><br>Clubs</div>
+        <div style="color:#0C447C; font-weight:700; text-align:center;"><i class="ti ti-ticket" style="font-size:16px;"></i><br>Tickets</div>
+        <div style="text-align:center;"><i class="ti ti-user" style="font-size:16px;"></i><br>Profile</div>
+      </div>
+    </div>
+    <div class="screen-title-tag">3. QR Ticket Wallet</div>
+  </div>
+
+  <!-- SCREEN 4: PROFILE (PASSPORT) -->
+  <div>
+    <div class="phone-frame">
+      <div class="phone-notch">
+        <span>3:42</span>
+        <span>5G · 92%</span>
+      </div>
+      <div class="phone-screen">
+        <div style="background:#0C447C; padding:16px 14px; color:#fff; text-align:center;">
+          <div style="width:54px; height:54px; border-radius:50%; background:#378ADD; border:2px solid #fff; margin:0 auto 6px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:18px;">PV</div>
+          <strong style="font-size:16px; display:block;">Pranav Vasu</strong>
+          <span style="font-size:10px; color:#B5D4F4; font-family:monospace; display:block;">pranav.1251070582@vit.edu</span>
+          <span style="font-size:10px; color:#E0E7FF;">Computer Engineering · Third Year (TY)</span>
+        </div>
+
+        <div style="padding:12px;">
+          <!-- Passport Card -->
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:12px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #F1F5F9; padding-bottom:6px; margin-bottom:8px;">
+              <span style="font-size:9.5px; font-weight:800; color:#0C447C; letter-spacing:0.5px;">STUDENT PASSPORT</span>
+              <span style="background:#DCFCE7; color:#15803D; font-size:8px; font-weight:800; padding:1px 4px; border-radius:3px;">VIT VERIFIED</span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:10.5px;">
+              <div><span style="font-size:8.5px; color:#94A3B8;">PRN</span><br><strong>1251070582</strong></div>
+              <div><span style="font-size:8.5px; color:#94A3B8;">Year</span><br><strong>AY 2026–27</strong></div>
+              <div><span style="font-size:8.5px; color:#94A3B8;">CGPA</span><br><strong style="color:#16A34A;">8.85 / 10.0</strong></div>
+              <div><span style="font-size:8.5px; color:#94A3B8;">Committee</span><br><strong style="color:#0C447C;">Eligible (≥ 7.0 ✓)</strong></div>
+            </div>
+          </div>
+
+          <!-- Activity Record Menu -->
+          <strong style="font-size:12px; color:#0F172A; display:block; margin-bottom:6px;">Activity Records</strong>
+          <div style="background:#fff; border:1px solid #E2E8F0; border-radius:10px; overflow:hidden; font-size:11px;">
+            <div style="padding:8px 10px; border-bottom:1px solid #F1F5F9; display:flex; justify-content:space-between; align-items:center;">
+              <div><strong>Digital Certificates & Merits</strong><br><span style="font-size:9px; color:#64748B;">Download verified PDF certificates</span></div>
+              <i class="ti ti-chevron-right" style="color:#94A3B8;"></i>
+            </div>
+            <div style="padding:8px 10px; border-bottom:1px solid #F1F5F9; display:flex; justify-content:space-between; align-items:center;">
+              <div><strong>Annual Activity Transcript</strong><br><span style="font-size:9px; color:#64748B;">Generate report for NAAC / Dean</span></div>
+              <i class="ti ti-chevron-right" style="color:#94A3B8;"></i>
+            </div>
+            <div style="padding:8px 10px; display:flex; justify-content:space-between; align-items:center;">
+              <div><strong>Switch to Club Committee Portal</strong><br><span style="font-size:9px; color:#64748B;">Proposals, Budgets & Scanner</span></div>
+              <i class="ti ti-chevron-right" style="color:#94A3B8;"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#fff; border-top:1px solid #E2E8F0; padding:8px 12px; display:flex; justify-content:space-around; font-size:9px; color:#94A3B8;">
+        <div style="text-align:center;"><i class="ti ti-home" style="font-size:16px;"></i><br>Home</div>
+        <div style="text-align:center;"><i class="ti ti-calendar" style="font-size:16px;"></i><br>Events</div>
+        <div style="text-align:center;"><i class="ti ti-users" style="font-size:16px;"></i><br>Clubs</div>
+        <div style="text-align:center;"><i class="ti ti-ticket" style="font-size:16px;"></i><br>Tickets</div>
+        <div style="color:#0C447C; font-weight:700; text-align:center;"><i class="ti ti-user" style="font-size:16px;"></i><br>Profile</div>
+      </div>
+    </div>
+    <div class="screen-title-tag">4. Verified Student Profile</div>
+  </div>
+
+</div>
+
+<script>
+  function openWebPortal() {
+    window.location.href = 'index.html';
+  }
+</script>
+</body>
+</html>
