@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import { CURRENT_USER } from '../services/clubSyncService';
+import { DigitalTicket, MY_TICKETS } from '../data/mockData';
 
 export default function ProfileScreen() {
+  const [ticketsList, setTicketsList] = useState<DigitalTicket[]>(MY_TICKETS);
   const [showCertificate, setShowCertificate] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<DigitalTicket | null>(null);
 
   const handleDownload = (type: string) => {
     Alert.alert('Download Complete', `${type} saved to your device with cryptographic signature.`);
@@ -62,8 +66,8 @@ export default function ProfileScreen() {
         {/* Engagement Stats */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statNum}>4</Text>
-            <Text style={styles.statLabel}>Events Attended</Text>
+            <Text style={styles.statNum}>{ticketsList.length}</Text>
+            <Text style={styles.statLabel}>Active Passes</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={[styles.statNum, { color: '#D97706' }]}>1</Text>
@@ -75,8 +79,41 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Digital Event Passes Wallet */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.menuHeading}>My Digital Passes & Gate Tickets</Text>
+          <Text style={styles.badgeCounter}>{ticketsList.length} Active</Text>
+        </View>
+
+        <View style={styles.ticketsWalletContainer}>
+          {ticketsList.map((ticket) => (
+            <TouchableOpacity 
+              key={ticket.id} 
+              style={styles.ticketWalletCard}
+              onPress={() => setSelectedTicket(ticket)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.ticketLeft}>
+                <View style={styles.qrMiniBox}>
+                  <Ionicons name="qr-code-outline" size={24} color="#0C447C" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.ticketEventTitle} numberOfLines={1}>{ticket.eventTitle}</Text>
+                  <Text style={styles.ticketClubText}>{ticket.clubName}</Text>
+                  <Text style={styles.ticketVenueText}>📍 {ticket.venue}</Text>
+                  <Text style={styles.ticketDateText}>📅 {ticket.date} · {ticket.time}</Text>
+                </View>
+              </View>
+
+              <View style={styles.viewPassBtn}>
+                <Text style={styles.viewPassText}>Show Pass ➔</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* Action Menu */}
-        <Text style={styles.menuHeading}>Verified Student Credentials</Text>
+        <Text style={[styles.menuHeading, { marginTop: 16 }]}>Verified Student Credentials</Text>
         <View style={styles.menuContainer}>
           <TouchableOpacity style={styles.menuItem} onPress={() => setShowCertificate(true)}>
             <View style={styles.menuIconBox}>
@@ -103,6 +140,63 @@ export default function ProfileScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* DYNAMIC QR GATE PASS MODAL */}
+      {selectedTicket && (
+        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setSelectedTicket(null)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.ticketModal}>
+              <View style={styles.ticketHeader}>
+                <View>
+                  <Text style={styles.ticketHeaderEvent}>{selectedTicket.eventTitle}</Text>
+                  <Text style={styles.ticketHeaderClub}>{selectedTicket.clubName}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedTicket(null)}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.qrContainer}>
+                <QRCode
+                  value={selectedTicket.qrCodeString}
+                  size={190}
+                  color="#0C447C"
+                  backgroundColor="#fff"
+                />
+                <Text style={styles.qrScanInstruction}>Present this QR Code at the Venue Gate</Text>
+                <Text style={styles.qrSecurityCode}>TOKEN: {selectedTicket.qrCodeString}</Text>
+              </View>
+
+              <View style={styles.ticketDetailsBox}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Attendee Name</Text>
+                  <Text style={styles.detailValue}>{selectedTicket.attendeeName}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>PRN / Roll No</Text>
+                  <Text style={styles.detailValue}>{selectedTicket.prn}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Venue</Text>
+                  <Text style={styles.detailValue}>{selectedTicket.venue}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Date & Time</Text>
+                  <Text style={styles.detailValue}>{selectedTicket.date} · {selectedTicket.time}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Pass Tier</Text>
+                  <Text style={[styles.detailValue, { color: '#16A34A', fontWeight: '800' }]}>{selectedTicket.ticketTier}</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.ticketDoneBtn} onPress={() => setSelectedTicket(null)}>
+                <Text style={styles.ticketDoneText}>Close Pass</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* DIGITAL CERTIFICATE MODAL */}
       {showCertificate && (
@@ -357,11 +451,82 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   menuHeading: {
     fontSize: 13,
     fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 8,
+  },
+  badgeCounter: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0C447C',
+    backgroundColor: '#E6F1FB',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  ticketsWalletContainer: {
+    gap: 8,
+    marginBottom: 14,
+  },
+  ticketWalletCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ticketLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  qrMiniBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#E6F1FB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ticketEventTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  ticketClubText: {
+    fontSize: 10.5,
+    color: '#0C447C',
+    fontWeight: '600',
+  },
+  ticketVenueText: {
+    fontSize: 10,
+    color: '#64748B',
+  },
+  ticketDateText: {
+    fontSize: 9.5,
+    color: '#94A3B8',
+  },
+  viewPassBtn: {
+    backgroundColor: '#0C447C',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  viewPassText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#fff',
   },
   menuContainer: {
     backgroundColor: '#fff',
@@ -406,6 +571,82 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
+  ticketModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    width: '100%',
+    maxWidth: 380,
+  },
+  ticketHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 10,
+    marginBottom: 14,
+  },
+  ticketHeaderEvent: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  ticketHeaderClub: {
+    fontSize: 11,
+    color: '#0C447C',
+    fontWeight: '600',
+  },
+  qrContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  qrScanInstruction: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 10,
+  },
+  qrSecurityCode: {
+    fontSize: 8.5,
+    fontFamily: 'monospace',
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  ticketDetailsBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 4,
+    marginVertical: 10,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  detailLabel: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  detailValue: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  ticketDoneBtn: {
+    backgroundColor: '#0C447C',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  ticketDoneText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   certCard: {
     backgroundColor: '#FFFDF7',
     borderRadius: 18,
@@ -414,11 +655,6 @@ const styles = StyleSheet.create({
     maxWidth: 380,
     borderWidth: 2,
     borderColor: '#D97706',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 8,
   },
   certBorder: {
     borderWidth: 1,

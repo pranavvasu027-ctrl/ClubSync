@@ -9,7 +9,9 @@ interface HomeScreenProps {
   events: EventItem[];
   onRSVP: (eventId: string) => void;
   onNavigateToEvents: () => void;
-  onNavigateToTickets: () => void;
+  onNavigateToClubs: (openHiringFirst?: boolean) => void;
+  onNavigateToCompetitions: () => void;
+  onNavigateToProfile: () => void;
 }
 
 interface NotificationItem {
@@ -27,7 +29,9 @@ export default function HomeScreen({
   events,
   onRSVP,
   onNavigateToEvents,
-  onNavigateToTickets,
+  onNavigateToClubs,
+  onNavigateToCompetitions,
+  onNavigateToProfile,
 }: HomeScreenProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifFilter, setNotifFilter] = useState<'all' | 'event' | 'recruitment' | 'notice'>('all');
@@ -36,15 +40,15 @@ export default function HomeScreen({
       id: 'N1',
       type: 'event',
       title: 'Hackathon Gate Pass Ready 🎟️',
-      message: 'Your All-Access Pass for Pune TechFest Grand Hackathon 2026 is confirmed. Check the Tickets tab for your QR code.',
+      message: 'Your All-Access Pass for Pune TechFest Grand Hackathon 2026 is confirmed. Check the Profile tab for your QR code pass.',
       time: '10 mins ago',
       isRead: false,
     },
     {
       id: 'N2',
       type: 'recruitment',
-      title: 'Interview Call: GedIT Web Dev Lead 👥',
-      message: 'Congratulations Pranav! Your application has been shortlisted based on your verified 8.85 CGPA. Interview on 28 Aug.',
+      title: 'Interview Call: EDC Incubation Lead 👥',
+      message: 'Congratulations Pranav! Your application has been shortlisted based on your verified 8.85 CGPA. Interview on 25 Aug.',
       time: '2 hours ago',
       isRead: false,
     },
@@ -100,9 +104,9 @@ export default function HomeScreen({
               <Ionicons name="notifications-outline" size={22} color="#fff" />
               {unreadCount > 0 && <View style={styles.notifBadge} />}
             </TouchableOpacity>
-            <View style={styles.avatar}>
+            <TouchableOpacity style={styles.avatar} onPress={onNavigateToProfile}>
               <Text style={styles.avatarText}>PV</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -113,7 +117,7 @@ export default function HomeScreen({
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color="#B5D4F4" />
           <TextInput 
-            placeholder="Search clubs, events, hackathons..." 
+            placeholder="Search clubs, hackathons, b-plans..." 
             placeholderTextColor="#B5D4F4"
             style={styles.searchInput}
           />
@@ -138,28 +142,63 @@ export default function HomeScreen({
       </View>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Quick Stats Grid */}
+        {/* Quick Stats Grid — Clickable Navigation */}
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total Approved Clubs</Text>
-            <Text style={styles.statNumber}>78</Text>
-            <Text style={styles.statSubText}>+3 Tier 1 teams</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Upcoming Fests</Text>
+          {/* Card 1: Approved Clubs -> Opens Clubs Tab */}
+          <TouchableOpacity 
+            style={styles.statCard} 
+            onPress={() => onNavigateToClubs(false)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.statCardTop}>
+              <Text style={styles.statLabel}>Approved Clubs</Text>
+              <Ionicons name="chevron-forward" size={12} color="#94a3b8" />
+            </View>
+            <Text style={styles.statNumber}>76</Text>
+            <Text style={styles.statSubText}>Explore Directory ➔</Text>
+          </TouchableOpacity>
+
+          {/* Card 2: Upcoming Fests -> Opens Events Tab */}
+          <TouchableOpacity 
+            style={styles.statCard} 
+            onPress={onNavigateToEvents}
+            activeOpacity={0.7}
+          >
+            <View style={styles.statCardTop}>
+              <Text style={styles.statLabel}>Upcoming Fests</Text>
+              <Ionicons name="chevron-forward" size={12} color="#94a3b8" />
+            </View>
             <Text style={styles.statNumber}>24</Text>
-            <Text style={styles.statSubText}>12 Inter-Collegiate</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Open Recruitments</Text>
-            <Text style={styles.statNumber}>11</Text>
-            <Text style={styles.statSubText}>SY & TY eligible (≥7.0)</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total Prize Pools</Text>
+            <Text style={styles.statSubText}>View Schedule ➔</Text>
+          </TouchableOpacity>
+
+          {/* Card 3: Open Recruitments -> Opens Clubs Tab with Hiring Open filter */}
+          <TouchableOpacity 
+            style={styles.statCard} 
+            onPress={() => onNavigateToClubs(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.statCardTop}>
+              <Text style={styles.statLabel}>Open Hiring</Text>
+              <Ionicons name="chevron-forward" size={12} color="#94a3b8" />
+            </View>
+            <Text style={[styles.statNumber, { color: '#16A34A' }]}>11</Text>
+            <Text style={[styles.statSubText, { color: '#15803D' }]}>Apply for Core ➔</Text>
+          </TouchableOpacity>
+
+          {/* Card 4: Competitions & Prize Pools -> Opens Competitions Tab */}
+          <TouchableOpacity 
+            style={styles.statCard} 
+            onPress={onNavigateToCompetitions}
+            activeOpacity={0.7}
+          >
+            <View style={styles.statCardTop}>
+              <Text style={styles.statLabel}>Competitions</Text>
+              <Ionicons name="chevron-forward" size={12} color="#94a3b8" />
+            </View>
             <Text style={[styles.statNumber, { color: '#D97706' }]}>₹2.4L</Text>
-            <Text style={styles.statSubText}>In Hackathons</Text>
-          </View>
+            <Text style={[styles.statSubText, { color: '#B45309' }]}>Hackathons & Prizes ➔</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Featured Hackathon Alert Banner */}
@@ -173,8 +212,8 @@ export default function HomeScreen({
           </View>
           <Text style={styles.hackathonTitle}>Pune TechFest Hackathon 2026</Text>
           <Text style={styles.hackathonSub}>Organized by GedIT & IEEE · Sharad Arena & CS Labs</Text>
-          <TouchableOpacity style={styles.hackathonBtn} onPress={onNavigateToTickets}>
-            <Text style={styles.hackathonBtnText}>View My Digital Pass ➔</Text>
+          <TouchableOpacity style={styles.hackathonBtn} onPress={onNavigateToCompetitions}>
+            <Text style={styles.hackathonBtnText}>Enter Competition ➔</Text>
           </TouchableOpacity>
         </View>
 
@@ -450,10 +489,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
+  statCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   statLabel: {
     fontSize: 10,
     color: '#64748b',
-    marginBottom: 2,
   },
   statNumber: {
     fontSize: 20,
@@ -463,8 +507,8 @@ const styles = StyleSheet.create({
   },
   statSubText: {
     fontSize: 10,
-    color: '#16a34a',
-    fontWeight: '600',
+    color: '#0C447C',
+    fontWeight: '700',
   },
   hackathonBanner: {
     backgroundColor: '#0C447C',

@@ -4,13 +4,17 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Club, CLUBS, CoreLead, ClubFlagshipEvent, ClubAchievement, RecruitmentPosition } from '../data/mockData';
 import { CURRENT_USER } from '../services/clubSyncService';
 
-type SortOption = 'members' | 'hiring' | 'tier' | 'alphabetical' | 'year';
+type SortOption = 'members' | 'hiring' | 'alphabetical' | 'year';
 type ClubDetailTab = 'overview' | 'leadership' | 'events' | 'achievements' | 'recruitment' | 'faqs';
 
-export default function ClubsScreen() {
+interface ClubsScreenProps {
+  initialSortHiring?: boolean;
+}
+
+export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   const [clubsList, setClubsList] = useState<Club[]>(CLUBS);
   const [selectedDomain, setSelectedDomain] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<SortOption>('tier');
+  const [sortBy, setSortBy] = useState<SortOption>(initialSortHiring ? 'hiring' : 'members');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<ClubDetailTab>('overview');
@@ -39,7 +43,6 @@ export default function ClubsScreen() {
   ];
 
   const sortLabels: { [key in SortOption]: string } = {
-    tier: '★ Tier 1 (Flagships First)',
     members: '👥 Most Members (High to Low)',
     hiring: '🔥 Hiring Open First',
     alphabetical: '🔤 Alphabetical (A to Z)',
@@ -69,10 +72,6 @@ export default function ClubsScreen() {
     if (sortBy === 'hiring') {
       if (a.openRecruitment === b.openRecruitment) return 0;
       return a.openRecruitment ? -1 : 1;
-    }
-    if (sortBy === 'tier') {
-      const tierRank = { 'Tier 1 (Flagship)': 1, 'Tier 2 (Departmental)': 2, 'Special Interest': 3 };
-      return tierRank[a.tier] - tierRank[b.tier];
     }
     if (sortBy === 'alphabetical') return a.name.localeCompare(b.name);
     if (sortBy === 'year') return a.establishedYear - b.establishedYear;
@@ -128,7 +127,7 @@ export default function ClubsScreen() {
         <View style={styles.headerTopRow}>
           <View>
             <Text style={styles.headerTitle}>College Clubs & Chapters</Text>
-            <Text style={styles.headerSub}>Explore all {clubsList.length} Tier 1 & Tier 2 Organizations</Text>
+            <Text style={styles.headerSub}>Explore all {clubsList.length} Approved Student Organizations</Text>
           </View>
 
           {/* Role Toggle: Student vs President / Authority */}
@@ -203,9 +202,6 @@ export default function ClubsScreen() {
 
             <View style={styles.clubInfo}>
               <View style={styles.badgeRow}>
-                <Text style={[styles.tierBadge, club.tier === 'Tier 1 (Flagship)' ? styles.tier1Badge : styles.tier2Badge]}>
-                  {club.tier === 'Tier 1 (Flagship)' ? '★ Tier 1' : 'Tier 2'}
-                </Text>
                 <Text style={styles.verticalBadge}>{club.vertical}</Text>
                 {club.openRecruitment && (
                   <View style={styles.hiringBadge}>
@@ -286,9 +282,7 @@ export default function ClubsScreen() {
                   <View style={{ flex: 1 }}>
                     <View style={styles.modalBadgeLine}>
                       <Text style={styles.clubCodeBadge}>{selectedClub.clubNo}</Text>
-                      <Text style={[styles.tierBadge, selectedClub.tier === 'Tier 1 (Flagship)' ? styles.tier1Badge : styles.tier2Badge]}>
-                        {selectedClub.tier}
-                      </Text>
+                      <Text style={styles.verticalBadge}>{selectedClub.vertical}</Text>
                     </View>
                     <Text style={styles.modalClubTitle} numberOfLines={1}>{selectedClub.name}</Text>
                     {selectedClub.tagline && <Text style={styles.modalTagline}>"{selectedClub.tagline}"</Text>}
@@ -459,7 +453,7 @@ export default function ClubsScreen() {
                     </View>
 
                     {/* President Card */}
-                    <Text style={[styles.sectionHeading, { marginTop: 16 }]}>Student Executive Leadership (AY 2026–27)</Text>
+                    <Text style={[styles.sectionHeading, { marginTop: 16 }]}>Student Executive Leadership (AY 2025–26)</Text>
                     <View style={styles.presidentCard}>
                       <View style={styles.presidentTop}>
                         <View style={styles.presAvatar}>
@@ -474,7 +468,7 @@ export default function ClubsScreen() {
                     </View>
 
                     {/* Core Committee Leads */}
-                    <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Core Committee Department Heads</Text>
+                    <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Official Core Committee Members ({selectedClub.coreCommittee?.length || 0})</Text>
                     {selectedClub.coreCommittee && selectedClub.coreCommittee.length > 0 ? (
                       selectedClub.coreCommittee.map((lead) => (
                         <View key={lead.name} style={styles.coreLeadCard}>
@@ -484,7 +478,7 @@ export default function ClubsScreen() {
                           <View style={{ flex: 1 }}>
                             <Text style={styles.leadName}>{lead.name}</Text>
                             <Text style={styles.leadRole}>{lead.role}</Text>
-                            <Text style={styles.leadDept}>{lead.year} · {lead.branch}</Text>
+                            {lead.branch && <Text style={styles.leadDept}>{lead.year ? `${lead.year} · ` : ''}{lead.branch}</Text>}
                           </View>
                           {lead.email && (
                             <TouchableOpacity onPress={() => openLink(`mailto:${lead.email}`)}>
@@ -907,39 +901,24 @@ const styles = StyleSheet.create({
     marginBottom: 3,
     flexWrap: 'wrap',
   },
-  tierBadge: {
-    fontSize: 9,
-    fontWeight: '700',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  tier1Badge: {
-    backgroundColor: '#FEF3C7',
-    color: '#92400E',
-  },
-  tier2Badge: {
-    backgroundColor: '#F1F5F9',
-    color: '#475569',
-  },
   verticalBadge: {
-    fontSize: 9,
-    fontWeight: '600',
+    fontSize: 9.5,
+    fontWeight: '700',
     color: '#185FA5',
     backgroundColor: '#E6F1FB',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
   },
   hiringBadge: {
     backgroundColor: '#DCFCE7',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
   },
   hiringText: {
     color: '#15803D',
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '700',
   },
   clubName: {

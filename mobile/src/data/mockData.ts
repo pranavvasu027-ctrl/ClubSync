@@ -8,8 +8,8 @@ export interface College {
 export interface CoreLead {
   name: string;
   role: string;
-  year: string;
-  branch: string;
+  year?: string;
+  branch?: string;
   avatarText: string;
   email?: string;
   phone?: string;
@@ -54,7 +54,6 @@ export interface Club {
   tagline?: string;
   collegeId: string;
   vertical: 'Technical' | 'Cultural' | 'Sports' | 'Social' | 'Entrepreneurship' | 'Literary' | 'Others';
-  tier: 'Tier 1 (Flagship)' | 'Tier 2 (Departmental)' | 'Special Interest';
   campus: string;
   workshopOrRoom?: string;
   facultyMentor: string;
@@ -82,6 +81,29 @@ export interface Club {
   achievements?: ClubAchievement[];
   faqs?: ClubFAQ[];
   logoBg: string;
+}
+
+export interface CompetitionItem {
+  id: string;
+  title: string;
+  organizer: string;
+  organizerLogoBg: string;
+  collegeName: string;
+  category: 'Hackathons' | 'B-Plan & Case Studies' | 'Quizzes & CTFs' | 'Startup Pitches' | 'Cultural & Sports';
+  mode: 'Online' | 'Offline On-Campus' | 'Hybrid';
+  location: string;
+  teamSize: 'Individual Participation' | '1 - 2 Members' | '1 - 3 Members' | '1 - 4 Members' | '1 - 5 Members' | '2 - 4 Members' | string;
+  minTeam: number;
+  maxTeam: number;
+  tags: string[];
+  daysLeft: string;
+  deadlineDate: string;
+  prizePool: string;
+  entryFee: number;
+  registeredCount: number;
+  description: string;
+  eligibility: string;
+  isRegistered?: boolean;
 }
 
 export interface EventItem {
@@ -135,7 +157,7 @@ export const COLLEGES: College[] = [
 
 export const CLUBS: Club[] = [
   // =========================================================================
-  // 1. ENTREPRENEURSHIP DEVELOPMENT CELL (EDC / E-CELL VIT PUNE) — DEEP PROFILE
+  // 1. ENTREPRENEURSHIP DEVELOPMENT CELL (EDC / E-CELL VIT PUNE)
   // =========================================================================
   {
     id: 'VIT_EDC',
@@ -145,12 +167,11 @@ export const CLUBS: Club[] = [
     tagline: 'Fostering Innovation, Fueling Entrepreneurial Spirits',
     collegeId: 'VIT_PUNE',
     vertical: 'Entrepreneurship',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi Main Campus',
     workshopOrRoom: 'E-Cell Incubation Cabin 402, Building 3',
     facultyMentor: 'Prof. Gambhire & Prof. Vaishali Mishra',
     facultyDesignation: 'Head, Center for Innovation, Incubation & Enterprise',
-    presidentName: 'Siddharth Deshmukh (B.E. Mechanical)',
+    presidentName: 'Vaibhav Kumar Singh (President)',
     presidentContact: 'president.edc@vit.edu · +91 98230 44120',
     establishedYear: 2012,
     description: 'The premier student-run entrepreneurship body of VIT Pune dedicated to cultivating visionary founders, startup incubators, angel investment connect, and Maharashtra’s largest trade expo.',
@@ -202,11 +223,21 @@ export const CLUBS: Club[] = [
       }
     ],
     coreCommittee: [
-      { name: 'Siddharth Deshmukh', role: 'President', year: 'Final Year (B.E.)', branch: 'Mechanical Eng', avatarText: 'SD', email: 'siddharth.deshmukh@vit.edu' },
-      { name: 'Ananya Joshi', role: 'Vice President', year: 'Third Year (T.Y.)', branch: 'Computer Eng', avatarText: 'AJ', email: 'ananya.joshi@vit.edu' },
-      { name: 'Rohan Mehta', role: 'Head of Sponsorship', year: 'Third Year (T.Y.)', branch: 'Information Tech', avatarText: 'RM', email: 'rohan.mehta@vit.edu' },
-      { name: 'Tanvi Kulkarni', role: 'Marketing & PR Lead', year: 'Third Year (T.Y.)', branch: 'AI & Data Science', avatarText: 'TK', email: 'tanvi.kulkarni@vit.edu' },
-      { name: 'Aditya Patil', role: 'Operations & Stalls Head', year: 'Third Year (T.Y.)', branch: 'Production Eng', avatarText: 'AP', email: 'aditya.patil@vit.edu' },
+      { name: 'Vaibhav Kumar Singh', role: 'President', avatarText: 'VS', email: 'vaibhav.singh@vit.edu' },
+      { name: 'Ria Gandhi', role: 'Vice-President', avatarText: 'RG', email: 'ria.gandhi@vit.edu' },
+      { name: 'Tanmay Patil', role: 'Treasurer', avatarText: 'TP', email: 'tanmay.patil@vit.edu' },
+      { name: 'Vishal Arkalwar', role: 'Associate Finance Officer', avatarText: 'VA' },
+      { name: 'Vaishnavi Wadgave', role: 'Event Coordinator', avatarText: 'VW' },
+      { name: 'Sajid Kamal', role: 'Event Coordinator', avatarText: 'SK' },
+      { name: 'Aditi Bang', role: 'Public Relations Officer', avatarText: 'AB' },
+      { name: 'Vedant Gaikwad', role: 'Public Relations Officer', avatarText: 'VG' },
+      { name: 'Suraj Doifode', role: 'Operations & Logistics Head', avatarText: 'SD' },
+      { name: 'Aditya Samale', role: 'Operations & Logistics Head', avatarText: 'AS' },
+      { name: 'Samruddhi Kala', role: 'HR & Documentation Head', avatarText: 'SK' },
+      { name: 'Himanshi Jain', role: 'Marketing & Media Direction', avatarText: 'HJ' },
+      { name: 'Paras Pawar', role: 'Technical Head', avatarText: 'PP' },
+      { name: 'Kavya Dhawale', role: 'Startup Executive', avatarText: 'KD' },
+      { name: 'Pratik Jadhao', role: 'Finance Lead Manager', avatarText: 'PJ' },
     ],
     flagshipEvents: [
       {
@@ -254,7 +285,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 2. COMPUTER SOCIETY OF INDIA — VIT CHAPTER (CSI VIT) — DEEP PROFILE
+  // 2. COMPUTER SOCIETY OF INDIA — VIT CHAPTER (CSI VIT)
   // =========================================================================
   {
     id: 'VIT_CSI',
@@ -264,7 +295,6 @@ export const CLUBS: Club[] = [
     tagline: 'Innovate, Integrate, Inspire — Advancing Computing Excellence',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi Main Campus',
     workshopOrRoom: 'CSI Technical Laboratory 104, Computer Dept',
     facultyMentor: 'Prof. Ghadekar P.P.',
@@ -321,11 +351,11 @@ export const CLUBS: Club[] = [
       }
     ],
     coreCommittee: [
-      { name: 'Prathamesh Kulkarni', role: 'President', year: 'Final Year (B.E.)', branch: 'Computer Eng', avatarText: 'PK', email: 'prathamesh.kulkarni@vit.edu' },
-      { name: 'Shruti Gaikwad', role: 'Vice President', year: 'Third Year (T.Y.)', branch: 'Computer Eng', avatarText: 'SG', email: 'shruti.gaikwad@vit.edu' },
-      { name: 'Aryan Sharma', role: 'Technical Head', year: 'Third Year (T.Y.)', branch: 'Computer Eng', avatarText: 'AS', email: 'aryan.sharma@vit.edu' },
-      { name: 'Neha Deshmukh', role: 'Webmaster & DevOps', year: 'Third Year (T.Y.)', branch: 'Information Tech', avatarText: 'ND', email: 'neha.deshmukh@vit.edu' },
-      { name: 'Atharva Joshi', role: 'Treasurer & Operations', year: 'Third Year (T.Y.)', branch: 'AI & Data Science', avatarText: 'AJ', email: 'atharva.joshi@vit.edu' },
+      { name: 'Prathamesh Kulkarni', role: 'President', avatarText: 'PK', email: 'prathamesh.kulkarni@vit.edu' },
+      { name: 'Shruti Gaikwad', role: 'Vice President', avatarText: 'SG', email: 'shruti.gaikwad@vit.edu' },
+      { name: 'Aryan Sharma', role: 'Technical Head', avatarText: 'AS', email: 'aryan.sharma@vit.edu' },
+      { name: 'Neha Deshmukh', role: 'Webmaster & DevOps', avatarText: 'ND', email: 'neha.deshmukh@vit.edu' },
+      { name: 'Atharva Joshi', role: 'Treasurer & Operations', avatarText: 'AJ', email: 'atharva.joshi@vit.edu' },
     ],
     flagshipEvents: [
       {
@@ -373,7 +403,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 3. SAE TEAM GRIFFIN (FORMULA STUDENT RACING) — TIER 1 FLAGSHIP
+  // 3. SAE TEAM GRIFFIN (FORMULA STUDENT RACING)
   // =========================================================================
   {
     id: 'VIT_SAE_GRIFFIN',
@@ -383,7 +413,6 @@ export const CLUBS: Club[] = [
     tagline: 'Precision Engineering at 140 km/h',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi Workshop Ground Floor',
     workshopOrRoom: 'Formula Racing R&D Workshop Bay 1',
     facultyMentor: 'Prof. Sachin Komble',
@@ -401,7 +430,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 4. THE ROBOTICS FORUM (TRF) — TIER 1 FLAGSHIP
+  // 4. THE ROBOTICS FORUM (TRF)
   // =========================================================================
   {
     id: 'VIT_TRF',
@@ -411,7 +440,6 @@ export const CLUBS: Club[] = [
     tagline: 'Design, Build, Dominate — Robocon National Champions',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi Robotics Lab',
     workshopOrRoom: 'Advanced Robotics R&D Lab 002',
     facultyMentor: 'Prof. Kalpesh Joshi',
@@ -428,7 +456,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 5. GEDIT TECHNICAL CLUB — TIER 1 FLAGSHIP
+  // 5. GEDIT TECHNICAL CLUB
   // =========================================================================
   {
     id: 'VIT_GEDIT',
@@ -438,7 +466,6 @@ export const CLUBS: Club[] = [
     tagline: 'Code, Create, Deploy — Hackathon Powerhouse',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi CS Labs',
     workshopOrRoom: 'GedIT Software Studio Lab 304',
     facultyMentor: 'Prof. Pankaj Kunekar',
@@ -455,7 +482,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 6. VICULP (MÉLANGE CULTURAL COMMITTEE) — TIER 1 FLAGSHIP
+  // 6. VICULP (MÉLANGE CULTURAL COMMITTEE)
   // =========================================================================
   {
     id: 'VIT_MELANGE',
@@ -465,7 +492,6 @@ export const CLUBS: Club[] = [
     tagline: 'The Soul of Campus Culture & Celebration',
     collegeId: 'VIT_PUNE',
     vertical: 'Cultural',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi Main Campus',
     workshopOrRoom: 'Student Activities Council Room 101',
     facultyMentor: 'Prof. Deshpande D.R.',
@@ -481,7 +507,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 7. AAROH MUSIC CLUB — TIER 1 FLAGSHIP
+  // 7. AAROH MUSIC CLUB
   // =========================================================================
   {
     id: 'VIT_AAROH',
@@ -491,7 +517,6 @@ export const CLUBS: Club[] = [
     tagline: 'Harmonizing Beats, Igniting Melodies',
     collegeId: 'VIT_PUNE',
     vertical: 'Cultural',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi Amphitheatre',
     facultyMentor: 'Prof. Kanjalkar Jyoti',
     establishedYear: 2013,
@@ -505,7 +530,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 8. VIT SPORTS CLUB — TIER 1 FLAGSHIP
+  // 8. VIT SPORTS CLUB
   // =========================================================================
   {
     id: 'VIT_SPORTS_CLUB',
@@ -515,7 +540,6 @@ export const CLUBS: Club[] = [
     tagline: 'Strength, Endurance, Glory on the Field',
     collegeId: 'VIT_PUNE',
     vertical: 'Sports',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi & Kondhwa Grounds',
     facultyMentor: 'Prof. Bhanuse, Phatangare and Patare',
     establishedYear: 1998,
@@ -529,7 +553,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 9. THE SPEAKERS CLUB & SPEAKERS ARENA — TIER 1 FLAGSHIP
+  // 9. THE SPEAKERS CLUB & SPEAKERS ARENA
   // =========================================================================
   {
     id: 'VIT_SPEAKERS_CLUB',
@@ -539,7 +563,6 @@ export const CLUBS: Club[] = [
     tagline: 'Art of Rhetoric, Mastery of Debate',
     collegeId: 'VIT_PUNE',
     vertical: 'Literary',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi Audi 1',
     facultyMentor: 'Prof. Vaishali Savale',
     establishedYear: 2016,
@@ -553,7 +576,7 @@ export const CLUBS: Club[] = [
   },
 
   // =========================================================================
-  // 10. TEDX VIT PUNE — TIER 1 FLAGSHIP
+  // 10. TEDX VIT PUNE
   // =========================================================================
   {
     id: 'VIT_TEDX',
@@ -563,7 +586,6 @@ export const CLUBS: Club[] = [
     tagline: 'Ideas Worth Spreading',
     collegeId: 'VIT_PUNE',
     vertical: 'Literary',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi',
     facultyMentor: 'Prof. Jayashree Jankar',
     establishedYear: 2015,
@@ -576,7 +598,7 @@ export const CLUBS: Club[] = [
     logoBg: '#E11D48',
   },
 
-  // Remaining Approved Clubs (Departmental & Special Interest)
+  // Other Approved Clubs
   {
     id: 'VIT_COMPSA',
     clubNo: 'VIT/SA/25-26/T-019',
@@ -584,7 +606,6 @@ export const CLUBS: Club[] = [
     shortName: 'COMPSA',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
-    tier: 'Tier 2 (Departmental)',
     campus: 'Bibwewadi CS Dept',
     facultyMentor: 'Prof. Shaileja Uke',
     establishedYear: 2002,
@@ -603,7 +624,6 @@ export const CLUBS: Club[] = [
     shortName: 'AISA (AI Forum)',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
-    tier: 'Tier 2 (Departmental)',
     campus: 'Bibwewadi',
     facultyMentor: 'Prof. Sunil Sable',
     establishedYear: 2021,
@@ -622,7 +642,6 @@ export const CLUBS: Club[] = [
     shortName: 'MESA',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
-    tier: 'Tier 2 (Departmental)',
     campus: 'Bibwewadi Mechanical Dept',
     facultyMentor: 'Prof. Shinde S.S. & Prof. Shyamkuwar S.C.',
     establishedYear: 2000,
@@ -641,7 +660,6 @@ export const CLUBS: Club[] = [
     shortName: 'ByteForge',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
-    tier: 'Tier 2 (Departmental)',
     campus: 'Bibwewadi ENTC Dept',
     facultyMentor: 'Prof. Jyoti Madake',
     establishedYear: 2020,
@@ -660,7 +678,6 @@ export const CLUBS: Club[] = [
     shortName: 'NSS VIT Pune',
     collegeId: 'VIT_PUNE',
     vertical: 'Social',
-    tier: 'Tier 1 (Flagship)',
     campus: 'Bibwewadi',
     facultyMentor: 'Prof. Gambhire',
     establishedYear: 2000,
@@ -679,7 +696,6 @@ export const CLUBS: Club[] = [
     shortName: 'Antariksh',
     collegeId: 'VIT_PUNE',
     vertical: 'Others',
-    tier: 'Special Interest',
     campus: 'Bibwewadi',
     facultyMentor: 'Prof. Shital Powar & Prof. Milind Patil',
     establishedYear: 2016,
@@ -690,6 +706,166 @@ export const CLUBS: Club[] = [
     recruitmentDeadline: '29 Aug 2026',
     recruitmentRoles: ['Observational Lead', 'Payload Engineer'],
     logoBg: '#312E81',
+  },
+];
+
+// =========================================================================
+// COMPETITIONS (UNSTOP-INSPIRED HUB)
+// =========================================================================
+export const COMPETITIONS: CompetitionItem[] = [
+  {
+    id: 'COMP_01',
+    title: 'Pune TechFest Grand Hackathon 2026',
+    organizer: 'GedIT Technical Club',
+    organizerLogoBg: '#185FA5',
+    collegeName: 'VIT Pune',
+    category: 'Hackathons',
+    mode: 'Hybrid',
+    location: 'Sharad Arena Auditorium & CS Labs 1-4',
+    teamSize: '1 - 4 Members',
+    minTeam: 1,
+    maxTeam: 4,
+    tags: ['AI/ML', 'Web3', 'Smart Campus', 'FinTech'],
+    daysLeft: '8 days left',
+    deadlineDate: '26 Aug 2026',
+    prizePool: '₹1,00,000',
+    entryFee: 0,
+    registeredCount: 320,
+    description: '36-Hour Hackathon with tracks in AI/ML, Web3, FinTech, and Smart Campus. Open to students across all colleges.',
+    eligibility: 'All Engineering & Tech Students',
+    isRegistered: true,
+  },
+  {
+    id: 'COMP_02',
+    title: 'Vishwa B-Plan & Startup Pitch 2026',
+    organizer: 'EDC / E-Cell VIT Pune',
+    organizerLogoBg: '#854F0B',
+    collegeName: 'VIT Pune',
+    category: 'B-Plan & Case Studies',
+    mode: 'Offline On-Campus',
+    location: 'Incubation Center Room 402',
+    teamSize: '1 - 5 Members',
+    minTeam: 1,
+    maxTeam: 5,
+    tags: ['Startup Pitch', 'Venture Capital', 'Business Model', 'Seed Grant'],
+    daysLeft: '4 days left',
+    deadlineDate: '22 Aug 2026',
+    prizePool: '₹50,000 Seed Fund',
+    entryFee: 0,
+    registeredCount: 145,
+    description: 'National business plan competition evaluated by prominent Angel Investors, VCs, and successful alumni founders.',
+    eligibility: 'Open to all UG/PG college students',
+    isRegistered: false,
+  },
+  {
+    id: 'COMP_03',
+    title: 'CodeKaze — Inter-College Algorithmic Clash',
+    organizer: 'CSI VIT Chapter',
+    organizerLogoBg: '#0284C7',
+    collegeName: 'VIT Pune',
+    category: 'Hackathons',
+    mode: 'Online',
+    location: 'Online (Codeforces / HackerEarth)',
+    teamSize: 'Individual Participation',
+    minTeam: 1,
+    maxTeam: 1,
+    tags: ['Competitive Coding', 'DSA', 'C++', 'Algorithms'],
+    daysLeft: '11 days left',
+    deadlineDate: '29 Aug 2026',
+    prizePool: '₹35,000',
+    entryFee: 0,
+    registeredCount: 480,
+    description: 'High-octane competitive programming battle with real-time dynamic scoreboards and speed-coding rounds.',
+    eligibility: 'Open to all college coders',
+    isRegistered: false,
+  },
+  {
+    id: 'COMP_04',
+    title: 'Inter-College Parliamentary Debate Championship',
+    organizer: 'Speakers Arena VIT',
+    organizerLogoBg: '#534AB7',
+    collegeName: 'VIT Pune',
+    category: 'Quizzes & CTFs',
+    mode: 'Offline On-Campus',
+    location: 'Audi 1, Ground Floor',
+    teamSize: '1 - 2 Members',
+    minTeam: 1,
+    maxTeam: 2,
+    tags: ['Debate', 'Model UN', 'Policy', 'Rhetoric'],
+    daysLeft: '10 days left',
+    deadlineDate: '28 Aug 2026',
+    prizePool: '₹25,000',
+    entryFee: 0,
+    registeredCount: 95,
+    description: 'Asian Parliamentary format debate tournament debating economic, ethical AI, and national policy matters.',
+    eligibility: 'Undergraduate College Teams',
+    isRegistered: false,
+  },
+  {
+    id: 'COMP_05',
+    title: 'VishwaCryptix 2026: 24-Hour Capture The Flag (CTF)',
+    organizer: 'Cyber Cell VIT',
+    organizerLogoBg: '#047857',
+    collegeName: 'VIT Pune',
+    category: 'Quizzes & CTFs',
+    mode: 'Online',
+    location: 'Online CTF Arena',
+    teamSize: '1 - 3 Members',
+    minTeam: 1,
+    maxTeam: 3,
+    tags: ['Cybersecurity', 'Web Exploitation', 'Cryptography', 'Forensics'],
+    daysLeft: '14 days left',
+    deadlineDate: '01 Sep 2026',
+    prizePool: '₹40,000',
+    entryFee: 0,
+    registeredCount: 260,
+    description: 'Jeopardy-style CTF challenge featuring Web security, reverse engineering, cryptography, and network forensics.',
+    eligibility: 'Open to all engineering students',
+    isRegistered: false,
+  },
+  {
+    id: 'COMP_06',
+    title: 'Autonomous Rover Obstacle Challenge',
+    organizer: 'The Robotics Forum (TRF)',
+    organizerLogoBg: '#1E3A8A',
+    collegeName: 'VIT Pune',
+    category: 'Hackathons',
+    mode: 'Offline On-Campus',
+    location: 'Kondhwa Campus Arena',
+    teamSize: '2 - 4 Members',
+    minTeam: 2,
+    maxTeam: 4,
+    tags: ['Robotics', 'ROS', 'Computer Vision', 'Embedded C'],
+    daysLeft: '18 days left',
+    deadlineDate: '05 Sep 2026',
+    prizePool: '₹60,000',
+    entryFee: 100,
+    registeredCount: 70,
+    description: 'Design and deploy an autonomous rover to navigate complex obstacle courses using LiDAR and computer vision.',
+    eligibility: 'Engineering Robotics & Hardware Teams',
+    isRegistered: false,
+  },
+  {
+    id: 'COMP_07',
+    title: 'Mélange Battle of the Bands & Acoustic Clash',
+    organizer: 'Aaroh Music Club & Mélange',
+    organizerLogoBg: '#7C3AED',
+    collegeName: 'VIT Pune',
+    category: 'Cultural & Sports',
+    mode: 'Offline On-Campus',
+    location: 'Campus Amphitheatre',
+    teamSize: '1 - 5 Members',
+    minTeam: 1,
+    maxTeam: 5,
+    tags: ['Music', 'Rock Bands', 'Acoustic', 'Vocals'],
+    daysLeft: '12 days left',
+    deadlineDate: '30 Aug 2026',
+    prizePool: '₹30,000',
+    entryFee: 0,
+    registeredCount: 45,
+    description: 'Inter-college musical face-off judged by leading Pune musicians and independent recording artists.',
+    eligibility: 'All College Music Bands',
+    isRegistered: false,
   },
 ];
 
