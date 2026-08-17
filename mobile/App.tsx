@@ -43,7 +43,11 @@ function MainApp() {
         )}
 
         {activeTab === 'events' && (
-          <EventsScreen events={events} onRSVP={handleRSVP} />
+          <EventsScreen 
+            events={events} 
+            onRSVP={handleRSVP} 
+            onNavigateToTickets={() => setActiveTab('tickets')}
+          />
         )}
 
         {activeTab === 'clubs' && <ClubsScreen />}
