@@ -3,39 +3,72 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal,
 import { Ionicons } from '@expo/vector-icons';
 import { Club, CLUBS } from '../data/mockData';
 
+type SortOption = 'members' | 'hiring' | 'tier' | 'alphabetical' | 'year';
+
 export default function ClubsScreen() {
-  const [selectedFilter, setSelectedFilter] = useState<string>('All');
+  const [selectedDomain, setSelectedDomain] = useState<string>('All');
+  const [sortBy, setSortBy] = useState<SortOption>('tier');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [appliedRoles, setAppliedRoles] = useState<{ [key: string]: boolean }>({});
+  const [showSortModal, setShowSortModal] = useState(false);
 
-  const filterOptions = [
-    'All',
-    'Tier 1 (Flagship)',
-    'Technical',
-    'Tier 2 (Departmental)',
-    'Entrepreneurship',
-    'Literary',
-    'Cultural'
+  const domainOptions = [
+    { label: 'All', count: CLUBS.length },
+    { label: 'Technical', count: CLUBS.filter(c => c.vertical === 'Technical').length },
+    { label: 'Cultural', count: CLUBS.filter(c => c.vertical === 'Cultural').length },
+    { label: 'Sports', count: CLUBS.filter(c => c.vertical === 'Sports').length },
+    { label: 'Entrepreneurship', count: CLUBS.filter(c => c.vertical === 'Entrepreneurship').length },
+    { label: 'Literary', count: CLUBS.filter(c => c.vertical === 'Literary').length },
+    { label: 'Social', count: CLUBS.filter(c => c.vertical === 'Social').length },
+    { label: 'Others', count: CLUBS.filter(c => c.vertical === 'Others').length },
   ];
 
-  const filteredClubs = CLUBS.filter((club) => {
-    // Filter by tier or vertical
-    if (selectedFilter === 'Tier 1 (Flagship)' && club.tier !== 'Tier 1 (Flagship)') return false;
-    if (selectedFilter === 'Tier 2 (Departmental)' && club.tier !== 'Tier 2 (Departmental)') return false;
-    if (selectedFilter !== 'All' && selectedFilter !== 'Tier 1 (Flagship)' && selectedFilter !== 'Tier 2 (Departmental)' && club.vertical !== selectedFilter) return false;
+  const sortLabels: { [key in SortOption]: string } = {
+    tier: '★ Tier 1 (Flagships First)',
+    members: '👥 Most Members (High to Low)',
+    hiring: '🔥 Hiring Open First',
+    alphabetical: '🔤 Alphabetical (A to Z)',
+    year: '🏛️ Established (Heritage)',
+  };
 
-    // Filter by search
+  // 1. Filter by Domain & Search
+  let filteredClubs = CLUBS.filter((club) => {
+    if (selectedDomain !== 'All' && club.vertical !== selectedDomain) return false;
+
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
       return (
         club.name.toLowerCase().includes(q) ||
         club.shortName.toLowerCase().includes(q) ||
         club.facultyMentor.toLowerCase().includes(q) ||
-        club.description.toLowerCase().includes(q)
+        club.description.toLowerCase().includes(q) ||
+        club.clubNo.toLowerCase().includes(q)
       );
     }
     return true;
+  });
+
+  // 2. Sort according to selected sort option
+  filteredClubs.sort((a, b) => {
+    if (sortBy === 'members') {
+      return b.membersCount - a.membersCount;
+    }
+    if (sortBy === 'hiring') {
+      if (a.openRecruitment === b.openRecruitment) return 0;
+      return a.openRecruitment ? -1 : 1;
+    }
+    if (sortBy === 'tier') {
+      const tierRank = { 'Tier 1 (Flagship)': 1, 'Tier 2 (Departmental)': 2, 'Special Interest': 3 };
+      return tierRank[a.tier] - tierRank[b.tier];
+    }
+    if (sortBy === 'alphabetical') {
+      return a.name.localeCompare(b.name);
+    }
+    if (sortBy === 'year') {
+      return a.establishedYear - b.establishedYear;
+    }
+    return 0;
   });
 
   const handleApply = (role: string) => {
@@ -53,12 +86,12 @@ export default function ClubsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>College Clubs & Chapters</Text>
-        <Text style={styles.headerSub}>Explore 75+ Tier 1 & Tier 2 student organizations</Text>
+        <Text style={styles.headerSub}>All {CLUBS.length} Approved Tier 1 & Tier 2 student organizations</Text>
 
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color="#B5D4F4" />
           <TextInput 
-            placeholder="Search clubs, mentors, racing teams..." 
+            placeholder="Search clubs, mentors, racing teams, code..." 
             placeholderTextColor="#B5D4F4"
             style={styles.searchInput}
             value={searchQuery}
@@ -72,27 +105,36 @@ export default function ClubsScreen() {
         </View>
       </View>
 
-      {/* Filter Chips */}
+      {/* Domain / Category Filter Chips */}
       <View style={styles.chipsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
-          {filterOptions.map((f) => (
+          {domainOptions.map((opt) => (
             <TouchableOpacity 
-              key={f}
-              style={[styles.chip, selectedFilter === f && styles.chipActive]}
-              onPress={() => setSelectedFilter(f)}
+              key={opt.label}
+              style={[styles.chip, selectedDomain === opt.label && styles.chipActive]}
+              onPress={() => setSelectedDomain(opt.label)}
             >
-              <Text style={[styles.chipText, selectedFilter === f && styles.chipTextActive]}>{f}</Text>
+              <Text style={[styles.chipText, selectedDomain === opt.label && styles.chipTextActive]}>
+                {opt.label} ({opt.count})
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
+      {/* Sort Bar & Result Counter */}
+      <View style={styles.sortBar}>
+        <Text style={styles.resultCountText}>
+          {filteredClubs.length} Clubs in {selectedDomain}
+        </Text>
+        <TouchableOpacity style={styles.sortBtn} onPress={() => setShowSortModal(true)}>
+          <Ionicons name="swap-vertical" size={14} color="#0C447C" />
+          <Text style={styles.sortBtnText}>{sortLabels[sortBy]}</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Clubs List */}
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-        <View style={styles.resultCountRow}>
-          <Text style={styles.resultCountText}>Showing {filteredClubs.length} Active Clubs in VIT Pune</Text>
-        </View>
-
         {filteredClubs.map((club) => (
           <TouchableOpacity 
             key={club.id} 
@@ -130,6 +172,10 @@ export default function ClubsScreen() {
                   <Ionicons name="location-outline" size={12} color="#64748b" />
                   <Text style={styles.statItemText}>{club.campus}</Text>
                 </View>
+                <View style={styles.statItem}>
+                  <Ionicons name="calendar-outline" size={12} color="#64748b" />
+                  <Text style={styles.statItemText}>Est. {club.establishedYear}</Text>
+                </View>
               </View>
             </View>
 
@@ -140,7 +186,39 @@ export default function ClubsScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Detailed Club Modal */}
+      {/* SORT SELECTION MODAL */}
+      {showSortModal && (
+        <Modal visible={true} transparent={true} animationType="fade" onRequestClose={() => setShowSortModal(false)}>
+          <View style={styles.sortModalOverlay}>
+            <View style={styles.sortModalBox}>
+              <View style={styles.sortModalTop}>
+                <Text style={styles.sortModalHeadline}>Sort Clubs By</Text>
+                <TouchableOpacity onPress={() => setShowSortModal(false)}>
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {(Object.keys(sortLabels) as SortOption[]).map((key) => (
+                <TouchableOpacity 
+                  key={key} 
+                  style={[styles.sortOptionRow, sortBy === key && styles.sortOptionRowActive]}
+                  onPress={() => {
+                    setSortBy(key);
+                    setShowSortModal(false);
+                  }}
+                >
+                  <Text style={[styles.sortOptionText, sortBy === key && styles.sortOptionTextActive]}>
+                    {sortLabels[key]}
+                  </Text>
+                  {sortBy === key && <Ionicons name="checkmark-circle" size={18} color="#0C447C" />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* DETAILED CLUB MODAL */}
       {selectedClub && (
         <Modal 
           visible={true} 
@@ -302,18 +380,39 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  list: {
-    flex: 1,
-    padding: 14,
-  },
-  resultCountRow: {
-    marginBottom: 8,
+  sortBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
   resultCountText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#64748b',
+    fontWeight: '700',
+    color: '#64748B',
     textTransform: 'uppercase',
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E6F1FB',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  sortBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0C447C',
+  },
+  list: {
+    flex: 1,
+    padding: 14,
   },
   clubCard: {
     backgroundColor: '#fff',
@@ -384,7 +483,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   clubName: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '700',
     color: '#1e293b',
     marginBottom: 1,
@@ -403,12 +502,13 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
+    flexWrap: 'wrap',
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   statItemText: {
     fontSize: 10,
@@ -570,5 +670,53 @@ const styles = StyleSheet.create({
   },
   applyBtnTextDone: {
     color: '#fff',
+  },
+  sortModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  sortModalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
+    width: '100%',
+    maxWidth: 340,
+  },
+  sortModalTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 10,
+    marginBottom: 10,
+  },
+  sortModalHeadline: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  sortOptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  sortOptionRowActive: {
+    backgroundColor: '#E6F1FB',
+  },
+  sortOptionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  sortOptionTextActive: {
+    color: '#0C447C',
+    fontWeight: '700',
   },
 });
