@@ -228,10 +228,10 @@ export default function HomeScreen({
           <View style={styles.modalOverlay}>
             <View style={styles.notifModal}>
               <View style={styles.notifHeader}>
-                <div>
+                <View>
                   <Text style={styles.notifHeadline}>Announcements & Alerts</Text>
                   <Text style={styles.notifSub}>{unreadCount} unread notices for Pranav Vasu</Text>
-                </div>
+                </View>
                 <TouchableOpacity onPress={() => setShowNotifications(false)} style={styles.closeBtn}>
                   <Ionicons name="close" size={20} color="#64748B" />
                 </TouchableOpacity>

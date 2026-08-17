@@ -120,8 +120,7 @@ export default function ProfileScreen() {
                 <Text style={styles.certPrn}>PRN: {CURRENT_USER.prn} · Third Year Computer Engineering</Text>
 
                 <Text style={styles.certBody}>
-                  for outstanding performance & securing <strong>1st Place (Championship Trophy)</strong> at the 
-                  <strong> Pune TechFest Grand Hackathon 2026</strong> organized by GedIT Technical Club.
+                  for outstanding performance & securing 1st Place (Championship Trophy) at the Pune TechFest Grand Hackathon 2026 organized by GedIT Technical Club.
                 </Text>
 
                 <View style={styles.certFooter}>
@@ -164,10 +163,10 @@ export default function ProfileScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.transcriptCard}>
               <View style={styles.transcriptTop}>
-                <div>
+                <View>
                   <Text style={styles.transcriptTitle}>Co-Curricular Activity Transcript</Text>
                   <Text style={styles.transcriptSub}>AY 2025–26 & 2026–27 · NAAC Criterion 5.3</Text>
-                </div>
+                </View>
                 <TouchableOpacity onPress={() => setShowTranscript(false)}>
                   <Ionicons name="close" size={20} color="#64748B" />
                 </TouchableOpacity>

@@ -169,7 +169,7 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
               {evt.status === 'past' ? (
                 <View style={styles.winnerCard}>
                   <Ionicons name="trophy" size={14} color="#D97706" />
-                  <Text style={styles.winnerText}>🏆 Champion: <strong>{evt.winner}</strong> ({evt.winningCollege})</Text>
+                  <Text style={styles.winnerText}>🏆 Champion: {evt.winner} ({evt.winningCollege})</Text>
                 </View>
               ) : (
                 <View style={styles.cardFooter}>
@@ -208,10 +208,10 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
               {!paymentSuccess ? (
                 <>
                   <View style={styles.modalTopRow}>
-                    <div>
+                    <View>
                       <Text style={styles.modalHeadline}>Event Pass Checkout</Text>
                       <Text style={styles.modalSub}>{selectedEvent.clubName}</Text>
-                    </div>
+                    </View>
                     <TouchableOpacity onPress={() => setShowCheckout(false)} style={styles.closeIcon}>
                       <Ionicons name="close" size={20} color="#64748B" />
                     </TouchableOpacity>
@@ -284,7 +284,7 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
                   </View>
                   <Text style={styles.successHeadline}>Registration Confirmed!</Text>
                   <Text style={styles.successDesc}>
-                    Your digital pass has been generated with your verified PRN: <strong>{CURRENT_USER.prn}</strong>
+                    Your digital pass has been generated with your verified PRN: {CURRENT_USER.prn}
                   </Text>
 
                   <View style={styles.tokenBox}>
