@@ -1,15 +1,24 @@
-import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { College, EventItem, COLLEGES } from '../data/mockData';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLLEGES, EventItem } from '../data/mockData';
 
 interface HomeScreenProps {
   selectedCollege: string;
-  onSelectCollege: (college: string) => void;
+  onSelectCollege: (collegeName: string) => void;
   events: EventItem[];
   onRSVP: (eventId: string) => void;
   onNavigateToEvents: () => void;
   onNavigateToTickets: () => void;
+}
+
+interface NotificationItem {
+  id: string;
+  type: 'event' | 'recruitment' | 'trophy' | 'notice';
+  title: string;
+  message: string;
+  time: string;
+  isRead: boolean;
 }
 
 export default function HomeScreen({
@@ -20,7 +29,53 @@ export default function HomeScreen({
   onNavigateToEvents,
   onNavigateToTickets,
 }: HomeScreenProps) {
-  const upcomingEvents = events.filter(e => e.status === 'upcoming');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifFilter, setNotifFilter] = useState<'all' | 'event' | 'recruitment' | 'notice'>('all');
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 'N1',
+      type: 'event',
+      title: 'Hackathon Gate Pass Ready 🎟️',
+      message: 'Your All-Access Pass for Pune TechFest Grand Hackathon 2026 is confirmed. Check the Tickets tab for your QR code.',
+      time: '10 mins ago',
+      isRead: false,
+    },
+    {
+      id: 'N2',
+      type: 'recruitment',
+      title: 'Interview Call: GedIT Web Dev Lead 👥',
+      message: 'Congratulations Pranav! Your application has been shortlisted based on your verified 8.85 CGPA. Interview on 28 Aug.',
+      time: '2 hours ago',
+      isRead: false,
+    },
+    {
+      id: 'N3',
+      type: 'notice',
+      title: 'Dean Student Affairs Notice 🏛️',
+      message: 'Venue allocation for Earn & Sell 2026 at Bibwewadi Ground is officially approved. Core committee setup begins at 8 AM.',
+      time: '1 day ago',
+      isRead: true,
+    },
+    {
+      id: 'N4',
+      type: 'trophy',
+      title: 'Inter-College Leaderboard Updated 🏆',
+      message: 'VIT Pune holds #2 rank in Maharashtra with 12 championship trophies and ₹2.85 Lakhs won.',
+      time: '2 days ago',
+      isRead: true,
+    },
+  ]);
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const filteredNotifs = notifications.filter(n => {
+    if (notifFilter === 'all') return true;
+    return n.type === notifFilter;
+  });
 
   return (
     <View style={styles.container}>
@@ -41,9 +96,9 @@ export default function HomeScreen({
           </View>
 
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TouchableOpacity style={styles.iconButton} onPress={() => setShowNotifications(true)}>
               <Ionicons name="notifications-outline" size={22} color="#fff" />
-              <View style={styles.notifBadge} />
+              {unreadCount > 0 && <View style={styles.notifBadge} />}
             </TouchableOpacity>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>PV</Text>
@@ -74,89 +129,91 @@ export default function HomeScreen({
               style={[styles.chip, selectedCollege === c.shortName && styles.chipActive]}
               onPress={() => onSelectCollege(c.shortName)}
             >
-              <Text style={[styles.chipText, selectedCollege === c.shortName && styles.chipTextActive]}>{c.shortName}</Text>
+              <Text style={[styles.chipText, selectedCollege === c.shortName && styles.chipTextActive]}>
+                {c.shortName}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      {/* Main Feed */}
-      <ScrollView style={styles.feed} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Quick Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total Clubs</Text>
-            <Text style={styles.statValue}>78</Text>
-            <Text style={styles.statTrend}>+3 this semester</Text>
+            <Text style={styles.statLabel}>Total Approved Clubs</Text>
+            <Text style={styles.statNumber}>78</Text>
+            <Text style={styles.statSubText}>+3 Tier 1 teams</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Upcoming Events</Text>
-            <Text style={styles.statValue}>24</Text>
-            <Text style={styles.statSub}>Next 30 days</Text>
+            <Text style={styles.statLabel}>Upcoming Fests</Text>
+            <Text style={styles.statNumber}>24</Text>
+            <Text style={styles.statSubText}>12 Inter-Collegiate</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Open Recruitments</Text>
-            <Text style={[styles.statValue, { color: '#0C447C' }]}>11</Text>
-            <Text style={styles.statSub}>SY & TY eligible</Text>
+            <Text style={styles.statNumber}>11</Text>
+            <Text style={styles.statSubText}>SY & TY eligible (≥7.0)</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Prize Pool</Text>
-            <Text style={[styles.statValue, { color: '#27500A' }]}>₹2.4L</Text>
-            <Text style={styles.statSub}>In Hackathons</Text>
+            <Text style={styles.statLabel}>Total Prize Pools</Text>
+            <Text style={[styles.statNumber, { color: '#D97706' }]}>₹2.4L</Text>
+            <Text style={styles.statSubText}>In Hackathons</Text>
           </View>
         </View>
 
-        {/* Inter-College Grand Hackathon Banner */}
-        <View style={styles.bannerCard}>
-          <View style={styles.bannerHeader}>
-            <View style={styles.bannerTag}>
-              <Ionicons name="trophy" size={13} color="#FBBF24" />
-              <Text style={styles.bannerTagText}>Inter-College Grand Hackathon</Text>
+        {/* Featured Hackathon Alert Banner */}
+        <View style={styles.hackathonBanner}>
+          <View style={styles.hackathonHeader}>
+            <View style={styles.hackathonBadge}>
+              <Ionicons name="trophy" size={12} color="#D97706" />
+              <Text style={styles.hackathonBadgeText}>Inter-College Grand Hackathon</Text>
             </View>
-            <Text style={styles.bannerPrize}>₹1,00,000</Text>
+            <Text style={styles.hackathonPrize}>₹1,00,000</Text>
           </View>
-          <Text style={styles.bannerTitle}>Pune TechFest Hackathon 2026</Text>
-          <Text style={styles.bannerSubtitle}>Organized by GedIT & IEEE · Open to all Pune Colleges</Text>
-          <TouchableOpacity style={styles.bannerBtn} onPress={onNavigateToTickets}>
-            <Text style={styles.bannerBtnText}>View My Digital Pass</Text>
-            <Ionicons name="qr-code-outline" size={16} color="#0C447C" />
+          <Text style={styles.hackathonTitle}>Pune TechFest Hackathon 2026</Text>
+          <Text style={styles.hackathonSub}>Organized by GedIT & IEEE · Sharad Arena & CS Labs</Text>
+          <TouchableOpacity style={styles.hackathonBtn} onPress={onNavigateToTickets}>
+            <Text style={styles.hackathonBtnText}>View My Digital Pass ➔</Text>
           </TouchableOpacity>
         </View>
 
         {/* Featured Events Section */}
-        <View style={styles.sectionRow}>
-          <Text style={styles.sectionTitle}>Featured Events</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Featured Events & Stalls</Text>
           <TouchableOpacity onPress={onNavigateToEvents}>
-            <Text style={styles.seeAllText}>See all ({upcomingEvents.length})</Text>
+            <Text style={styles.seeAllText}>See all ({events.length})</Text>
           </TouchableOpacity>
         </View>
 
-        {upcomingEvents.map((evt) => (
-          <View key={evt.id} style={styles.eventCard}>
-            <View style={[styles.dateBox, evt.vertical === 'Entrepreneurship' ? { backgroundColor: '#FAEEDA' } : evt.vertical === 'Literary' ? { backgroundColor: '#EEEDFE' } : null]}>
-              <Text style={[styles.dateMonth, evt.vertical === 'Entrepreneurship' ? { color: '#854F0B' } : evt.vertical === 'Literary' ? { color: '#534AB7' } : null]}>{evt.month}</Text>
-              <Text style={[styles.dateDay, evt.vertical === 'Entrepreneurship' ? { color: '#633806' } : evt.vertical === 'Literary' ? { color: '#26215C' } : null]}>{evt.day}</Text>
-            </View>
-
-            <View style={styles.eventInfo}>
-              <View style={styles.badgeRow}>
-                <Text style={styles.verticalBadge}>{evt.vertical}</Text>
-                {evt.scope === 'Pune-Wide' && <Text style={styles.scopeBadge}>Pune-Wide</Text>}
+        {/* Event Cards */}
+        {events.slice(0, 3).map((event) => (
+          <View key={event.id} style={styles.eventCard}>
+            <View style={styles.eventLeft}>
+              <View style={[styles.dateBlock, event.vertical === 'Technical' ? styles.dateTech : styles.dateCult]}>
+                <Text style={styles.dateMonth}>{event.month}</Text>
+                <Text style={styles.dateDay}>{event.day}</Text>
               </View>
-              <Text style={styles.eventTitle} numberOfLines={1}>{evt.title}</Text>
-              <Text style={styles.eventDesc}>{evt.clubName}</Text>
-              <View style={styles.locRow}>
-                <Ionicons name="location-outline" size={12} color="#64748b" />
-                <Text style={styles.locText} numberOfLines={1}>{evt.venue}</Text>
+              <View style={styles.eventInfo}>
+                <View style={styles.badgeRow}>
+                  <Text style={styles.verticalTag}>{event.vertical}</Text>
+                  <Text style={styles.scopeTag}>{event.scope}</Text>
+                </View>
+                <Text style={styles.eventTitle}>{event.title}</Text>
+                <Text style={styles.clubName}>{event.clubName}</Text>
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={12} color="#64748b" />
+                  <Text style={styles.locationText} numberOfLines={1}>{event.venue}</Text>
+                </View>
               </View>
             </View>
 
             <TouchableOpacity 
-              style={[styles.ticketBtn, evt.isRegistered && styles.ticketBtnActive]}
-              onPress={() => onRSVP(evt.id)}
+              style={[styles.rsvpButton, event.isRegistered && styles.rsvpButtonActive]}
+              onPress={() => onRSVP(event.id)}
             >
-              <Text style={[styles.ticketBtnText, evt.isRegistered && styles.ticketBtnTextActive]}>
-                {evt.isRegistered ? 'Going ✓' : 'RSVP'}
+              <Text style={[styles.rsvpText, event.isRegistered && styles.rsvpTextActive]}>
+                {event.isRegistered ? 'Going ✓' : 'RSVP'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -164,6 +221,80 @@ export default function HomeScreen({
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* NOTIFICATIONS & ANNOUNCEMENTS CENTER MODAL */}
+      {showNotifications && (
+        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowNotifications(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.notifModal}>
+              <View style={styles.notifHeader}>
+                <div>
+                  <Text style={styles.notifHeadline}>Announcements & Alerts</Text>
+                  <Text style={styles.notifSub}>{unreadCount} unread notices for Pranav Vasu</Text>
+                </div>
+                <TouchableOpacity onPress={() => setShowNotifications(false)} style={styles.closeBtn}>
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Filter Row */}
+              <View style={styles.notifFilterRow}>
+                <TouchableOpacity 
+                  style={[styles.notifFilterChip, notifFilter === 'all' && styles.notifFilterChipActive]}
+                  onPress={() => setNotifFilter('all')}
+                >
+                  <Text style={[styles.notifFilterText, notifFilter === 'all' && styles.notifFilterTextActive]}>All</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.notifFilterChip, notifFilter === 'event' && styles.notifFilterChipActive]}
+                  onPress={() => setNotifFilter('event')}
+                >
+                  <Text style={[styles.notifFilterText, notifFilter === 'event' && styles.notifFilterTextActive]}>Events</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.notifFilterChip, notifFilter === 'recruitment' && styles.notifFilterChipActive]}
+                  onPress={() => setNotifFilter('recruitment')}
+                >
+                  <Text style={[styles.notifFilterText, notifFilter === 'recruitment' && styles.notifFilterTextActive]}>Recruitment</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.notifFilterChip, notifFilter === 'notice' && styles.notifFilterChipActive]}
+                  onPress={() => setNotifFilter('notice')}
+                >
+                  <Text style={[styles.notifFilterText, notifFilter === 'notice' && styles.notifFilterTextActive]}>Notices</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Notifications List */}
+              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                {filteredNotifs.map((n) => (
+                  <View key={n.id} style={[styles.notifCard, !n.isRead && styles.notifCardUnread]}>
+                    <View style={styles.notifTopRow}>
+                      <View style={styles.notifTypeBox}>
+                        <Ionicons 
+                          name={n.type === 'event' ? 'ticket-outline' : n.type === 'recruitment' ? 'briefcase-outline' : n.type === 'trophy' ? 'trophy-outline' : 'notifications-outline'} 
+                          size={14} 
+                          color="#0C447C" 
+                        />
+                        <Text style={styles.notifItemTitle}>{n.title}</Text>
+                      </View>
+                      <Text style={styles.notifTime}>{n.time}</Text>
+                    </View>
+                    <Text style={styles.notifMessage}>{n.message}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+
+              {unreadCount > 0 && (
+                <TouchableOpacity style={styles.markReadBtn} onPress={markAllAsRead}>
+                  <Ionicons name="checkmark-done" size={16} color="#0C447C" />
+                  <Text style={styles.markReadText}>Mark all as read</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -181,31 +312,31 @@ const styles = StyleSheet.create({
   },
   headerTop: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   logoBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
     backgroundColor: '#185FA5',
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoText: {
     color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '800',
   },
   brandTitle: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
   },
   collegePicker: {
@@ -215,8 +346,7 @@ const styles = StyleSheet.create({
   },
   collegeText: {
     color: '#85B7EB',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 11,
   },
   headerRight: {
     flexDirection: 'row',
@@ -225,18 +355,16 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     position: 'relative',
-    padding: 6,
+    padding: 4,
   },
   notifBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 2,
+    right: 2,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E24B4A',
-    borderWidth: 1.5,
-    borderColor: '#0C447C',
+    backgroundColor: '#EF4444',
   },
   avatar: {
     width: 32,
@@ -248,13 +376,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: '#fff',
-    fontWeight: '600',
     fontSize: 12,
+    fontWeight: '700',
   },
   greetingSub: {
     color: '#85B7EB',
-    fontSize: 13,
-    marginTop: 4,
+    fontSize: 12,
   },
   greetingName: {
     color: '#fff',
@@ -279,7 +406,7 @@ const styles = StyleSheet.create({
   },
   collegeSelectorContainer: {
     backgroundColor: '#fff',
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
@@ -288,13 +415,13 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 20,
     backgroundColor: '#F1F5F9',
   },
   chipActive: {
-    backgroundColor: '#0C447C',
+    backgroundColor: '#185FA5',
   },
   chipText: {
     fontSize: 12,
@@ -305,10 +432,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-  feed: {
+  body: {
     flex: 1,
-    paddingHorizontal: 14,
-    paddingTop: 12,
+    padding: 14,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -319,126 +445,128 @@ const styles = StyleSheet.create({
   statCard: {
     width: '48.5%',
     backgroundColor: '#fff',
-    borderRadius: 12,
     padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#64748b',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '700',
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '800',
     color: '#1e293b',
+    marginBottom: 1,
   },
-  statTrend: {
+  statSubText: {
     fontSize: 10,
     color: '#16a34a',
-    marginTop: 2,
     fontWeight: '600',
   },
-  statSub: {
-    fontSize: 10,
-    color: '#94a3b8',
-    marginTop: 2,
-  },
-  bannerCard: {
+  hackathonBanner: {
     backgroundColor: '#0C447C',
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
   },
-  bannerHeader: {
+  hackathonHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  bannerTag: {
+  hackathonBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 20,
-    gap: 4,
   },
-  bannerTagText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  bannerPrize: {
+  hackathonBadgeText: {
     color: '#FBBF24',
+    fontSize: 10,
     fontWeight: '700',
+  },
+  hackathonPrize: {
+    color: '#FBBF24',
     fontSize: 14,
+    fontWeight: '800',
   },
-  bannerTitle: {
+  hackathonTitle: {
     color: '#fff',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  bannerSubtitle: {
+  hackathonSub: {
     color: '#93C5FD',
-    fontSize: 12,
+    fontSize: 11,
     marginBottom: 12,
   },
-  bannerBtn: {
+  hackathonBtn: {
     backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingVertical: 9,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
+    paddingVertical: 8,
+    borderRadius: 8,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
   },
-  bannerBtnText: {
+  hackathonBtnText: {
     color: '#0C447C',
+    fontSize: 12,
     fontWeight: '700',
-    fontSize: 13,
   },
-  sectionRow: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: '#1e293b',
   },
   seeAllText: {
     fontSize: 12,
-    color: '#0C447C',
+    color: '#185FA5',
     fontWeight: '600',
   },
   eventCard: {
     backgroundColor: '#fff',
     borderRadius: 14,
     padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    gap: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  dateBox: {
-    width: 48,
-    height: 48,
+  eventLeft: {
+    flexDirection: 'row',
+    gap: 10,
+    flex: 1,
+  },
+  dateBlock: {
+    width: 44,
+    height: 44,
     borderRadius: 10,
-    backgroundColor: '#E6F1FB',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  dateTech: {
+    backgroundColor: '#E6F1FB',
+  },
+  dateCult: {
+    backgroundColor: '#FAEEDA',
   },
   dateMonth: {
-    fontSize: 10,
+    fontSize: 8.5,
     fontWeight: '700',
     color: '#185FA5',
   },
@@ -455,60 +583,164 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 2,
   },
-  verticalBadge: {
-    fontSize: 9,
+  verticalTag: {
+    fontSize: 8.5,
     color: '#185FA5',
     backgroundColor: '#E6F1FB',
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: 1,
-    borderRadius: 4,
+    borderRadius: 3,
     fontWeight: '600',
   },
-  scopeBadge: {
-    fontSize: 9,
-    color: '#854F0B',
-    backgroundColor: '#FAEEDA',
-    paddingHorizontal: 5,
+  scopeTag: {
+    fontSize: 8.5,
+    color: '#475569',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 4,
     paddingVertical: 1,
-    borderRadius: 4,
-    fontWeight: '600',
+    borderRadius: 3,
   },
   eventTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#1e293b',
     marginBottom: 1,
   },
-  eventDesc: {
-    fontSize: 11,
+  clubName: {
+    fontSize: 10.5,
     color: '#64748b',
-    marginBottom: 3,
+    marginBottom: 2,
   },
-  locRow: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
   },
-  locText: {
+  locationText: {
     fontSize: 10,
-    color: '#94a3b8',
+    color: '#64748b',
   },
-  ticketBtn: {
+  rsvpButton: {
     borderWidth: 1,
     borderColor: '#0C447C',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
-  ticketBtnActive: {
+  rsvpButtonActive: {
     backgroundColor: '#0C447C',
   },
-  ticketBtnText: {
+  rsvpText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#0C447C',
-    fontSize: 12,
+  },
+  rsvpTextActive: {
+    color: '#fff',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  notifModal: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '85%',
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 12,
+    marginBottom: 10,
+  },
+  notifHeadline: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  notifSub: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  notifFilterRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 12,
+  },
+  notifFilterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+  },
+  notifFilterChipActive: {
+    backgroundColor: '#0C447C',
+  },
+  notifFilterText: {
+    fontSize: 11,
+    color: '#64748B',
     fontWeight: '600',
   },
-  ticketBtnTextActive: {
+  notifFilterTextActive: {
     color: '#fff',
+  },
+  notifCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  notifCardUnread: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+  notifTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  notifTypeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  notifItemTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  notifTime: {
+    fontSize: 9.5,
+    color: '#94A3B8',
+  },
+  notifMessage: {
+    fontSize: 11,
+    color: '#475569',
+    lineHeight: 16,
+  },
+  markReadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 6,
+  },
+  markReadText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0C447C',
   },
 });
