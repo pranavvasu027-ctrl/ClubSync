@@ -3,16 +3,20 @@ import { StyleSheet, View, StatusBar, TouchableOpacity, Text, Platform } from 'r
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { EVENTS, EventItem } from './src/data/mockData';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import HomeScreen from './src/screens/HomeScreen';
 import EventsScreen from './src/screens/EventsScreen';
 import CompetitionsScreen from './src/screens/CompetitionsScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 
 type TabType = 'home' | 'events' | 'competitions' | 'clubs' | 'profile';
 
 function MainApp() {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [selectedCollege, setSelectedCollege] = useState('VIT Pune');
   const [events, setEvents] = useState<EventItem[]>(EVENTS);
@@ -31,12 +35,16 @@ function MainApp() {
     setActiveTab('clubs');
   };
 
+  if (!isAuthenticated) {
+    return <OnboardingScreen onComplete={() => setIsAuthenticated(true)} />;
+  }
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0C447C" translucent={false} />
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: theme.headerBg }]}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.headerBg} translucent={false} />
 
       {/* Dynamic Screen Content */}
-      <View style={styles.content}>
+      <View style={[styles.content, { backgroundColor: theme.bg }]}>
         {activeTab === 'home' && (
           <HomeScreen
             selectedCollege={selectedCollege}
@@ -58,15 +66,17 @@ function MainApp() {
           />
         )}
 
-        {activeTab === 'competitions' && <CompetitionsScreen />}
+        {activeTab === 'competitions' && (
+          <CompetitionsScreen events={events} />
+        )}
 
         {activeTab === 'clubs' && <ClubsScreen initialSortHiring={sortHiringFirst} />}
 
         {activeTab === 'profile' && <ProfileScreen />}
       </View>
 
-      {/* Persistent Bottom Tab Bar (Home | Events | Competitions | Clubs | Profile) */}
-      <View style={styles.bottomNav}>
+      {/* Persistent Dynamic Bottom Tab Bar (Home | Events | Competitions | Clubs | Profile) */}
+      <View style={[styles.bottomNav, { backgroundColor: theme.navBg, borderTopColor: theme.navBorder }]}>
         {/* 1. Home Tab */}
         <TouchableOpacity
           style={styles.navItem}
@@ -75,12 +85,13 @@ function MainApp() {
           <Ionicons
             name={activeTab === 'home' ? 'home' : 'home-outline'}
             size={22}
-            color={activeTab === 'home' ? '#0C447C' : '#94a3b8'}
+            color={activeTab === 'home' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
           <Text
             style={[
               styles.navText,
-              activeTab === 'home' && styles.navTextActive,
+              { color: theme.textMuted },
+              activeTab === 'home' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
             ]}
           >
             Home
@@ -95,12 +106,13 @@ function MainApp() {
           <Ionicons
             name={activeTab === 'events' ? 'calendar' : 'calendar-outline'}
             size={22}
-            color={activeTab === 'events' ? '#0C447C' : '#94a3b8'}
+            color={activeTab === 'events' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
           <Text
             style={[
               styles.navText,
-              activeTab === 'events' && styles.navTextActive,
+              { color: theme.textMuted },
+              activeTab === 'events' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
             ]}
           >
             Events
@@ -115,12 +127,13 @@ function MainApp() {
           <Ionicons
             name={activeTab === 'competitions' ? 'trophy' : 'trophy-outline'}
             size={22}
-            color={activeTab === 'competitions' ? '#0C447C' : '#94a3b8'}
+            color={activeTab === 'competitions' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
           <Text
             style={[
               styles.navText,
-              activeTab === 'competitions' && styles.navTextActive,
+              { color: theme.textMuted },
+              activeTab === 'competitions' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
             ]}
           >
             Competitions
@@ -138,12 +151,13 @@ function MainApp() {
           <Ionicons
             name={activeTab === 'clubs' ? 'people' : 'people-outline'}
             size={22}
-            color={activeTab === 'clubs' ? '#0C447C' : '#94a3b8'}
+            color={activeTab === 'clubs' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
           <Text
             style={[
               styles.navText,
-              activeTab === 'clubs' && styles.navTextActive,
+              { color: theme.textMuted },
+              activeTab === 'clubs' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
             ]}
           >
             Clubs
@@ -158,12 +172,13 @@ function MainApp() {
           <Ionicons
             name={activeTab === 'profile' ? 'person' : 'person-outline'}
             size={22}
-            color={activeTab === 'profile' ? '#0C447C' : '#94a3b8'}
+            color={activeTab === 'profile' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
           <Text
             style={[
               styles.navText,
-              activeTab === 'profile' && styles.navTextActive,
+              { color: theme.textMuted },
+              activeTab === 'profile' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
             ]}
           >
             Profile
@@ -177,7 +192,9 @@ function MainApp() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <MainApp />
+      <ThemeProvider>
+        <MainApp />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -185,17 +202,13 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0C447C',
   },
   content: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
   },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
     paddingVertical: 8,
     paddingHorizontal: 8,
     justifyContent: 'space-around',
@@ -208,12 +221,10 @@ const styles = StyleSheet.create({
   },
   navText: {
     fontSize: 10,
-    color: '#94a3b8',
     marginTop: 2,
     fontWeight: '500',
   },
   navTextActive: {
-    color: '#0C447C',
     fontWeight: '700',
   },
 });

@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "name": "clubsync-web",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/web/index.html" },
+    { "source": "/dashboard", "destination": "/Frontend/clubsync_dashboard.html" },
+    { "source": "/clubs", "destination": "/Frontend/Club.html" },
+    { "source": "/screens", "destination": "/web/screens.html" }
+  ]
+}

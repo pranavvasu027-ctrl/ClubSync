@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, Linking, Alert } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Club, CLUBS, CoreLead, ClubFlagshipEvent, ClubAchievement, RecruitmentPosition } from '../data/mockData';
-import { CURRENT_USER } from '../services/clubSyncService';
+import { Club, CLUBS, CoreLead, ClubFlagshipEvent, ClubAchievement, RecruitmentPosition, COLLEGES } from '../data/mockData';
+import { CURRENT_USER, updateClubDetails, toggleFollowClub, submitApplication } from '../services/clubSyncService';
+import { useTheme } from '../context/ThemeContext';
 
 type SortOption = 'members' | 'hiring' | 'alphabetical' | 'year';
 type ClubDetailTab = 'overview' | 'leadership' | 'events' | 'achievements' | 'recruitment' | 'faqs';
@@ -12,6 +13,7 @@ interface ClubsScreenProps {
 }
 
 export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
+  const { theme, isDarkMode } = useTheme();
   const [clubsList, setClubsList] = useState<Club[]>(CLUBS);
   const [selectedDomain, setSelectedDomain] = useState<string>('All');
   const [sortBy, setSortBy] = useState<SortOption>(initialSortHiring ? 'hiring' : 'members');
@@ -31,8 +33,41 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   const [editWhatsapp, setEditWhatsapp] = useState('');
   const [editDeadline, setEditDeadline] = useState('');
 
+  const handleFollow = async (clubId: string) => {
+    const club = clubsList.find(c => c.id === clubId);
+    const wasFollowing = club?.isFollowed;
+    const isCrossCollege = club?.collegeId !== CURRENT_USER.collegeId;
+
+    const res = await toggleFollowClub(clubId);
+
+    // Update local state
+    setClubsList(prev => prev.map(c => 
+      c.id === clubId 
+        ? { ...c, isFollowed: res.isFollowed, followersCount: res.followersCount } 
+        : c
+    ));
+    if (selectedClub && selectedClub.id === clubId) {
+      setSelectedClub(prev => prev ? { ...prev, isFollowed: res.isFollowed, followersCount: res.followersCount } : prev);
+    }
+    // Update global mock data
+    const globalClub = CLUBS.find(c => c.id === clubId);
+    if (globalClub) {
+      globalClub.isFollowed = !globalClub.isFollowed;
+      globalClub.followersCount = globalClub.isFollowed ? (globalClub.followersCount || 0) + 1 : (globalClub.followersCount || 1) - 1;
+    }
+
+    // Cross-college follow value toast
+    if (!wasFollowing && isCrossCollege) {
+      Alert.alert(
+        'Following! 🌍',
+        `You'll see ${club?.shortName}'s public events and achievements in your feed. Recruitment is only for their college students.`
+      );
+    }
+  };
+
   const domainOptions = [
     { label: 'All', count: clubsList.length },
+    { label: 'Following', count: clubsList.filter(c => c.isFollowed).length },
     { label: 'Entrepreneurship', count: clubsList.filter(c => c.vertical === 'Entrepreneurship').length },
     { label: 'Technical', count: clubsList.filter(c => c.vertical === 'Technical').length },
     { label: 'Cultural', count: clubsList.filter(c => c.vertical === 'Cultural').length },
@@ -51,7 +86,8 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
 
   // Filter by Domain & Search
   let filteredClubs = clubsList.filter((club) => {
-    if (selectedDomain !== 'All' && club.vertical !== selectedDomain) return false;
+    if (selectedDomain === 'Following' && !club.isFollowed) return false;
+    if (selectedDomain !== 'All' && selectedDomain !== 'Following' && club.vertical !== selectedDomain) return false;
 
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
@@ -80,6 +116,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
 
   const handleOpenClub = (club: Club) => {
     setSelectedClub(club);
+    const sameCollege = club.collegeId === CURRENT_USER.collegeId;
     setActiveDetailTab('overview');
     setEditTagline(club.tagline || '');
     setEditVision(club.vision || '');
@@ -89,12 +126,14 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
     setEditDeadline(club.recruitmentDeadline || '');
   };
 
-  const handleApplyRole = (roleTitle: string) => {
+  const handleApplyRole = async (roleTitle: string) => {
+    if (!selectedClub || selectedClub.collegeId !== CURRENT_USER.collegeId) {
+      Alert.alert('Not Available', 'Recruitment is exclusive to students of this college.');
+      return;
+    }
     setAppliedRoles(prev => ({ ...prev, [roleTitle]: true }));
-    Alert.alert(
-      'Application Submitted!',
-      `Your application for "${roleTitle}" has been sent to the President & Faculty Mentor. CGPA (${CURRENT_USER.cgpa}) verified.`
-    );
+    const res = await submitApplication(selectedClub.id, roleTitle, `Passionate applicant from ${CURRENT_USER.branch} (${CURRENT_USER.year}). CGPA: ${CURRENT_USER.cgpa}`);
+    Alert.alert('Application Submitted! 🚀', res.message);
   };
 
   const openLink = (url?: string) => {
@@ -103,7 +142,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
     }
   };
 
-  const handleSavePresidentEdits = () => {
+  const handleSavePresidentEdits = async () => {
     if (!selectedClub) return;
     const updated = {
       ...selectedClub,
@@ -117,7 +156,8 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
     setSelectedClub(updated);
     setClubsList(prev => prev.map(c => c.id === updated.id ? updated : c));
     setShowEditModal(false);
-    Alert.alert('Changes Published Live!', 'Club details have been updated and synced to all students in real time.');
+    await updateClubDetails(selectedClub.id, updated);
+    Alert.alert('Changes Published Live! 🎉', 'Club details have been updated and synced to the database in real time.');
   };
 
   return (
@@ -210,7 +250,20 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                 )}
               </View>
 
-              <Text style={styles.clubName}>{club.name}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={[styles.clubName, { flex: 1, marginRight: 8 }]} numberOfLines={1}>{club.name}</Text>
+                <TouchableOpacity 
+                  style={[styles.followBtn, club.isFollowed && styles.followBtnActive]}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleFollow(club.id);
+                  }}
+                >
+                  <Text style={[styles.followBtnText, club.isFollowed && styles.followBtnTextActive]}>
+                    {club.isFollowed ? 'Following' : 'Follow'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               {club.tagline && <Text style={styles.taglineText} numberOfLines={1}>"{club.tagline}"</Text>}
               <Text style={styles.mentorText}>Mentor: {club.facultyMentor}</Text>
               <Text style={styles.clubDesc} numberOfLines={2}>{club.description}</Text>
@@ -218,7 +271,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Ionicons name="people-outline" size={12} color="#64748b" />
-                  <Text style={styles.statItemText}>{club.membersCount} members</Text>
+                  <Text style={styles.statItemText}>{club.followersCount || club.membersCount} followers</Text>
                 </View>
                 <View style={styles.statItem}>
                   <Ionicons name="location-outline" size={12} color="#64748b" />
@@ -302,6 +355,16 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                 </View>
               </View>
 
+              {/* Cross-College Access Banner */}
+              {selectedClub.collegeId !== CURRENT_USER.collegeId && (
+                <View style={styles.crossCollegeBanner}>
+                  <Ionicons name="globe-outline" size={16} color="#0C447C" />
+                  <Text style={styles.crossCollegeText}>
+                    External Club · Follow for event updates. Recruitment is for {COLLEGES.find(c => c.id === selectedClub.collegeId)?.shortName || 'their college'} students only.
+                  </Text>
+                </View>
+              )}
+
               {/* Sub-Navigation Tabs */}
               <View style={styles.subTabsRow}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subTabsScroll}>
@@ -312,12 +375,15 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                     <Text style={[styles.subTabText, activeDetailTab === 'overview' && styles.subTabTextActive]}>Overview</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={[styles.subTab, activeDetailTab === 'leadership' && styles.subTabActive]}
-                    onPress={() => setActiveDetailTab('leadership')}
-                  >
-                    <Text style={[styles.subTabText, activeDetailTab === 'leadership' && styles.subTabTextActive]}>Leadership & Mentors</Text>
-                  </TouchableOpacity>
+                  {/* Leadership: show for same-college OR public clubs */}
+                  {(selectedClub.collegeId === CURRENT_USER.collegeId || selectedClub.contentVisibility === 'public') && (
+                    <TouchableOpacity 
+                      style={[styles.subTab, activeDetailTab === 'leadership' && styles.subTabActive]}
+                      onPress={() => setActiveDetailTab('leadership')}
+                    >
+                      <Text style={[styles.subTabText, activeDetailTab === 'leadership' && styles.subTabTextActive]}>Leadership & Mentors</Text>
+                    </TouchableOpacity>
+                  )}
 
                   <TouchableOpacity 
                     style={[styles.subTab, activeDetailTab === 'events' && styles.subTabActive]}
@@ -337,21 +403,27 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
-                    style={[styles.subTab, activeDetailTab === 'recruitment' && styles.subTabActive]}
-                    onPress={() => setActiveDetailTab('recruitment')}
-                  >
-                    <Text style={[styles.subTabText, activeDetailTab === 'recruitment' && styles.subTabTextActive]}>
-                      Recruitment Desk 🔥
-                    </Text>
-                  </TouchableOpacity>
+                  {/* Recruitment: ONLY for same-college students */}
+                  {selectedClub.collegeId === CURRENT_USER.collegeId && (
+                    <TouchableOpacity 
+                      style={[styles.subTab, activeDetailTab === 'recruitment' && styles.subTabActive]}
+                      onPress={() => setActiveDetailTab('recruitment')}
+                    >
+                      <Text style={[styles.subTabText, activeDetailTab === 'recruitment' && styles.subTabTextActive]}>
+                        Recruitment Desk 🔥
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
-                  <TouchableOpacity 
-                    style={[styles.subTab, activeDetailTab === 'faqs' && styles.subTabActive]}
-                    onPress={() => setActiveDetailTab('faqs')}
-                  >
-                    <Text style={[styles.subTabText, activeDetailTab === 'faqs' && styles.subTabTextActive]}>FAQs & Connect</Text>
-                  </TouchableOpacity>
+                  {/* FAQs: show for same-college OR public clubs */}
+                  {(selectedClub.collegeId === CURRENT_USER.collegeId || selectedClub.contentVisibility === 'public') && (
+                    <TouchableOpacity 
+                      style={[styles.subTab, activeDetailTab === 'faqs' && styles.subTabActive]}
+                      onPress={() => setActiveDetailTab('faqs')}
+                    >
+                      <Text style={[styles.subTabText, activeDetailTab === 'faqs' && styles.subTabTextActive]}>FAQs & Connect</Text>
+                    </TouchableOpacity>
+                  )}
                 </ScrollView>
               </View>
 
@@ -922,10 +994,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   clubName: {
-    fontSize: 14.5,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  followBtn: {
+    backgroundColor: '#0C447C',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  followBtnActive: {
+    backgroundColor: '#E2E8F0',
+  },
+  followBtnText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 1,
+  },
+  followBtnTextActive: {
+    color: '#64748B',
   },
   taglineText: {
     fontSize: 10.5,
@@ -1036,6 +1124,25 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     padding: 4,
+  },
+  crossCollegeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    padding: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    gap: 8,
+  },
+  crossCollegeText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#1E3A8A',
+    fontWeight: '500',
+    lineHeight: 18,
   },
   subTabsRow: {
     backgroundColor: '#F8FAFC',

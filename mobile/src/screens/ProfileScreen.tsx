@@ -1,145 +1,340 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
-import { CURRENT_USER } from '../services/clubSyncService';
-import { DigitalTicket, MY_TICKETS } from '../data/mockData';
+import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken } from '../services/clubSyncService';
+import { DigitalTicket, MY_TICKETS, CLUBS, COLLEGES } from '../data/mockData';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ProfileScreen() {
-  const [ticketsList, setTicketsList] = useState<DigitalTicket[]>(MY_TICKETS);
+  const { theme, isDarkMode, toggleTheme } = useTheme();
+  const [userProfile, setUserProfile] = useState<User>(CURRENT_USER);
+  const [ticketsList, setTicketsList] = useState<DigitalTicket[]>(
+    MY_TICKETS.map(t => ({ ...t, attendeeName: CURRENT_USER.name, prn: CURRENT_USER.prn, college: CURRENT_USER.collegeName }))
+  );
   const [showCertificate, setShowCertificate] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<DigitalTicket | null>(null);
+
+  // EDIT PROFILE STATE
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editName, setEditName] = useState(userProfile.name);
+  const [editEmail, setEditEmail] = useState(userProfile.email);
+  const [editPrn, setEditPrn] = useState(userProfile.prn);
+  const [editCollegeName, setEditCollegeName] = useState(userProfile.collegeName);
+  const [editBranch, setEditBranch] = useState(userProfile.branch);
+  const [editYear, setEditYear] = useState(userProfile.year);
+  const [editCgpa, setEditCgpa] = useState(userProfile.cgpa.toString());
+  const [editPhone, setEditPhone] = useState(userProfile.phone || '+91 98765 43210');
+  const [editBio, setEditBio] = useState(userProfile.bio || 'Full Stack & AI Developer | Hackathon Enthusiast');
+  const [editGithub, setEditGithub] = useState(userProfile.githubHandle || 'pranavvasu');
+  const [editLinkedin, setEditLinkedin] = useState(userProfile.linkedinHandle || 'pranavvasu');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // GATE SCANNER TEST STATE
+  const [showScannerModal, setShowScannerModal] = useState(false);
+  const [scanTokenInput, setScanTokenInput] = useState('');
+  const [scanResult, setScanResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUserProfile(CURRENT_USER);
+  }, []);
+
+  const handleOpenEditModal = () => {
+    setEditName(userProfile.name);
+    setEditEmail(userProfile.email);
+    setEditPrn(userProfile.prn);
+    setEditCollegeName(userProfile.collegeName);
+    setEditBranch(userProfile.branch);
+    setEditYear(userProfile.year);
+    setEditCgpa(userProfile.cgpa.toString());
+    setEditPhone(userProfile.phone || '');
+    setEditBio(userProfile.bio || '');
+    setEditGithub(userProfile.githubHandle || '');
+    setEditLinkedin(userProfile.linkedinHandle || '');
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editName.trim() || !editPrn.trim()) {
+      Alert.alert('Required Fields', 'Full Name and PRN/Roll Number cannot be empty.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    const parsedCgpa = parseFloat(editCgpa) || 8.5;
+
+    const updated: Partial<User> = {
+      name: editName.trim(),
+      email: editEmail.trim(),
+      prn: editPrn.trim(),
+      collegeName: editCollegeName.trim(),
+      branch: editBranch.trim(),
+      year: editYear,
+      cgpa: parsedCgpa,
+      phone: editPhone.trim(),
+      bio: editBio.trim(),
+      githubHandle: editGithub.trim(),
+      linkedinHandle: editLinkedin.trim(),
+    };
+
+    const res = await updateUserProfile(updated);
+    setIsSavingProfile(false);
+    setUserProfile(res.user);
+    setShowEditModal(false);
+
+    // Update tickets with new name
+    setTicketsList(prev => prev.map(t => ({
+      ...t,
+      attendeeName: res.user.name,
+      prn: res.user.prn,
+      college: res.user.collegeName,
+    })));
+
+    Alert.alert('Profile Updated 🎉', 'Your Student Passport and Database records have been updated successfully.');
+  };
 
   const handleDownload = (type: string) => {
     Alert.alert('Download Complete', `${type} saved to your device with cryptographic signature.`);
   };
 
+  const handleTestScanToken = async () => {
+    if (!scanTokenInput.trim()) {
+      Alert.alert('Enter Token', 'Please enter a ticket QR token to verify.');
+      return;
+    }
+    const res = await verifyGatePassToken(scanTokenInput.trim());
+    setScanResult(res.message);
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.avatarLarge}>
-          <Text style={styles.avatarText}>PV</Text>
+      <View style={[styles.header, { backgroundColor: theme.headerBg }]}>
+        <View style={styles.headerTopActions}>
+          <TouchableOpacity style={[styles.editProfileBtn, { backgroundColor: 'rgba(255, 255, 255, 0.18)' }]} onPress={toggleTheme}>
+            <Ionicons name={isDarkMode ? "sunny" : "moon"} size={14} color="#fff" />
+            <Text style={styles.editProfileBtnText}>{isDarkMode ? "Light Mode" : "Dark Mode"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.editProfileBtn} onPress={handleOpenEditModal}>
+            <Ionicons name="create-outline" size={15} color="#fff" />
+            <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.userName}>{CURRENT_USER.name}</Text>
-        <Text style={styles.userEmail}>{CURRENT_USER.email}</Text>
-        <Text style={styles.userSub}>{CURRENT_USER.branch} · {CURRENT_USER.year}</Text>
+
+        <View style={styles.avatarLarge}>
+          <Text style={styles.avatarText}>{userProfile.name.substring(0, 2).toUpperCase()}</Text>
+        </View>
+        <Text style={styles.userName}>{userProfile.name}</Text>
+        <Text style={styles.userEmail}>{userProfile.email}</Text>
+        <Text style={styles.userSub}>{userProfile.branch} · {userProfile.year}</Text>
 
         <View style={styles.collegeBadge}>
           <Ionicons name="school" size={13} color="#fff" />
-          <Text style={styles.collegeBadgeText}>{CURRENT_USER.collegeName}</Text>
+          <Text style={styles.collegeBadgeText}>{userProfile.collegeName}</Text>
         </View>
       </View>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Student Passport Card */}
-        <View style={styles.passportCard}>
-          <View style={styles.passportTop}>
-            <Text style={styles.passportTitle}>CLUBSYNC STUDENT PASSPORT</Text>
+        <View style={[styles.passportCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+          <View style={[styles.passportTop, { borderBottomColor: theme.divider }]}>
+            <Text style={[styles.passportTitle, { color: isDarkMode ? theme.primary : '#0C447C' }]}>CLUBSYNC STUDENT PASSPORT</Text>
             <View style={styles.verifiedTag}>
               <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
-              <Text style={styles.verifiedText}>VIT VERIFIED</Text>
+              <Text style={styles.verifiedText}>DB VERIFIED</Text>
             </View>
           </View>
 
           <View style={styles.passportGrid}>
             <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>PRN / Roll No</Text>
-              <Text style={styles.gridValue}>{CURRENT_USER.prn}</Text>
+              <Text style={[styles.gridLabel, { color: theme.textMuted }]}>PRN / Roll No</Text>
+              <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.prn}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>Academic Year</Text>
-              <Text style={styles.gridValue}>2026–27</Text>
+              <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Academic Year</Text>
+              <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.year.includes('FY') ? '2026–27 (FY)' : userProfile.year.includes('SY') ? '2026–27 (SY)' : '2026–27 (TY)'}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>Cumulative CGPA</Text>
-              <Text style={[styles.gridValue, { color: '#16a34a' }]}>{CURRENT_USER.cgpa} / 10.0</Text>
+              <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Cumulative CGPA</Text>
+              <Text style={[styles.gridValue, { color: '#16a34a' }]}>{userProfile.cgpa.toFixed(2)} / 10.0</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.gridLabel}>Core Committee</Text>
-              <Text style={[styles.gridValue, { color: '#0C447C' }]}>Eligible (≥ 7.0 ✓)</Text>
+              <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Core Committee</Text>
+              <Text style={[styles.gridValue, { color: isDarkMode ? theme.primary : '#0C447C' }]}>{userProfile.cgpa >= 7.0 ? 'Eligible (≥ 7.0 ✓)' : 'Not Eligible (< 7.0)'}</Text>
             </View>
           </View>
+
+          {userProfile.bio ? (
+            <View style={[styles.bioBox, { borderTopColor: theme.divider }]}>
+              <Text style={[styles.bioText, { color: theme.textSecondary }]}>"{userProfile.bio}"</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Engagement Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statBox}>
-            <Text style={styles.statNum}>{ticketsList.length}</Text>
-            <Text style={styles.statLabel}>Active Passes</Text>
+          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+            <Text style={[styles.statNum, { color: theme.text }]}>{ticketsList.length}</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Active Passes</Text>
           </View>
-          <View style={styles.statBox}>
+          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
             <Text style={[styles.statNum, { color: '#D97706' }]}>1</Text>
-            <Text style={styles.statLabel}>Trophies Won</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Trophies Won</Text>
           </View>
-          <View style={styles.statBox}>
-            <Text style={[styles.statNum, { color: '#0C447C' }]}>2</Text>
-            <Text style={styles.statLabel}>Club Roles</Text>
+          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+            <Text style={[styles.statNum, { color: isDarkMode ? theme.primary : '#0C447C' }]}>{CLUBS.filter(c => c.isFollowed).length}</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Followed Clubs</Text>
           </View>
         </View>
 
         {/* Digital Event Passes Wallet */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.menuHeading}>My Digital Passes & Gate Tickets</Text>
-          <Text style={styles.badgeCounter}>{ticketsList.length} Active</Text>
+          <Text style={[styles.menuHeading, { color: theme.text }]}>My Digital Passes & Gate Tickets</Text>
+          <Text style={[styles.badgeCounter, { backgroundColor: theme.badgeBg, color: theme.badgeText }]}>{ticketsList.length} Active</Text>
         </View>
 
         <View style={styles.ticketsWalletContainer}>
           {ticketsList.map((ticket) => (
             <TouchableOpacity 
               key={ticket.id} 
-              style={styles.ticketWalletCard}
+              style={[styles.ticketWalletCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
               onPress={() => setSelectedTicket(ticket)}
               activeOpacity={0.8}
             >
               <View style={styles.ticketLeft}>
-                <View style={styles.qrMiniBox}>
-                  <Ionicons name="qr-code-outline" size={24} color="#0C447C" />
+                <View style={[styles.qrMiniBox, { backgroundColor: theme.badgeBg }]}>
+                  <Ionicons name="qr-code-outline" size={24} color={theme.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.ticketEventTitle} numberOfLines={1}>{ticket.eventTitle}</Text>
-                  <Text style={styles.ticketClubText}>{ticket.clubName}</Text>
-                  <Text style={styles.ticketVenueText}>📍 {ticket.venue}</Text>
-                  <Text style={styles.ticketDateText}>📅 {ticket.date} · {ticket.time}</Text>
+                  <Text style={[styles.ticketEventTitle, { color: theme.text }]} numberOfLines={1}>{ticket.eventTitle}</Text>
+                  <Text style={[styles.ticketClubText, { color: theme.primary }]}>{ticket.clubName}</Text>
+                  <Text style={[styles.ticketVenueText, { color: theme.textSecondary }]}>📍 {ticket.venue}</Text>
+                  <Text style={[styles.ticketDateText, { color: theme.textMuted }]}>📅 {ticket.date} · {ticket.time}</Text>
                 </View>
               </View>
 
-              <View style={styles.viewPassBtn}>
-                <Text style={styles.viewPassText}>Show Pass ➔</Text>
+              <View style={[styles.viewPassBtn, { backgroundColor: isDarkMode ? theme.primary : '#0C447C' }]}>
+                <Text style={[styles.viewPassText, { color: isDarkMode ? '#0F172A' : '#fff' }]}>Show Pass ➔</Text>
               </View>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Action Menu */}
-        <Text style={[styles.menuHeading, { marginTop: 16 }]}>Verified Student Credentials</Text>
-        <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => setShowCertificate(true)}>
-            <View style={styles.menuIconBox}>
-              <Ionicons name="ribbon-outline" size={18} color="#0C447C" />
+        {/* Preferences & Action Menu */}
+        <Text style={[styles.menuHeading, { color: theme.text, marginTop: 16 }]}>Preferences & Appearance</Text>
+        <View style={[styles.menuContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.divider }]} onPress={toggleTheme}>
+            <View style={[styles.menuIconBox, { backgroundColor: theme.badgeBg }]}>
+              <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color={theme.primary} />
             </View>
             <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Digital Certificates & Merits</Text>
-              <Text style={styles.menuDesc}>View and download verified event certificates</Text>
+              <Text style={[styles.menuTitle, { color: theme.text }]}>App Theme (Dark Mode)</Text>
+              <Text style={[styles.menuDesc, { color: theme.textSecondary }]}>{isDarkMode ? "Dark Theme Enabled (Tap to switch to Light)" : "Light Theme Enabled (Tap to switch to Dark)"}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+            <Ionicons name={isDarkMode ? "toggle" : "toggle-outline"} size={26} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.menuHeading, { color: theme.text, marginTop: 16 }]}>Activity & Credentials</Text>
+        <View style={[styles.menuContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.divider }]} onPress={() => setShowScannerModal(true)}>
+            <View style={[styles.menuIconBox, { backgroundColor: theme.badgeBg }]}>
+              <Ionicons name="scan-circle-outline" size={18} color={theme.primary} />
+            </View>
+            <View style={styles.menuContent}>
+              <Text style={[styles.menuTitle, { color: theme.text }]}>Gatekeeper QR Check-in Tester</Text>
+              <Text style={[styles.menuDesc, { color: theme.textSecondary }]}>Scan/verify dynamic gate tickets in real-time</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => setShowTranscript(true)}>
-            <View style={styles.menuIconBox}>
-              <Ionicons name="document-text-outline" size={18} color="#0C447C" />
+          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.divider }]} onPress={() => setShowCertificate(true)}>
+            <View style={[styles.menuIconBox, { backgroundColor: theme.badgeBg }]}>
+              <Ionicons name="ribbon-outline" size={18} color={theme.primary} />
             </View>
             <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Annual Activity Transcript</Text>
-              <Text style={styles.menuDesc}>Generate verified portfolio for NAAC & Placements</Text>
+              <Text style={[styles.menuTitle, { color: theme.text }]}>Digital Certificates & Merits</Text>
+              <Text style={[styles.menuDesc, { color: theme.textSecondary }]}>View and download verified event certificates</Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color="#94a3b8" />
+            <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.divider }]} onPress={() => setShowTranscript(true)}>
+            <View style={[styles.menuIconBox, { backgroundColor: theme.badgeBg }]}>
+              <Ionicons name="document-text-outline" size={18} color={theme.primary} />
+            </View>
+            <View style={styles.menuContent}>
+              <Text style={[styles.menuTitle, { color: theme.text }]}>Annual Activity Transcript</Text>
+              <Text style={[styles.menuDesc, { color: theme.textSecondary }]}>Generate verified portfolio for NAAC & Placements</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
           </TouchableOpacity>
         </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* FULL EDIT PROFILE MODAL */}
+      {showEditModal && (
+        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowEditModal(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.editProfileCard}>
+              <View style={styles.editProfileHeader}>
+                <Text style={styles.editProfileTitle}>Edit Student Profile</Text>
+                <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.editFormGroup}>
+                  <Text style={styles.editLabel}>Full Name *</Text>
+                  <TextInput style={styles.editInput} value={editName} onChangeText={setEditName} />
+
+                  <Text style={styles.editLabel}>PRN / Roll Number *</Text>
+                  <TextInput style={styles.editInput} value={editPrn} onChangeText={setEditPrn} autoCapitalize="characters" />
+
+                  <Text style={styles.editLabel}>College / Institute Name</Text>
+                  <TextInput style={styles.editInput} value={editCollegeName} onChangeText={setEditCollegeName} />
+
+                  <Text style={styles.editLabel}>Branch / Department</Text>
+                  <TextInput style={styles.editInput} value={editBranch} onChangeText={setEditBranch} />
+
+                  <Text style={styles.editLabel}>Cumulative CGPA (0.00 - 10.00)</Text>
+                  <TextInput style={styles.editInput} value={editCgpa} onChangeText={setEditCgpa} keyboardType="numeric" />
+
+                  <Text style={styles.editLabel}>Phone Number</Text>
+                  <TextInput style={styles.editInput} value={editPhone} onChangeText={setEditPhone} keyboardType="phone-pad" />
+
+                  <Text style={styles.editLabel}>Bio / Headline</Text>
+                  <TextInput style={[styles.editInput, { height: 60 }]} value={editBio} onChangeText={setEditBio} multiline />
+
+                  <Text style={styles.editLabel}>GitHub Username</Text>
+                  <TextInput style={styles.editInput} value={editGithub} onChangeText={setEditGithub} autoCapitalize="none" />
+
+                  <Text style={styles.editLabel}>LinkedIn Username</Text>
+                  <TextInput style={styles.editInput} value={editLinkedin} onChangeText={setEditLinkedin} autoCapitalize="none" />
+                </View>
+              </ScrollView>
+
+              <View style={styles.editActionRow}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEditModal(false)}>
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={isSavingProfile}>
+                  {isSavingProfile ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>Save Changes</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* DYNAMIC QR GATE PASS MODAL */}
       {selectedTicket && (
@@ -159,7 +354,7 @@ export default function ProfileScreen() {
               <View style={styles.qrContainer}>
                 <QRCode
                   value={selectedTicket.qrCodeString}
-                  size={190}
+                  size={180}
                   color="#0C447C"
                   backgroundColor="#fff"
                 />
@@ -198,6 +393,51 @@ export default function ProfileScreen() {
         </Modal>
       )}
 
+      {/* GATEKEEPER CHECK-IN SCANNER TEST MODAL */}
+      {showScannerModal && (
+        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowScannerModal(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.scannerModal}>
+              <View style={styles.ticketHeader}>
+                <Text style={styles.ticketHeaderEvent}>Gatekeeper Check-in Terminal</Text>
+                <TouchableOpacity onPress={() => { setShowScannerModal(false); setScanResult(null); }}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 12 }}>
+                Enter or paste a dynamic QR ticket token to test gate validation & live attendance check-in:
+              </Text>
+
+              <TextInput 
+                style={styles.scannerInput}
+                placeholder="e.g. CLUBSYNC-TKT-1-1251070582..."
+                value={scanTokenInput}
+                onChangeText={setScanTokenInput}
+              />
+
+              {scanResult && (
+                <View style={[styles.scanResultBox, scanResult.includes('Granted') ? styles.scanSuccess : styles.scanFail]}>
+                  <Text style={styles.scanResultText}>{scanResult}</Text>
+                </View>
+              )}
+
+              <View style={styles.editActionRow}>
+                <TouchableOpacity 
+                  style={[styles.cancelBtn, { flex: 1 }]} 
+                  onPress={() => setScanTokenInput(ticketsList[0]?.qrCodeString || '')}
+                >
+                  <Text style={styles.cancelBtnText}>Paste My Pass Token</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.saveBtn, { flex: 1 }]} onPress={handleTestScanToken}>
+                  <Text style={styles.saveBtnText}>Verify Token</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* DIGITAL CERTIFICATE MODAL */}
       {showCertificate && (
         <Modal visible={true} transparent={true} animationType="fade" onRequestClose={() => setShowCertificate(false)}>
@@ -205,13 +445,13 @@ export default function ProfileScreen() {
             <View style={styles.certCard}>
               <View style={styles.certBorder}>
                 <View style={styles.certHeader}>
-                  <Text style={styles.certInstitute}>VISHWAKARMA INSTITUTE OF TECHNOLOGY, PUNE</Text>
+                  <Text style={styles.certInstitute}>{userProfile.collegeName.toUpperCase()}</Text>
                   <Text style={styles.certHeading}>CERTIFICATE OF MERIT</Text>
                   <Text style={styles.certSub}>This is proudly presented to</Text>
                 </View>
 
-                <Text style={styles.certName}>{CURRENT_USER.name}</Text>
-                <Text style={styles.certPrn}>PRN: {CURRENT_USER.prn} · Third Year Computer Engineering</Text>
+                <Text style={styles.certName}>{userProfile.name}</Text>
+                <Text style={styles.certPrn}>PRN: {userProfile.prn} · {userProfile.year} {userProfile.branch}</Text>
 
                 <Text style={styles.certBody}>
                   for outstanding performance & securing 1st Place (Championship Trophy) at the Pune TechFest Grand Hackathon 2026 organized by GedIT Technical Club.
@@ -315,42 +555,62 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#0C447C',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 22,
+    paddingTop: 12,
+    paddingBottom: 20,
     alignItems: 'center',
   },
+  headerTopActions: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 6,
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  editProfileBtnText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   avatarLarge: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#378ADD',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     borderWidth: 2,
     borderColor: '#fff',
   },
   avatarText: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
   },
   userName: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
     marginBottom: 1,
   },
   userEmail: {
     color: '#B5D4F4',
-    fontSize: 12,
+    fontSize: 11.5,
     fontFamily: 'monospace',
     marginBottom: 4,
   },
   userSub: {
     color: '#E0E7FF',
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: 11.5,
+    marginBottom: 6,
   },
   collegeBadge: {
     flexDirection: 'row',
@@ -358,7 +618,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 4,
     borderRadius: 20,
   },
   collegeBadgeText: {
@@ -425,6 +685,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#1e293b',
+  },
+  bioBox: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  bioText: {
+    fontSize: 11.5,
+    fontStyle: 'italic',
+    color: '#64748B',
+    textAlign: 'center',
   },
   statsRow: {
     flexDirection: 'row',
@@ -571,6 +843,75 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
+  editProfileCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    width: '100%',
+    maxWidth: 400,
+  },
+  editProfileHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 10,
+    marginBottom: 12,
+  },
+  editProfileTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  editFormGroup: {
+    gap: 10,
+  },
+  editLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: -4,
+  },
+  editInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  editActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  cancelBtn: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: '#0C447C',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
   ticketModal: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -646,6 +987,46 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  scannerModal: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    width: '100%',
+    maxWidth: 380,
+  },
+  scannerInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 12,
+    fontFamily: 'monospace',
+    color: '#0F172A',
+    marginBottom: 10,
+  },
+  scanResultBox: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  scanSuccess: {
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  scanFail: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  scanResultText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'center',
   },
   certCard: {
     backgroundColor: '#FFFDF7',
@@ -737,10 +1118,10 @@ const styles = StyleSheet.create({
     color: '#D97706',
   },
   certCode: {
-    fontSize: 8.5,
-    color: '#94A3B8',
+    fontSize: 8,
     fontFamily: 'monospace',
-    marginTop: 4,
+    color: '#94A3B8',
+    marginTop: 6,
   },
   certActionRow: {
     flexDirection: 'row',
@@ -749,25 +1130,23 @@ const styles = StyleSheet.create({
   },
   certCloseBtn: {
     flex: 1,
+    backgroundColor: '#F1F5F9',
     paddingVertical: 10,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   certCloseText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
+    fontWeight: '700',
+    color: '#64748B',
   },
   certDownloadBtn: {
     flex: 2,
+    backgroundColor: '#D97706',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#0C447C',
     paddingVertical: 10,
     borderRadius: 8,
   },
@@ -779,7 +1158,7 @@ const styles = StyleSheet.create({
   transcriptCard: {
     backgroundColor: '#fff',
     borderRadius: 18,
-    padding: 18,
+    padding: 16,
     width: '100%',
     maxWidth: 380,
   },
@@ -794,20 +1173,20 @@ const styles = StyleSheet.create({
   },
   transcriptTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0F172A',
   },
   transcriptSub: {
-    fontSize: 10.5,
+    fontSize: 10,
     color: '#64748B',
   },
   transcriptRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    gap: 8,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
-    gap: 10,
   },
   transcriptYear: {
     fontSize: 11,
@@ -822,21 +1201,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   transcriptEvent: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#0F172A',
   },
   transcriptRole: {
-    fontSize: 10.5,
+    fontSize: 10,
     color: '#64748B',
   },
   transcriptBadge: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#15803D',
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    color: '#D97706',
   },
 });

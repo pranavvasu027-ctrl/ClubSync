@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { EventItem } from '../data/mockData';
-import { CURRENT_USER } from '../services/clubSyncService';
+import { CURRENT_USER, registerForEvent, createEvent, updateEvent } from '../services/clubSyncService';
+import { useTheme } from '../context/ThemeContext';
 
 interface EventsScreenProps {
   events: EventItem[];
@@ -10,11 +11,36 @@ interface EventsScreenProps {
   onNavigateToTickets?: () => void;
 }
 
-export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: EventsScreenProps) {
+export default function EventsScreen({ events: initialEvents, onRSVP, onNavigateToTickets }: EventsScreenProps) {
+  const { theme, isDarkMode } = useTheme();
+  const [events, setEvents] = useState<EventItem[]>(initialEvents);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'registered' | 'past'>('upcoming');
   const [selectedVertical, setSelectedVertical] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+  
+  // Sorting State
+  type SortOption = 'date' | 'popularity' | 'prize' | 'free';
+  const [sortBy, setSortBy] = useState<SortOption>('date');
+  const [showSortModal, setShowSortModal] = useState(false);
+
+  // CREATE / EDIT EVENT MODAL STATE
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [formTitle, setFormTitle] = useState('');
+  const [formClubName, setFormClubName] = useState('GedIT Technical Club');
+  const [formVertical, setFormVertical] = useState<EventItem['vertical']>('Technical');
+  const [formScope, setFormScope] = useState<EventItem['scope']>('Inter-Collegiate');
+  const [formDate, setFormDate] = useState('02 Sep 2026');
+  const [formTime, setFormTime] = useState('10:00 AM');
+  const [formVenue, setFormVenue] = useState('Auditorium 1, Main Campus');
+  const [formTicketPrice, setFormTicketPrice] = useState('0');
+  const [formPrizePool, setFormPrizePool] = useState('₹50,000');
+  const [formIsHackathon, setFormIsHackathon] = useState(false);
+  const [formDesc, setFormDesc] = useState('');
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
+
+  // CHECKOUT MODAL STATE
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedPaymentMode, setSelectedPaymentMode] = useState<'gpay' | 'phonepe' | 'paytm' | 'upi'>('gpay');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -22,7 +48,17 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
 
   const verticals = ['All', 'Technical', 'Entrepreneurship', 'Literary', 'Cultural', 'Sports'];
 
+  const sortLabels: Record<SortOption, string> = {
+    date: '📅 Nearest Date First',
+    popularity: '🔥 Most Popular',
+    prize: '🏆 Highest Prize Pool',
+    free: '🆓 Free Events First'
+  };
+
   const filteredEvents = events.filter((evt) => {
+    // Show events for current college or national events
+    if (evt.collegeName !== CURRENT_USER.collegeName && evt.scope !== 'National') return false;
+
     if (activeTab === 'upcoming' && evt.status !== 'upcoming') return false;
     if (activeTab === 'registered' && !evt.isRegistered) return false;
     if (activeTab === 'past' && evt.status !== 'past') return false;
@@ -38,7 +74,111 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
       );
     }
     return true;
+  }).sort((a, b) => {
+    if (sortBy === 'popularity') {
+      return b.registeredCount - a.registeredCount;
+    }
+    if (sortBy === 'prize') {
+      const parsePrize = (str: string = '') => parseInt(str.replace(/\D/g, '')) || 0;
+      return parsePrize(b.prizePool) - parsePrize(a.prizePool);
+    }
+    if (sortBy === 'free') {
+      if (a.ticketPrice === 0 && b.ticketPrice > 0) return -1;
+      if (a.ticketPrice > 0 && b.ticketPrice === 0) return 1;
+      return 0;
+    }
+    return 0;
   });
+
+  const handleOpenCreateModal = () => {
+    setEditingEventId(null);
+    setFormTitle('');
+    setFormClubName('GedIT Technical Club');
+    setFormVertical('Technical');
+    setFormScope('Inter-Collegiate');
+    setFormDate('02 Sep 2026');
+    setFormTime('10:00 AM');
+    setFormVenue('Auditorium 1, Main Campus');
+    setFormTicketPrice('0');
+    setFormPrizePool('₹50,000');
+    setFormIsHackathon(false);
+    setFormDesc('Hands-on technical workshop and competition organized for engineering students.');
+    setShowEventModal(true);
+  };
+
+  const handleOpenEditModal = (evt: EventItem) => {
+    setEditingEventId(evt.id);
+    setFormTitle(evt.title);
+    setFormClubName(evt.clubName);
+    setFormVertical(evt.vertical);
+    setFormScope(evt.scope);
+    setFormDate(evt.date);
+    setFormTime(evt.time);
+    setFormVenue(evt.venue);
+    setFormTicketPrice(evt.ticketPrice.toString());
+    setFormPrizePool(evt.prizePool || '');
+    setFormIsHackathon(evt.isHackathon || false);
+    setFormDesc(evt.description);
+    setShowEventModal(true);
+  };
+
+  const handleSaveEvent = async () => {
+    if (!formTitle.trim() || !formVenue.trim()) {
+      Alert.alert('Missing Fields', 'Please fill in Event Title and Venue.');
+      return;
+    }
+
+    setIsSavingEvent(true);
+    const parsedPrice = parseFloat(formTicketPrice) || 0;
+
+    if (editingEventId) {
+      // Update
+      const res = await updateEvent(editingEventId, {
+        title: formTitle.trim(),
+        clubName: formClubName,
+        vertical: formVertical,
+        scope: formScope,
+        date: formDate,
+        time: formTime,
+        venue: formVenue,
+        ticketPrice: parsedPrice,
+        prizePool: formPrizePool,
+        isHackathon: formIsHackathon,
+        description: formDesc,
+      });
+
+      setEvents(prev => prev.map(e => e.id === editingEventId ? res.event : e));
+      Alert.alert('Event Updated 🎉', 'The event has been updated and synced to the database.');
+    } else {
+      // Create New
+      const res = await createEvent({
+        title: formTitle.trim(),
+        clubName: formClubName,
+        collegeName: CURRENT_USER.collegeName,
+        vertical: formVertical,
+        scope: formScope,
+        date: formDate,
+        time: formTime,
+        venue: formVenue,
+        ticketPrice: parsedPrice,
+        prizePool: formPrizePool,
+        isHackathon: formIsHackathon,
+        description: formDesc,
+        registeredCount: 1,
+        maxCapacity: 200,
+        isRegistered: false,
+        status: 'upcoming',
+        month: formDate.split(' ')[1] || 'SEP',
+        day: formDate.split(' ')[0] || '02',
+      });
+
+      setEvents(prev => [res.event, ...prev]);
+      Alert.alert('Event Created 🚀', 'New campus event has been created and published live.');
+    }
+
+    setIsSavingEvent(false);
+    setShowEventModal(false);
+  };
 
   const handleOpenRegistration = (event: EventItem) => {
     setSelectedEvent(event);
@@ -46,23 +186,139 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
     setPaymentSuccess(false);
   };
 
-  const handleConfirmCheckout = () => {
+  const handleConfirmCheckout = async () => {
+    if (!selectedEvent) return;
     setIsProcessingPayment(true);
+
+    const res = await registerForEvent(selectedEvent);
+
     setTimeout(() => {
       setIsProcessingPayment(false);
       setPaymentSuccess(true);
-      if (selectedEvent) {
-        onRSVP(selectedEvent.id);
-      }
-    }, 1200);
+      onRSVP(selectedEvent.id);
+      setEvents(prev => prev.map(e => e.id === selectedEvent.id ? { ...e, isRegistered: true, registeredCount: e.registeredCount + 1 } : e));
+    }, 1000);
   };
 
   return (
     <View style={styles.container}>
+      {/* SORT MODAL */}
+      {showSortModal && (
+        <Modal visible={true} transparent={true} animationType="fade" onRequestClose={() => setShowSortModal(false)}>
+          <View style={styles.sortModalOverlay}>
+            <View style={styles.sortModalBox}>
+              <View style={styles.sortModalTop}>
+                <Text style={styles.sortModalHeadline}>Sort Events By</Text>
+                <TouchableOpacity onPress={() => setShowSortModal(false)}>
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              {(Object.keys(sortLabels) as SortOption[]).map((key) => (
+                <TouchableOpacity 
+                  key={key} 
+                  style={[styles.sortOptionRow, sortBy === key && styles.sortOptionRowActive]}
+                  onPress={() => {
+                    setSortBy(key);
+                    setShowSortModal(false);
+                  }}
+                >
+                  <Text style={[styles.sortOptionText, sortBy === key && styles.sortOptionTextActive]}>
+                    {sortLabels[key]}
+                  </Text>
+                  {sortBy === key && <Ionicons name="checkmark-circle" size={18} color="#0C447C" />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* CREATE / EDIT EVENT MODAL */}
+      {showEventModal && (
+        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowEventModal(false)}>
+          <View style={styles.sortModalOverlay}>
+            <View style={styles.eventModalCard}>
+              <View style={styles.sortModalTop}>
+                <Text style={styles.sortModalHeadline}>{editingEventId ? 'Edit Campus Event' : 'Create New Event'}</Text>
+                <TouchableOpacity onPress={() => setShowEventModal(false)}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+                <View style={styles.eventFormGroup}>
+                  <Text style={styles.formLabel}>Event Title *</Text>
+                  <TextInput style={styles.formInput} placeholder="e.g. AI Agents Bootcamp 2026" value={formTitle} onChangeText={setFormTitle} />
+
+                  <Text style={styles.formLabel}>Host Club Name</Text>
+                  <TextInput style={styles.formInput} value={formClubName} onChangeText={setFormClubName} />
+
+                  <Text style={styles.formLabel}>Vertical</Text>
+                  <View style={styles.formChipRow}>
+                    {(['Technical', 'Entrepreneurship', 'Cultural', 'Sports', 'Literary'] as const).map(v => (
+                      <TouchableOpacity 
+                        key={v} 
+                        style={[styles.formChip, formVertical === v && styles.formChipActive]}
+                        onPress={() => setFormVertical(v)}
+                      >
+                        <Text style={[styles.formChipText, formVertical === v && styles.formChipTextActive]}>{v}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <Text style={styles.formLabel}>Date & Time</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput style={[styles.formInput, { flex: 1 }]} placeholder="Date (e.g. 05 Sep 2026)" value={formDate} onChangeText={setFormDate} />
+                    <TextInput style={[styles.formInput, { flex: 1 }]} placeholder="Time (e.g. 10:00 AM)" value={formTime} onChangeText={setFormTime} />
+                  </View>
+
+                  <Text style={styles.formLabel}>Venue / Location *</Text>
+                  <TextInput style={styles.formInput} placeholder="e.g. Central Auditorium, Bibwewadi" value={formVenue} onChangeText={setFormVenue} />
+
+                  <Text style={styles.formLabel}>Ticket Price (₹ 0 for Free)</Text>
+                  <TextInput style={styles.formInput} placeholder="0" keyboardType="numeric" value={formTicketPrice} onChangeText={setFormTicketPrice} />
+
+                  <Text style={styles.formLabel}>Prize Pool / Trophy</Text>
+                  <TextInput style={styles.formInput} placeholder="e.g. ₹50,000" value={formPrizePool} onChangeText={setFormPrizePool} />
+
+                  <Text style={styles.formLabel}>Description</Text>
+                  <TextInput style={[styles.formInput, { height: 60 }]} placeholder="Event overview and guidelines..." multiline value={formDesc} onChangeText={setFormDesc} />
+                </View>
+              </ScrollView>
+
+              <View style={styles.eventModalActions}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowEventModal(false)}>
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveEvent} disabled={isSavingEvent}>
+                  {isSavingEvent ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>{editingEventId ? 'Update Event' : 'Publish Live'}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Events & Hackathons</Text>
-        <Text style={styles.headerSub}>Discover inter-college competitions across Pune</Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={styles.headerTitle}>Campus Events</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity style={styles.hostEventBtn} onPress={handleOpenCreateModal}>
+              <Ionicons name="add" size={16} color="#0C447C" />
+              <Text style={styles.hostEventBtnText}>Host Event</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sortIconBtn} onPress={() => setShowSortModal(true)}>
+              <Ionicons name="filter" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <Text style={styles.headerSub}>Discover events hosted at {CURRENT_USER.collegeName}</Text>
 
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color="#B5D4F4" />
@@ -101,7 +357,7 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
           style={[styles.tab, activeTab === 'past' && styles.tabActive]}
           onPress={() => setActiveTab('past')}
         >
-          <Text style={[styles.tabText, activeTab === 'past' && styles.tabTextActive]}>Past Archives (2+ Yrs)</Text>
+          <Text style={[styles.tabText, activeTab === 'past' && styles.tabTextActive]}>Past Archives</Text>
         </TouchableOpacity>
       </View>
 
@@ -126,15 +382,15 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="calendar-blank-outline" size={48} color="#94A3B8" />
             <Text style={styles.emptyTitle}>No events found</Text>
-            <Text style={styles.emptySub}>Try selecting another filter or search term</Text>
+            <Text style={styles.emptySub}>Try selecting another filter or tap "+ Host Event"</Text>
           </View>
         ) : (
           filteredEvents.map((evt) => (
             <View key={evt.id} style={styles.eventCard}>
               <View style={styles.cardHeader}>
                 <View style={[styles.dateBox, evt.vertical === 'Technical' ? styles.techDateBox : styles.cultDateBox]}>
-                  <Text style={styles.dateMon}>{evt.month}</Text>
-                  <Text style={styles.dateDay}>{evt.day}</Text>
+                  <Text style={styles.dateMon}>{evt.month || 'AUG'}</Text>
+                  <Text style={styles.dateDay}>{evt.day || '28'}</Text>
                 </View>
 
                 <View style={styles.headerInfo}>
@@ -164,12 +420,16 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
                   <Ionicons name="location-outline" size={13} color="#64748B" />
                   <Text style={styles.detailText} numberOfLines={1}>{evt.venue}</Text>
                 </View>
+                <View style={styles.detailItem}>
+                  <Ionicons name="people-outline" size={13} color="#64748B" />
+                  <Text style={styles.detailText}>{evt.registeredCount} going</Text>
+                </View>
               </View>
 
               {evt.status === 'past' ? (
                 <View style={styles.winnerCard}>
                   <Ionicons name="trophy" size={14} color="#D97706" />
-                  <Text style={styles.winnerText}>🏆 Champion: {evt.winner} ({evt.winningCollege})</Text>
+                  <Text style={styles.winnerText}>🏆 Champion: {evt.winner || 'Team HackElite'} ({evt.winningCollege || 'VIT Pune'})</Text>
                 </View>
               ) : (
                 <View style={styles.cardFooter}>
@@ -178,129 +438,109 @@ export default function EventsScreen({ events, onRSVP, onNavigateToTickets }: Ev
                     <Text style={styles.priceValue}>{evt.ticketPrice === 0 ? 'FREE Entry' : `₹${evt.ticketPrice}`}</Text>
                   </View>
 
-                  <TouchableOpacity 
-                    style={[styles.rsvpBtn, evt.isRegistered && styles.rsvpBtnActive]}
-                    onPress={() => handleOpenRegistration(evt)}
-                  >
-                    <Ionicons 
-                      name={evt.isRegistered ? "checkmark-circle" : "ticket-outline"} 
-                      size={14} 
-                      color="#fff" 
-                    />
-                    <Text style={styles.rsvpBtnText}>
-                      {evt.isRegistered ? "Registered ✓" : (evt.ticketPrice === 0 ? "RSVP Free Pass" : `Get Ticket · ₹${evt.ticketPrice}`)}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity 
+                      style={styles.editEventMiniBtn} 
+                      onPress={() => handleOpenEditModal(evt)}
+                    >
+                      <Ionicons name="pencil" size={13} color="#64748B" />
+                      <Text style={styles.editEventMiniText}>Edit</Text>
+                    </TouchableOpacity>
+
+                    {evt.isRegistered ? (
+                      <TouchableOpacity 
+                        style={styles.registeredBtn}
+                        onPress={() => onNavigateToTickets && onNavigateToTickets()}
+                      >
+                        <Ionicons name="checkmark-circle" size={14} color="#16a34a" />
+                        <Text style={styles.registeredBtnText}>Pass Ready ➔</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity 
+                        style={styles.rsvpBtn} 
+                        onPress={() => handleOpenRegistration(evt)}
+                      >
+                        <Text style={styles.rsvpBtnText}>RSVP Now</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               )}
             </View>
           ))
         )}
-
         <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* CHECKOUT & TICKET CONFIRMATION MODAL */}
       {showCheckout && selectedEvent && (
         <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowCheckout(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.checkoutModal}>
-              {!paymentSuccess ? (
-                <>
-                  <View style={styles.modalTopRow}>
-                    <View>
-                      <Text style={styles.modalHeadline}>Event Pass Checkout</Text>
-                      <Text style={styles.modalSub}>{selectedEvent.clubName}</Text>
-                    </View>
-                    <TouchableOpacity onPress={() => setShowCheckout(false)} style={styles.closeIcon}>
-                      <Ionicons name="close" size={20} color="#64748B" />
-                    </TouchableOpacity>
-                  </View>
+          <View style={styles.sortModalOverlay}>
+            <View style={styles.checkoutModalBox}>
+              <View style={styles.sortModalTop}>
+                <Text style={styles.sortModalHeadline}>
+                  {paymentSuccess ? 'Registration Confirmed 🎉' : 'Confirm Registration'}
+                </Text>
+                <TouchableOpacity onPress={() => setShowCheckout(false)}>
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
 
-                  {/* Summary Box */}
-                  <View style={styles.summaryBox}>
-                    <Text style={styles.summaryTitle}>{selectedEvent.title}</Text>
-                    <Text style={styles.summaryVenue}>📍 {selectedEvent.venue}</Text>
-                    <Text style={styles.summaryDate}>📅 {selectedEvent.date} · {selectedEvent.time}</Text>
-
-                    <View style={styles.attendeePill}>
-                      <Text style={styles.attendeePillText}>👤 Attendee: {CURRENT_USER.name} (PRN: {CURRENT_USER.prn})</Text>
-                    </View>
-                  </View>
-
-                  {/* Payment Selection (if paid) */}
-                  {selectedEvent.ticketPrice > 0 && (
-                    <View style={{ marginVertical: 12 }}>
-                      <Text style={styles.sectionLabel}>Select UPI Payment Method:</Text>
-                      <View style={styles.upiGrid}>
-                        <TouchableOpacity 
-                          style={[styles.upiOption, selectedPaymentMode === 'gpay' && styles.upiOptionActive]}
-                          onPress={() => setSelectedPaymentMode('gpay')}
-                        >
-                          <Text style={[styles.upiText, selectedPaymentMode === 'gpay' && styles.upiTextActive]}>Google Pay</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity 
-                          style={[styles.upiOption, selectedPaymentMode === 'phonepe' && styles.upiOptionActive]}
-                          onPress={() => setSelectedPaymentMode('phonepe')}
-                        >
-                          <Text style={[styles.upiText, selectedPaymentMode === 'phonepe' && styles.upiTextActive]}>PhonePe</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity 
-                          style={[styles.upiOption, selectedPaymentMode === 'paytm' && styles.upiOptionActive]}
-                          onPress={() => setSelectedPaymentMode('paytm')}
-                        >
-                          <Text style={[styles.upiText, selectedPaymentMode === 'paytm' && styles.upiTextActive]}>Paytm / UPI</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Included Perks */}
-                  <View style={styles.perksBox}>
-                    <Text style={styles.perksTitle}>Included with this pass:</Text>
-                    <Text style={styles.perkItem}>✓ Official College OD / Attendance Permission Slip</Text>
-                    <Text style={styles.perkItem}>✓ Cryptographic Scannable QR Gate Pass</Text>
-                    <Text style={styles.perkItem}>✓ Certificate of Participation (NAAC Verified)</Text>
-                  </View>
-
-                  {/* Action Button */}
-                  <TouchableOpacity 
-                    style={[styles.payBtn, isProcessingPayment && styles.payBtnDisabled]}
-                    onPress={handleConfirmCheckout}
-                    disabled={isProcessingPayment}
-                  >
-                    <Text style={styles.payBtnText}>
-                      {isProcessingPayment ? "Securing Registration..." : (selectedEvent.ticketPrice === 0 ? "Confirm Free Registration" : `Pay ₹${selectedEvent.ticketPrice} & Get Pass`)}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                /* SUCCESS VIEW */
-                <View style={styles.successContainer}>
-                  <View style={styles.successIconBox}>
-                    <Ionicons name="checkmark-circle" size={56} color="#16A34A" />
-                  </View>
-                  <Text style={styles.successHeadline}>Registration Confirmed!</Text>
-                  <Text style={styles.successDesc}>
-                    Your digital pass has been generated with your verified PRN: {CURRENT_USER.prn}
+              {paymentSuccess ? (
+                <View style={styles.successBox}>
+                  <Ionicons name="checkmark-circle" size={54} color="#16a34a" />
+                  <Text style={styles.successTitle}>You are Registered!</Text>
+                  <Text style={styles.successSub}>
+                    Your Gate Pass QR code has been generated and saved to your Student Profile.
                   </Text>
-
-                  <View style={styles.tokenBox}>
-                    <Text style={styles.tokenLabel}>QR Security Token:</Text>
-                    <Text style={styles.tokenValue}>CLUBSYNC-TKT-{selectedEvent.id}-{CURRENT_USER.prn}-VALID</Text>
-                  </View>
-
                   <TouchableOpacity 
-                    style={styles.viewPassBtn}
+                    style={styles.viewPassActionBtn}
                     onPress={() => {
                       setShowCheckout(false);
                       if (onNavigateToTickets) onNavigateToTickets();
                     }}
                   >
-                    <Ionicons name="qr-code" size={16} color="#fff" />
-                    <Text style={styles.viewPassBtnText}>View My Digital Pass in Wallet</Text>
+                    <Text style={styles.viewPassActionText}>View Pass in Profile ➔</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View>
+                  <View style={styles.checkoutSummary}>
+                    <Text style={styles.summaryEventTitle}>{selectedEvent.title}</Text>
+                    <Text style={styles.summaryClubText}>{selectedEvent.clubName}</Text>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Venue</Text>
+                      <Text style={styles.summaryValue}>{selectedEvent.venue}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Date & Time</Text>
+                      <Text style={styles.summaryValue}>{selectedEvent.date} · {selectedEvent.time}</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Attendee Name</Text>
+                      <Text style={styles.summaryValue}>{CURRENT_USER.name} ({CURRENT_USER.prn})</Text>
+                    </View>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>Amount Payable</Text>
+                      <Text style={[styles.summaryValue, { color: '#0C447C', fontWeight: '800' }]}>
+                        {selectedEvent.ticketPrice === 0 ? 'FREE' : `₹${selectedEvent.ticketPrice}`}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity 
+                    style={styles.payBtn} 
+                    onPress={handleConfirmCheckout}
+                    disabled={isProcessingPayment}
+                  >
+                    {isProcessingPayment ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.payBtnText}>
+                        {selectedEvent.ticketPrice === 0 ? 'Generate Free Gate Pass ➔' : `Pay ₹${selectedEvent.ticketPrice} & Get Pass ➔`}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               )}
@@ -323,31 +563,57 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
   },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '700',
+  headerTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 2,
   },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#fff',
+  },
   headerSub: {
+    fontSize: 11.5,
     color: '#B5D4F4',
-    fontSize: 12,
     marginBottom: 12,
+  },
+  hostEventBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  hostEventBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0C447C',
+  },
+  sortIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#185FA5',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
     fontSize: 13,
-    padding: 0,
+    color: '#fff',
   },
   tabsRow: {
     flexDirection: 'row',
@@ -357,7 +623,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 11,
+    paddingVertical: 12,
     alignItems: 'center',
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
@@ -367,8 +633,8 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 12,
-    color: '#64748B',
     fontWeight: '600',
+    color: '#64748B',
   },
   tabTextActive: {
     color: '#0C447C',
@@ -378,46 +644,56 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#F1F5F9',
   },
   chipsScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: 14,
+    gap: 6,
   },
   chip: {
     paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
+    paddingVertical: 5,
+    borderRadius: 14,
     backgroundColor: '#F1F5F9',
   },
   chipActive: {
-    backgroundColor: '#185FA5',
+    backgroundColor: '#0C447C',
   },
   chipText: {
-    fontSize: 11.5,
+    fontSize: 11,
+    fontWeight: '600',
     color: '#64748B',
-    fontWeight: '500',
   },
   chipTextActive: {
     color: '#fff',
-    fontWeight: '600',
   },
   list: {
     flex: 1,
     padding: 14,
   },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginTop: 12,
+  },
+  emptySub: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 4,
+  },
   eventCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -425,27 +701,27 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   dateBox: {
-    width: 48,
+    width: 44,
     height: 48,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   techDateBox: {
     backgroundColor: '#E6F1FB',
   },
   cultDateBox: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FAF5FF',
   },
   dateMon: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#185FA5',
+    color: '#0C447C',
+    textTransform: 'uppercase',
   },
   dateDay: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '900',
     color: '#0C447C',
   },
   headerInfo: {
@@ -456,33 +732,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginBottom: 3,
-    flexWrap: 'wrap',
   },
   verticalBadge: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#185FA5',
+    color: '#0C447C',
     backgroundColor: '#E6F1FB',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
   },
   scopeBadge: {
     fontSize: 9,
-    fontWeight: '600',
-    color: '#475569',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    fontWeight: '700',
+    color: '#15803D',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
   },
   hackathonBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: 3,
     backgroundColor: '#FEF3C7',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
   },
   hackathonText: {
@@ -491,9 +766,9 @@ const styles = StyleSheet.create({
     color: '#92400E',
   },
   eventTitle: {
-    fontSize: 14.5,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
     marginBottom: 2,
   },
   clubName: {
@@ -508,33 +783,32 @@ const styles = StyleSheet.create({
   },
   detailsRow: {
     flexDirection: 'row',
-    gap: 14,
-    marginBottom: 10,
-    backgroundColor: '#F8FAFC',
-    padding: 8,
-    borderRadius: 8,
+    gap: 12,
+    marginBottom: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
   },
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    flex: 1,
   },
   detailText: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#64748B',
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
-    paddingTop: 10,
   },
   priceLabel: {
-    fontSize: 9.5,
-    color: '#94A3B8',
+    fontSize: 9,
+    color: '#94a3b8',
     textTransform: 'uppercase',
   },
   priceValue: {
@@ -542,22 +816,44 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0C447C',
   },
-  rsvpBtn: {
+  editEventMiniBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#0C447C',
-    paddingHorizontal: 12,
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 6,
   },
-  rsvpBtnActive: {
-    backgroundColor: '#16A34A',
+  editEventMiniText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  rsvpBtn: {
+    backgroundColor: '#0C447C',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
   rsvpBtnText: {
-    color: '#fff',
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
+    color: '#fff',
+  },
+  registeredBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  registeredBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#15803D',
   },
   winnerCard: {
     flexDirection: 'row',
@@ -565,212 +861,219 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: '#FEF3C7',
     padding: 8,
-    borderRadius: 8,
-    marginTop: 4,
+    borderRadius: 6,
   },
   winnerText: {
     fontSize: 11,
+    fontWeight: '700',
     color: '#92400E',
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 8,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  emptySub: {
-    fontSize: 11.5,
-    color: '#94A3B8',
-  },
-  modalOverlay: {
+  sortModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
   },
-  checkoutModal: {
+  sortModalBox: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '90%',
+    borderRadius: 16,
+    padding: 16,
+    width: '100%',
+    maxWidth: 340,
   },
-  modalTopRow: {
+  sortModalTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 10,
+    marginBottom: 10,
   },
-  modalHeadline: {
-    fontSize: 17,
+  sortModalHeadline: {
+    fontSize: 14,
     fontWeight: '800',
     color: '#0F172A',
   },
-  modalSub: {
-    fontSize: 12,
-    color: '#185FA5',
+  sortOptionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  sortOptionRowActive: {
+    backgroundColor: '#E6F1FB',
+  },
+  sortOptionText: {
+    fontSize: 12.5,
     fontWeight: '600',
+    color: '#334155',
   },
-  closeIcon: {
-    padding: 4,
+  sortOptionTextActive: {
+    color: '#0C447C',
+    fontWeight: '700',
   },
-  summaryBox: {
+  eventModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+    width: '100%',
+    maxWidth: 400,
+  },
+  eventFormGroup: {
+    gap: 10,
+  },
+  formLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: -4,
+  },
+  formInput: {
     backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 12.5,
+    color: '#0F172A',
+  },
+  formChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  formChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  formChipActive: {
+    backgroundColor: '#0C447C',
+  },
+  formChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  formChipTextActive: {
+    color: '#fff',
+  },
+  eventModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  cancelBtn: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: '#0C447C',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  checkoutModalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 16,
+    width: '100%',
+    maxWidth: 360,
+  },
+  checkoutSummary: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
     padding: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 10,
-    gap: 4,
+    marginBottom: 14,
   },
-  summaryTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+  summaryEventTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
     color: '#0F172A',
   },
-  summaryVenue: {
-    fontSize: 11.5,
-    color: '#64748B',
-  },
-  summaryDate: {
-    fontSize: 11.5,
-    color: '#64748B',
-  },
-  attendeePill: {
-    backgroundColor: '#E6F1FB',
-    padding: 6,
-    borderRadius: 6,
-    marginTop: 6,
-  },
-  attendeePillText: {
+  summaryClubText: {
     fontSize: 11,
     color: '#0C447C',
     fontWeight: '600',
   },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 6,
+  summaryDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 8,
   },
-  upiGrid: {
+  summaryRow: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  upiOption: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-  },
-  upiOptionActive: {
-    borderColor: '#0C447C',
-    backgroundColor: '#E6F1FB',
-  },
-  upiText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  upiTextActive: {
-    color: '#0C447C',
-    fontWeight: '700',
-  },
-  perksBox: {
-    backgroundColor: '#F0FDF4',
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    marginBottom: 16,
-  },
-  perksTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#15803D',
+    justifyContent: 'space-between',
     marginBottom: 4,
   },
-  perkItem: {
+  summaryLabel: {
     fontSize: 10.5,
-    color: '#166534',
-    lineHeight: 16,
+    color: '#64748B',
+  },
+  summaryValue: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#0F172A',
   },
   payBtn: {
     backgroundColor: '#0C447C',
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 8,
     alignItems: 'center',
-  },
-  payBtnDisabled: {
-    backgroundColor: '#94A3B8',
   },
   payBtnText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
   },
-  successContainer: {
+  successBox: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
-  successIconBox: {
-    marginBottom: 10,
-  },
-  successHeadline: {
-    fontSize: 18,
+  successTitle: {
+    fontSize: 16,
     fontWeight: '800',
     color: '#0F172A',
-    marginBottom: 4,
+    marginTop: 10,
   },
-  successDesc: {
-    fontSize: 12,
+  successSub: {
+    fontSize: 11.5,
     color: '#64748B',
     textAlign: 'center',
-    lineHeight: 18,
-    marginBottom: 14,
-  },
-  tokenBox: {
-    backgroundColor: '#F8FAFC',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    width: '100%',
+    marginTop: 4,
     marginBottom: 16,
   },
-  tokenLabel: {
-    fontSize: 10,
-    color: '#94A3B8',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  tokenValue: {
-    fontSize: 11,
-    color: '#0C447C',
-    fontFamily: 'monospace',
-    fontWeight: '700',
-  },
-  viewPassBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  viewPassActionBtn: {
     backgroundColor: '#0C447C',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    width: '100%',
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
-  viewPassBtnText: {
+  viewPassActionText: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
 });

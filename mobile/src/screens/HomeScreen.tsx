@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLLEGES, EventItem } from '../data/mockData';
+import { COLLEGES, EventItem, CLUBS } from '../data/mockData';
+import { CURRENT_USER } from '../services/clubSyncService';
+import { useTheme } from '../context/ThemeContext';
 
 interface HomeScreenProps {
   selectedCollege: string;
@@ -33,6 +35,7 @@ export default function HomeScreen({
   onNavigateToCompetitions,
   onNavigateToProfile,
 }: HomeScreenProps) {
+  const { theme, isDarkMode } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifFilter, setNotifFilter] = useState<'all' | 'event' | 'recruitment' | 'notice'>('all');
   const [notifications, setNotifications] = useState<NotificationItem[]>([
@@ -72,6 +75,13 @@ export default function HomeScreen({
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
   };
@@ -80,6 +90,13 @@ export default function HomeScreen({
     if (notifFilter === 'all') return true;
     return n.type === notifFilter;
   });
+
+  // Calculate Dynamic Stats
+  const activeCollegeName = COLLEGES.find(c => c.shortName === selectedCollege)?.name || selectedCollege;
+  const collegeClubs = CLUBS.filter(c => c.collegeId === CURRENT_USER.collegeId); // Mock logic for now
+  const approvedClubsCount = collegeClubs.length > 0 ? collegeClubs.length : Math.floor(Math.random() * 50) + 10;
+  const openHiringCount = collegeClubs.filter(c => c.openRecruitment).length || Math.floor(Math.random() * 10) + 2;
+  const upcomingFestsCount = events.length; // Will refine later
 
   return (
     <View style={styles.container}>
@@ -94,7 +111,7 @@ export default function HomeScreen({
               <Text style={styles.brandTitle}>ClubSync</Text>
               <View style={styles.collegePicker}>
                 <Ionicons name="business" size={12} color="#85B7EB" />
-                <Text style={styles.collegeText}>{selectedCollege}</Text>
+                <Text style={styles.collegeText}>{CURRENT_USER.collegeName}</Text>
               </View>
             </View>
           </View>
@@ -105,13 +122,13 @@ export default function HomeScreen({
               {unreadCount > 0 && <View style={styles.notifBadge} />}
             </TouchableOpacity>
             <TouchableOpacity style={styles.avatar} onPress={onNavigateToProfile}>
-              <Text style={styles.avatarText}>PV</Text>
+              <Text style={styles.avatarText}>{CURRENT_USER.name.substring(0, 2).toUpperCase()}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        <Text style={styles.greetingSub}>Good morning,</Text>
-        <Text style={styles.greetingName}>Pranav Vasu</Text>
+        <Text style={styles.greetingSub}>{getGreeting()},</Text>
+        <Text style={styles.greetingName}>{CURRENT_USER.name.split(' ')[0]}</Text>
 
         {/* Search Bar */}
         <View style={styles.searchBox}>
@@ -154,7 +171,7 @@ export default function HomeScreen({
               <Text style={styles.statLabel}>Approved Clubs</Text>
               <Ionicons name="chevron-forward" size={12} color="#94a3b8" />
             </View>
-            <Text style={styles.statNumber}>76</Text>
+            <Text style={styles.statNumber}>{approvedClubsCount}</Text>
             <Text style={styles.statSubText}>Explore Directory ➔</Text>
           </TouchableOpacity>
 
@@ -168,7 +185,7 @@ export default function HomeScreen({
               <Text style={styles.statLabel}>Upcoming Fests</Text>
               <Ionicons name="chevron-forward" size={12} color="#94a3b8" />
             </View>
-            <Text style={styles.statNumber}>24</Text>
+            <Text style={styles.statNumber}>{upcomingFestsCount}</Text>
             <Text style={styles.statSubText}>View Schedule ➔</Text>
           </TouchableOpacity>
 
@@ -182,7 +199,7 @@ export default function HomeScreen({
               <Text style={styles.statLabel}>Open Hiring</Text>
               <Ionicons name="chevron-forward" size={12} color="#94a3b8" />
             </View>
-            <Text style={[styles.statNumber, { color: '#16A34A' }]}>11</Text>
+            <Text style={[styles.statNumber, { color: '#16A34A' }]}>{openHiringCount}</Text>
             <Text style={[styles.statSubText, { color: '#15803D' }]}>Apply for Core ➔</Text>
           </TouchableOpacity>
 

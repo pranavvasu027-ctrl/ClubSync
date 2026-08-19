@@ -1,27 +1,54 @@
-# ClubSync Database Setup Guide
+# 🏛️ ClubSync Database Setup Guide (Supabase & PostgreSQL)
 
-This database schema is pre-configured for **PostgreSQL** and **Supabase**.
-
-## 🚀 Instant Cloud Setup (Recommended - 2 Minutes)
-
-1. Go to [**Supabase.com**](https://supabase.com) and create a new free project (e.g. `clubsync-prod`).
-2. In the Supabase Dashboard, click on **SQL Editor** in the left sidebar.
-3. Open [`database/schema.sql`](file:///c:/Users/prana/OneDrive/Desktop/Clubsync/database/schema.sql), copy its entire contents, and paste it into the Supabase SQL Editor.
-4. Click **Run**.
-5. All 12 tables, indexes, views, and initial seed data (VIT clubs, COEP, PICT, roles) will be generated instantly.
+The ClubSync database is powered by **PostgreSQL** and fully integrated with **Supabase**.
 
 ---
 
-## 📊 Included Tables & Capabilities:
-- **`colleges`**: Multi-college tenancy (VIT Pune, COEP Tech, PICT, MIT-WPU, PCCOE, VIIT).
-- **`users`**: Unified student identity, CGPA, branch, year, and role management.
-- **`clubs` & `club_roles`**: 75+ clubs across Technical, Cultural, Sports, and Social verticals.
-- **`events` & `event_approvals`**: Multi-tier approval pipeline (Mentor ➔ Resource Head ➔ Coordinator ➔ Dean).
-- **`tickets` & `event_registrations`**: Tiered ticketing, QR token validation, and day-of-event check-in.
-- **`competitions`, `teams` & `winners`**: 2+ year historical archive for Hackathons, Debates, and Sports tournaments.
-- **`recruitment_drives` & `applications`**: Core team hiring pipeline with CGPA eligibility checks.
-- **`finance_transactions`**: Financial income/expense ledger.
-- **Analytical Views**: 
-  - `v_college_winner_leaderboard`: Real-time ranking of top-winning colleges.
-  - `v_inter_college_participation_stats`: Footfall and origin mapping.
-  - `v_club_annual_performance`: Auto-summarizer for Annual Review Form AY 2026–27.
+## ⚡ Instant Cloud Setup (2-Minute Supabase Guide)
+
+1. Navigate to [**Supabase Dashboard**](https://supabase.com/dashboard) and log in.
+2. Select your project (or create a new project: `clubsync-prod`).
+3. Click on the **SQL Editor** tab (`>_`) in the left navigation sidebar.
+4. Click **New Query**, copy the entire contents of [`database/schema.sql`](file:///c:/Users/prana/OneDrive/Desktop/Clubsync/database/schema.sql), and paste it into the editor.
+5. Click **Run** (or press `Ctrl + Enter`).
+6. All 14 tables, RLS policies, analytical views, foreign keys, and nationwide seed data will be initialized instantly.
+
+---
+
+## 🔑 Environment Keys Configuration
+
+In `mobile/.env`, ensure your Supabase keys are configured:
+
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<your-anon-publishable-key>
+```
+
+---
+
+## 📊 Database Architecture Overview
+
+| Table | Description |
+|---|---|
+| `colleges` | Nationwide multi-tenancy roots (IITs, NITs, BITS, VIT, COEP, PICT, etc.) |
+| `users` | Student passport profile, branch, year, CGPA, links, and Google OAuth ID |
+| `clubs` | 75+ clubs with CMS edit support for tagline, mentor, vision, deadlines, Instagram |
+| `club_followers` | Real-time social layer tracking student club subscriptions |
+| `events` | Campus events & hackathons with ticket prices, venue, and approval status |
+| `event_approvals` | Multi-tier approval pipeline (Mentor ➔ Incharge ➔ Coordinator ➔ Dean) |
+| `tickets` | Tiered ticket inventory (Free, Early Bird, All-Access Hackathon Pass) |
+| `event_registrations` | Live RSVPs, payment status, and cryptographic QR gate pass tokens |
+| `competitions` | National hackathons, B-Plans, Case Studies, and CTFs discovery feed |
+| `teams` & `team_members` | Inter-college team registrations with teammate PRN validation |
+| `winners` | Hall of fame archive with podium ranks and verified certificate codes |
+| `recruitment_drives` & `applications` | Core team hiring pipeline with CGPA eligibility checks & status tracker |
+| `notifications` | In-app alerts for ticket passes, interview calls, and college notices |
+| `finance_transactions` | Financial income/expense ledger for club annual renewals |
+
+---
+
+## 📈 Real-Time Analytical Views
+
+- **`v_college_winner_leaderboard`**: Live ranking of top-winning colleges and total prize money.
+- **`v_inter_college_participation_stats`**: Footfall and origin mapping across academic years.
+- **`v_club_annual_performance`**: Auto-summarizer for NAAC & Annual Review Form AY 2026–27.

@@ -54,6 +54,7 @@ export interface Club {
   tagline?: string;
   collegeId: string;
   vertical: 'Technical' | 'Cultural' | 'Sports' | 'Social' | 'Entrepreneurship' | 'Literary' | 'Others';
+  contentVisibility: 'college-only' | 'public';
   campus: string;
   workshopOrRoom?: string;
   facultyMentor: string;
@@ -71,6 +72,8 @@ export interface Club {
   whatsappGroup?: string;
   officialEmail?: string;
   membersCount: number;
+  followersCount: number;
+  isFollowed?: boolean;
   openRecruitment: boolean;
   recruitmentDeadline?: string;
   recruitmentRounds?: string[];
@@ -89,7 +92,7 @@ export interface CompetitionItem {
   organizer: string;
   organizerLogoBg: string;
   collegeName: string;
-  category: 'Hackathons' | 'B-Plan & Case Studies' | 'Quizzes & CTFs' | 'Startup Pitches' | 'Cultural & Sports';
+  category: 'Hackathons' | 'B-Plan & Case Studies' | 'Quizzes & CTFs' | 'Startup Pitches' | 'Cultural & Sports' | 'Events & Workshops';
   mode: 'Online' | 'Offline On-Campus' | 'Hybrid';
   location: string;
   teamSize: 'Individual Participation' | '1 - 2 Members' | '1 - 3 Members' | '1 - 4 Members' | '1 - 5 Members' | '2 - 4 Members' | string;
@@ -104,6 +107,9 @@ export interface CompetitionItem {
   description: string;
   eligibility: string;
   isRegistered?: boolean;
+  status?: 'upcoming' | 'past';
+  winner?: string;
+  winningCollege?: string;
 }
 
 export interface EventItem {
@@ -120,7 +126,7 @@ export interface EventItem {
   isHackathon?: boolean;
   prizePool?: string;
   ticketPrice: number;
-  scope: 'Intra-Collegiate' | 'Inter-Collegiate' | 'Pune-Wide';
+  scope: 'Intra-Collegiate' | 'Inter-Collegiate' | 'City-Wide' | 'State' | 'National';
   description: string;
   registeredCount: number;
   maxCapacity: number;
@@ -147,12 +153,16 @@ export interface DigitalTicket {
 }
 
 export const COLLEGES: College[] = [
+  { id: 'IIT_B', name: 'Indian Institute of Technology Bombay', shortName: 'IIT Bombay', city: 'Mumbai' },
+  { id: 'BITS_P', name: 'Birla Institute of Technology and Science', shortName: 'BITS Pilani', city: 'Pilani' },
+  { id: 'NIT_T', name: 'National Institute of Technology Trichy', shortName: 'NIT Trichy', city: 'Tiruchirappalli' },
+  { id: 'SRM_C', name: 'SRM Institute of Science and Technology', shortName: 'SRM Chennai', city: 'Chennai' },
   { id: 'VIT_PUNE', name: 'Vishwakarma Institute of Technology', shortName: 'VIT Pune', city: 'Pune' },
-  { id: 'COEP_TECH', name: 'COEP Technological University', shortName: 'COEP Tech', city: 'Pune' },
-  { id: 'PICT_PUNE', name: 'Pune Institute of Computer Technology', shortName: 'PICT', city: 'Pune' },
+  { id: 'COEP', name: 'College of Engineering Pune', shortName: 'COEP Tech', city: 'Pune' },
+  { id: 'PICT', name: 'Pune Institute of Computer Technology', shortName: 'PICT', city: 'Pune' },
   { id: 'MIT_WPU', name: 'MIT World Peace University', shortName: 'MIT-WPU', city: 'Pune' },
-  { id: 'VIIT_PUNE', name: 'Vishwakarma Institute of Info Tech', shortName: 'VIIT', city: 'Pune' },
-  { id: 'PCCOE_PUNE', name: 'Pimpri Chinchwad College of Eng', shortName: 'PCCOE', city: 'Pune' },
+  { id: 'VIIT', name: 'Vishwakarma Institute of Information Technology', shortName: 'VIIT', city: 'Pune' },
+  { id: 'PCCOE', name: 'Pimpri Chinchwad College of Engineering', shortName: 'PCCOE', city: 'Pune' }
 ];
 
 export const CLUBS: Club[] = [
@@ -167,6 +177,7 @@ export const CLUBS: Club[] = [
     tagline: 'Fostering Innovation, Fueling Entrepreneurial Spirits',
     collegeId: 'VIT_PUNE',
     vertical: 'Entrepreneurship',
+    contentVisibility: 'public',
     campus: 'Bibwewadi Main Campus',
     workshopOrRoom: 'E-Cell Incubation Cabin 402, Building 3',
     facultyMentor: 'Prof. Gambhire & Prof. Vaishali Mishra',
@@ -183,7 +194,7 @@ export const CLUBS: Club[] = [
     discord: 'https://discord.gg/ecell-vit',
     whatsappGroup: 'https://chat.whatsapp.com/EDC-VIT-Community-2026',
     officialEmail: 'ecell@vit.edu',
-    membersCount: 230,
+    membersCount: 230, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '25 Aug 2026, 11:59 PM',
     recruitmentRoles: ['Startup Incubation Associate', 'Corporate Sponsorship Lead', 'Earn & Sell Event Logistics', 'Creative Design & Branding', 'Public Relations & Media'],
@@ -295,6 +306,7 @@ export const CLUBS: Club[] = [
     tagline: 'Innovate, Integrate, Inspire — Advancing Computing Excellence',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
+    contentVisibility: 'public',
     campus: 'Bibwewadi Main Campus',
     workshopOrRoom: 'CSI Technical Laboratory 104, Computer Dept',
     facultyMentor: 'Prof. Ghadekar P.P.',
@@ -311,7 +323,7 @@ export const CLUBS: Club[] = [
     discord: 'https://discord.gg/csi-vit',
     whatsappGroup: 'https://chat.whatsapp.com/CSI-VIT-CodeHub-2026',
     officialEmail: 'csi@vit.edu',
-    membersCount: 220,
+    membersCount: 220, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '26 Aug 2026, 11:59 PM',
     recruitmentRoles: ['Competitive Programming Mentor', 'Full-Stack Web Architect', 'Cloud & DevOps Lead', 'Corporate Technical PR', 'UI/UX & Graphics Designer'],
@@ -413,6 +425,7 @@ export const CLUBS: Club[] = [
     tagline: 'Precision Engineering at 140 km/h',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi Workshop Ground Floor',
     workshopOrRoom: 'Formula Racing R&D Workshop Bay 1',
     facultyMentor: 'Prof. Sachin Komble',
@@ -422,7 +435,7 @@ export const CLUBS: Club[] = [
     description: 'Premier Formula Student combustion & electric race car design and manufacturing team representing VIT Pune at Formula Bharat and Formula Student Germany.',
     websiteUrl: 'https://teamgriffin.in',
     instagram: '@teamgriffin_vit',
-    membersCount: 85,
+    membersCount: 85, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '30 Aug 2026',
     recruitmentRoles: ['Aerodynamics Engineer', 'Powertrain & Battery Lead', 'Telemetry & DAQ'],
@@ -440,6 +453,7 @@ export const CLUBS: Club[] = [
     tagline: 'Design, Build, Dominate — Robocon National Champions',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi Robotics Lab',
     workshopOrRoom: 'Advanced Robotics R&D Lab 002',
     facultyMentor: 'Prof. Kalpesh Joshi',
@@ -448,7 +462,7 @@ export const CLUBS: Club[] = [
     establishedYear: 2008,
     description: 'National Robocon champions, autonomous rovers, swarm robotics, computer vision, and combat robotics team of VIT Pune.',
     instagram: '@trf_vit',
-    membersCount: 165,
+    membersCount: 165, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '30 Aug 2026',
     recruitmentRoles: ['Embedded Systems Lead', 'Computer Vision / ROS', 'Hardware Mechanical CAD'],
@@ -466,6 +480,7 @@ export const CLUBS: Club[] = [
     tagline: 'Code, Create, Deploy — Hackathon Powerhouse',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi CS Labs',
     workshopOrRoom: 'GedIT Software Studio Lab 304',
     facultyMentor: 'Prof. Pankaj Kunekar',
@@ -474,7 +489,7 @@ export const CLUBS: Club[] = [
     establishedYear: 2018,
     description: 'Flagship competitive programming, full-stack, Web3, and hackathon organization at VIT Pune.',
     instagram: '@gedit_vit',
-    membersCount: 195,
+    membersCount: 195, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: 'Tonight, 11:59 PM',
     recruitmentRoles: ['Web Dev Lead', 'AI/ML Head', 'Competitive Programming Mentor'],
@@ -492,6 +507,7 @@ export const CLUBS: Club[] = [
     tagline: 'The Soul of Campus Culture & Celebration',
     collegeId: 'VIT_PUNE',
     vertical: 'Cultural',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi Main Campus',
     workshopOrRoom: 'Student Activities Council Room 101',
     facultyMentor: 'Prof. Deshpande D.R.',
@@ -499,7 +515,7 @@ export const CLUBS: Club[] = [
     establishedYear: 2005,
     description: 'Organizer of the biggest annual inter-collegiate cultural festival in Maharashtra with celebrity concerts and 40+ events.',
     instagram: '@melange_vitpune',
-    membersCount: 260,
+    membersCount: 260, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '28 Aug 2026',
     recruitmentRoles: ['Concert Management', 'Celebrity PR', 'Sponsorship Secretary'],
@@ -517,12 +533,13 @@ export const CLUBS: Club[] = [
     tagline: 'Harmonizing Beats, Igniting Melodies',
     collegeId: 'VIT_PUNE',
     vertical: 'Cultural',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi Amphitheatre',
     facultyMentor: 'Prof. Kanjalkar Jyoti',
     establishedYear: 2013,
     description: 'Band performances, classical ensembles, acoustic open mics, and vocal music productions.',
     instagram: '@aaroh_vit',
-    membersCount: 110,
+    membersCount: 110, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '24 Aug 2026',
     recruitmentRoles: ['Lead Guitarist/Bassist', 'Vocalist (Western/Indian)', 'Sound Engineer'],
@@ -540,12 +557,13 @@ export const CLUBS: Club[] = [
     tagline: 'Strength, Endurance, Glory on the Field',
     collegeId: 'VIT_PUNE',
     vertical: 'Sports',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi & Kondhwa Grounds',
     facultyMentor: 'Prof. Bhanuse, Phatangare and Patare',
     establishedYear: 1998,
     description: 'Inter-collegiate cricket, football, basketball, badminton, table tennis, athletics, and chess tournaments.',
     instagram: '@sports_vitpune',
-    membersCount: 280,
+    membersCount: 280, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '28 Aug 2026',
     recruitmentRoles: ['Cricket Captain', 'Football Coach', 'Table Tennis Lead'],
@@ -563,12 +581,13 @@ export const CLUBS: Club[] = [
     tagline: 'Art of Rhetoric, Mastery of Debate',
     collegeId: 'VIT_PUNE',
     vertical: 'Literary',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi Audi 1',
     facultyMentor: 'Prof. Vaishali Savale',
     establishedYear: 2016,
     description: 'Parliamentary debate, Model UN, public speaking, rhetoric, and national debating championships.',
     instagram: '@speakersarena_vit',
-    membersCount: 115,
+    membersCount: 115, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '28 Aug 2026',
     recruitmentRoles: ['Debate Adjudicator', 'Public Speaking Coach'],
@@ -586,12 +605,13 @@ export const CLUBS: Club[] = [
     tagline: 'Ideas Worth Spreading',
     collegeId: 'VIT_PUNE',
     vertical: 'Literary',
+    contentVisibility: 'public',
     campus: 'Bibwewadi',
     facultyMentor: 'Prof. Jayashree Jankar',
     establishedYear: 2015,
     description: 'Independently organized TED event curating world-class thought leaders, innovators, and creators.',
     instagram: '@tedxvitpune',
-    membersCount: 85,
+    membersCount: 85, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: 'Tonight, 11:59 PM',
     recruitmentRoles: ['Speaker Curation Head', 'Cinematography Lead', 'Design Head'],
@@ -606,12 +626,13 @@ export const CLUBS: Club[] = [
     shortName: 'COMPSA',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi CS Dept',
     facultyMentor: 'Prof. Shaileja Uke',
     establishedYear: 2002,
     description: 'Official departmental body of Computer Engineering department managing technical symposiums.',
     instagram: '@compsa_vit',
-    membersCount: 190,
+    membersCount: 190, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '28 Aug 2026',
     recruitmentRoles: ['SY Department Representative', 'Event Lead'],
@@ -624,12 +645,13 @@ export const CLUBS: Club[] = [
     shortName: 'AISA (AI Forum)',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi',
     facultyMentor: 'Prof. Sunil Sable',
     establishedYear: 2021,
     description: 'Student forum fostering machine learning research, neural networks, and Kaggle competitions.',
     instagram: '@aisa_vit',
-    membersCount: 140,
+    membersCount: 140, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '27 Aug 2026',
     recruitmentRoles: ['Kaggle Sprint Head', 'NLP Track Lead'],
@@ -642,12 +664,13 @@ export const CLUBS: Club[] = [
     shortName: 'MESA',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi Mechanical Dept',
     facultyMentor: 'Prof. Shinde S.S. & Prof. Shyamkuwar S.C.',
     establishedYear: 2000,
     description: 'Mechanical engineering body fostering thermal, design, manufacturing, and CAD modeling fests.',
     instagram: '@mesa_vit',
-    membersCount: 165,
+    membersCount: 165, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '30 Aug 2026',
     recruitmentRoles: ['CAD Sprint Coordinator', 'Industrial Visit Lead'],
@@ -660,12 +683,13 @@ export const CLUBS: Club[] = [
     shortName: 'ByteForge',
     collegeId: 'VIT_PUNE',
     vertical: 'Technical',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi ENTC Dept',
     facultyMentor: 'Prof. Jyoti Madake',
     establishedYear: 2020,
     description: 'Electronics & Telecommunication society specializing in VLSI, FPGA, embedded C, and signal processing.',
     instagram: '@byteforge_entc',
-    membersCount: 95,
+    membersCount: 95, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '28 Aug 2026',
     recruitmentRoles: ['VLSI Track Lead', 'IoT Hardware Head'],
@@ -678,12 +702,13 @@ export const CLUBS: Club[] = [
     shortName: 'NSS VIT Pune',
     collegeId: 'VIT_PUNE',
     vertical: 'Social',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi',
     facultyMentor: 'Prof. Gambhire',
     establishedYear: 2000,
     description: '7-day annual village adoption camps, blood donation mega camps, and social awareness drives.',
     instagram: '@nss_vitpune',
-    membersCount: 210,
+    membersCount: 210, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '27 Aug 2026',
     recruitmentRoles: ['Camp Coordinator', 'Health Drive Lead'],
@@ -696,12 +721,13 @@ export const CLUBS: Club[] = [
     shortName: 'Antariksh',
     collegeId: 'VIT_PUNE',
     vertical: 'Others',
+    contentVisibility: 'college-only',
     campus: 'Bibwewadi',
     facultyMentor: 'Prof. Shital Powar & Prof. Milind Patil',
     establishedYear: 2016,
     description: 'Stargazing expeditions, telescope construction, astrophotography, and CanSat satellite engineering.',
     instagram: '@antariksh_vit',
-    membersCount: 110,
+    membersCount: 110, followersCount: Math.floor(Math.random() * 1500) + 100, isFollowed: false,
     openRecruitment: true,
     recruitmentDeadline: '29 Aug 2026',
     recruitmentRoles: ['Observational Lead', 'Payload Engineer'],
@@ -713,6 +739,31 @@ export const CLUBS: Club[] = [
 // COMPETITIONS (UNSTOP-INSPIRED HUB)
 // =========================================================================
 export const COMPETITIONS: CompetitionItem[] = [
+  {
+    id: 'COMP_PAST_01',
+    title: 'Smart India Hackathon (SIH) 2025',
+    organizer: 'Ministry of Education',
+    organizerLogoBg: '#D97706',
+    collegeName: 'National',
+    category: 'Hackathons',
+    mode: 'Hybrid',
+    location: 'Nodal Center, IIT Bombay',
+    teamSize: '6 Members',
+    minTeam: 6,
+    maxTeam: 6,
+    tags: ['National', 'Govt', 'Tech'],
+    daysLeft: 'Ended',
+    deadlineDate: '15 Dec 2025',
+    prizePool: '₹1,00,000',
+    entryFee: 0,
+    registeredCount: 15420,
+    description: 'The world\'s biggest open innovation model. Students solved complex real-world challenges set by the government.',
+    eligibility: 'All Indian students',
+    isRegistered: false,
+    status: 'past',
+    winner: 'Team CodeCrafters',
+    winningCollege: 'VIT Pune',
+  },
   {
     id: 'COMP_01',
     title: 'Pune TechFest Grand Hackathon 2026',
@@ -884,7 +935,7 @@ export const EVENTS: EventItem[] = [
     isHackathon: true,
     prizePool: '₹1,00,000',
     ticketPrice: 0,
-    scope: 'Pune-Wide',
+    scope: 'City-Wide',
     description: '36-Hour Hackathon with tracks in AI/ML, Web3, FinTech, and Smart Campus. Open to students across all Pune colleges.',
     registeredCount: 320,
     maxCapacity: 400,

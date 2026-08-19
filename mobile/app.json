@@ -1,17 +1,21 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "ClubSync",
+    "slug": "clubsync",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "clubsync",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.clubsync.app"
     },
     "android": {
+      "package": "com.clubsync.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0C447C",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -24,6 +28,11 @@
     "plugins": [
       "expo-asset",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "21c48e29-80e1-4695-9713-872a8ff4e70c"
+      }
+    }
   }
 }
