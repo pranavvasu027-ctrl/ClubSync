@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Dashboard - ClubSync</title>
+    <!-- ClubSync Design System -->
+    <link rel="stylesheet" href="clubsync-design-system.css">
+    
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        /* Faculty Specific Adjustments */
+        .role-badge.faculty { background: rgba(59, 130, 246, 0.2); color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .stat-card[data-color="blue"] { border-bottom: 2px solid #3B82F6; }
+        .stat-card[data-color="amber"] { border-bottom: 2px solid #F59E0B; }
+        .stat-card[data-color="emerald"] { border-bottom: 2px solid #10B981; }
+        
+        .pulse-dot {
+            width: 8px; height: 8px; background: #F59E0B; border-radius: 50%;
+            display: inline-block; animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        
+        .approval-card {
+            display: flex; gap: 1rem; align-items: center; padding: 1rem;
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px; margin-bottom: 1rem; transition: all 0.2s;
+        }
+        .approval-card:hover { background: rgba(255,255,255,0.05); }
+        .approval-thumbnail { width: 80px; height: 80px; border-radius: 8px; background: linear-gradient(135deg, #1e293b, #334155); display: flex; align-items: center; justify-content: center; }
+        .approval-details { flex-grow: 1; }
+        .approval-actions { display: flex; gap: 0.5rem; }
+        
+        .timeline { position: relative; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1); margin-top: 1rem; }
+        .timeline-item { position: relative; padding-bottom: 1.5rem; }
+        .timeline-dot { position: absolute; left: -25px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #3B82F6; border: 2px solid #0f172a; }
+    </style>
+</head>
+<body class="dark-theme">
+    <div id="app" class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <i class="ti ti-hexagon-letter-c text-primary"></i>
+                    <span>ClubSync</span>
+                </div>
+                <button class="btn btn-icon btn-ghost d-lg-none" id="sidebar-close">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-body">
+                <nav class="nav-menu">
+                    <a href="#" class="nav-item active" data-section="section-overview">
+                        <i class="ti ti-layout-dashboard"></i>
+                        <span>Overview</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="section-approvals">
+                        <i class="ti ti-checkbox"></i>
+                        <span>Pending Approvals</span>
+                        <span class="badge badge-warning">5</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="section-events">
+                        <i class="ti ti-calendar-event"></i>
+                        <span>All Events</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="section-analytics">
+                        <i class="ti ti-chart-bar"></i>
+                        <span>Analytics</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="section-naac">
+                        <i class="ti ti-file-report"></i>
+                        <span>NAAC Reports</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="section-activity">
+                        <i class="ti ti-activity"></i>
+                        <span>Activity Log</span>
+                    </a>
+                    <a href="#" class="nav-item" data-section="section-settings">
+                        <i class="ti ti-settings"></i>
+                        <span>Settings</span>
+                    </a>
+                </nav>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Pankaj+Kunekar&background=3B82F6&color=fff" alt="User" class="avatar">
+                    <div class="user-info">
+                        <div class="user-name">Prof. Pankaj Kunekar</div>
+                        <div class="user-role">Faculty Advisor</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="btn btn-icon btn-ghost d-lg-none" id="sidebar-toggle">
+                        <i class="ti ti-menu-2"></i>
+                    </button>
+                    <div class="breadcrumbs">
+                        <span>ClubSync</span>
+                        <i class="ti ti-chevron-right"></i>
+                        <span>Faculty Portal</span>
+                        <i class="ti ti-chevron-right"></i>
+                        <span id="breadcrumb-current">Overview</span>
+                    </div>
+                    <span class="role-badge faculty ms-3 d-none d-md-inline-flex"><i class="ti ti-shield-check"></i> Faculty Advisor</span>
+                </div>
+                
+                <div class="topbar-right">
+                    <button class="btn btn-icon btn-ghost" title="Search (Ctrl+K)" onclick="ClubSyncShell.toggleCommandPalette()">
+                        <i class="ti ti-search"></i>
+                    </button>
+                    
+                    <div class="dropdown">
+                        <button class="btn btn-icon btn-ghost" id="notif-toggle">
+                            <i class="ti ti-bell"></i>
+                            <span class="badge badge-danger notif-dot"></span>
+                        </button>
+                    </div>
+                    
+                    <button class="btn btn-primary d-none d-sm-inline-flex" onclick="ClubSyncShell.showToast('Quick Action menu opened', 'info')">
+                        <i class="ti ti-bolt"></i> Quick Actions
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="content-wrapper">
+                
+                <!-- OVERVIEW SECTION -->
+                <div id="section-overview" class="section-content">
+                    <div class="bento-grid bento-4 mb-4">
+                        <div class="stat-card card" data-color="blue">
+                            <div class="stat-header">
+                                <div class="stat-icon"><i class="ti ti-calendar-star text-primary"></i></div>
+                                <div class="stat-trend trend-up"><i class="ti ti-arrow-up-right"></i> +12% &uarr;</div>
+                            </div>
+                            <div class="stat-title">Total Events</div>
+                            <div class="stat-value" data-counter="47">0</div>
+                        </div>
+                        
+                        <div class="stat-card card" data-color="amber">
+                            <div class="stat-header">
+                                <div class="stat-icon"><i class="ti ti-checkbox text-warning"></i></div>
+                                <div class="pulse-dot"></div>
+                            </div>
+                            <div class="stat-title">Pending Approvals</div>
+                            <div class="stat-value" data-counter="5">0</div>
+                        </div>
+                        
+                        <div class="stat-card card" data-color="emerald">
+                            <div class="stat-header">
+                                <div class="stat-icon"><i class="ti ti-wallet text-success"></i></div>
+                            </div>
+                            <div class="stat-title">Budget Used (₹8L total)</div>
+                            <div class="stat-value">₹4,85k</div>
+                            <div class="stat-progress mt-2" style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px;">
+                                <div style="width: 60.6%; height: 100%; background: #10B981; border-radius: 3px;"></div>
+                            </div>
+                            <div class="text-xs text-muted mt-1">60.6% Utilized</div>
+                        </div>
+                        
+                        <div class="stat-card card" data-color="emerald">
+                            <div class="stat-header">
+                                <div class="stat-icon"><i class="ti ti-certificate text-success"></i></div>
+                            </div>
+                            <div class="stat-title">NAAC Score</div>
+                            <div class="stat-value">4.2<span class="text-sm text-muted">/5.0</span></div>
+                            <div class="stat-progress mt-2" style="background: rgba(255,255,255,0.1); height: 6px; border-radius: 3px;">
+                                <div style="width: 84%; height: 100%; background: #10B981; border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PENDING APPROVALS SECTION -->
+                <div id="section-approvals" class="section-content" style="display:none;">
+                    <div class="card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3 class="mb-0">Needs Your Approval</h3>
+                            <div class="batch-actions" style="display: none;" id="batch-actions-bar">
+                                <span class="me-3" id="batch-count">1 selected</span>
+                                <button class="btn btn-success btn-sm me-2" onclick="ClubSyncShell.fireConfetti(); ClubSyncShell.showToast('Batch approved successfully!', 'success')">Approve All</button>
+                                <button class="btn btn-danger btn-sm" onclick="ClubSyncShell.showToast('Batch rejected.', 'error')">Reject All</button>
+                            </div>
+                        </div>
+                        
+                        <div class="approval-card">
+                            <input type="checkbox" class="approval-check" onchange="toggleBatchBar()">
+                            <div class="approval-thumbnail"><i class="ti ti-code fa-2x text-primary"></i></div>
+                            <div class="approval-details">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="mb-1">Pune TechFest Grand Hackathon 2026</h5>
+                                    <span class="badge badge-warning">Pending Review</span>
+                                </div>
+                                <div class="text-sm text-muted mb-2">GedIT &bull; Oct 15-16, 2026 &bull; Main Auditorium</div>
+                                <div class="d-flex align-items-center gap-3 text-sm">
+                                    <span><strong>Budget:</strong> ₹1,20,000</span>
+                                    <span class="d-flex align-items-center gap-2"><img src="https://ui-avatars.com/api/?name=Kuldeep+Patil&size=20&rounded=true"> Kuldeep Patil</span>
+                                </div>
+                            </div>
+                            <div class="approval-actions">
+                                <button class="btn btn-icon btn-ghost" title="View Details"><i class="ti ti-eye"></i></button>
+                                <button class="btn btn-icon btn-danger" onclick="ClubSyncShell.showToast('Request rejected', 'error')"><i class="ti ti-x"></i></button>
+                                <button class="btn btn-icon btn-success" onclick="ClubSyncShell.fireConfetti(); ClubSyncShell.showToast('Event Approved!', 'success')"><i class="ti ti-check"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="approval-card">
+                            <input type="checkbox" class="approval-check" onchange="toggleBatchBar()">
+                            <div class="approval-thumbnail"><i class="ti ti-bulb fa-2x text-warning"></i></div>
+                            <div class="approval-details">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h5 class="mb-1">Earn & Sell 2026: Campus Bazaar</h5>
+                                    <span class="badge badge-warning">Pending Review</span>
+                                </div>
+                                <div class="text-sm text-muted mb-2">EDC &bull; Nov 5, 2026 &bull; Campus Lawns</div>
+                                <div class="d-flex align-items-center gap-3 text-sm">
+                                    <span><strong>Budget:</strong> ₹85,000</span>
+                                    <span class="d-flex align-items-center gap-2"><img src="https://ui-avatars.com/api/?name=Arnav+Joshi&size=20&rounded=true"> Arnav Joshi</span>
+                                </div>
+                            </div>
+                            <div class="approval-actions">
+                                <button class="btn btn-icon btn-ghost" title="View Details"><i class="ti ti-eye"></i></button>
+                                <button class="btn btn-icon btn-danger" onclick="ClubSyncShell.showToast('Request rejected', 'error')"><i class="ti ti-x"></i></button>
+                                <button class="btn btn-icon btn-success" onclick="ClubSyncShell.fireConfetti(); ClubSyncShell.showToast('Event Approved!', 'success')"><i class="ti ti-check"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANALYTICS SECTION -->
+                <div id="section-analytics" class="section-content" style="display:none;">
+                    <div class="card p-4 mb-4" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(59,130,246,0.3);">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="p-3 bg-primary text-white rounded"><i class="ti ti-brain fa-lg"></i></div>
+                            <div>
+                                <h4 class="mb-2">AI Insight</h4>
+                                <p class="text-muted mb-0">Event attendance increased 23% this month compared to last month. Top performing club: <strong>GedIT Technical Club</strong> with 142 average attendees per event. Budget utilization is healthy at 60.6%.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bento-grid bento-2">
+                        <div class="card p-3">
+                            <h5>Event Frequency</h5>
+                            <canvas id="chart-frequency"></canvas>
+                        </div>
+                        <div class="card p-3">
+                            <h5>Attendance Trend</h5>
+                            <canvas id="chart-attendance"></canvas>
+                        </div>
+                        <div class="card p-3">
+                            <h5>Budget Allocation</h5>
+                            <canvas id="chart-budget"></canvas>
+                        </div>
+                        <div class="card p-3">
+                            <h5>Club Comparison</h5>
+                            <canvas id="chart-radar"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NAAC REPORTS SECTION -->
+                <div id="section-naac" class="section-content" style="display:none;">
+                    <div class="card p-4 mb-4">
+                        <h4>Generate NAAC Report</h4>
+                        <p class="text-muted">Export verified event data formatted according to NAAC criteria (Metric 5.3.3).</p>
+                        <div class="d-flex gap-3 mt-3">
+                            <button class="btn btn-primary" onclick="ClubSyncShell.showToast('PDF Generating...', 'info')"><i class="ti ti-file-type-pdf"></i> Download PDF</button>
+                            <button class="btn btn-outline"><i class="ti ti-file-spreadsheet"></i> Excel Format</button>
+                            <button class="btn btn-outline"><i class="ti ti-file-text"></i> CSV Raw</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card p-4">
+                        <h5>Recent Exports</h5>
+                        <div class="table-responsive mt-3">
+                            <table class="w-100" style="text-align: left; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                        <th class="p-3">Report Name</th>
+                                        <th class="p-3">Generated On</th>
+                                        <th class="p-3">Format</th>
+                                        <th class="p-3">Size</th>
+                                        <th class="p-3">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="p-3">AY_2025_26_Events.pdf</td>
+                                        <td class="p-3">Aug 23, 2026</td>
+                                        <td class="p-3"><span class="badge badge-error">PDF</span></td>
+                                        <td class="p-3">2.4 MB</td>
+                                        <td class="p-3"><a href="#" class="text-primary">Download</a></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACTIVITY LOG SECTION -->
+                <div id="section-activity" class="section-content" style="display:none;">
+                    <div class="card p-4">
+                        <h4 class="mb-2">Recent Activity</h4>
+                        <div class="d-flex gap-2 mb-4">
+                            <span class="badge" style="background: rgba(255,255,255,0.1)">All</span>
+                            <span class="badge" style="background: rgba(255,255,255,0.1)">Events</span>
+                            <span class="badge" style="background: rgba(255,255,255,0.1)">Approvals</span>
+                        </div>
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-dot"></div>
+                                <div class="text-sm text-muted mb-1">2m ago</div>
+                                <div>Kuldeep Patil submitted <strong>Pune TechFest Hackathon</strong> for approval</div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-dot" style="background: #10B981;"></div>
+                                <div class="text-sm text-muted mb-1">1h ago</div>
+                                <div>System generated <strong>Monthly Budget Report</strong></div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-dot" style="background: #F59E0B;"></div>
+                                <div class="text-sm text-muted mb-1">Yesterday</div>
+                                <div>Approved event: <strong>Battle of the Bands 2026</strong> (Mélange)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="section-events" class="section-content" style="display:none;"><div class="card p-4"><h4>All Events</h4><p>Event directory coming soon.</p></div></div>
+                <div id="section-settings" class="section-content" style="display:none;"><div class="card p-4"><h4>Settings</h4><p>Faculty preferences here.</p></div></div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="clubsync-shell.js"></script>
+    <script>
+        // Init navigation logic
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                
+                const targetId = item.getAttribute('data-section');
+                document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
+                
+                const targetSection = document.getElementById(targetId);
+                if(targetSection) targetSection.style.display = 'block';
+                
+                document.getElementById('breadcrumb-current').innerText = item.querySelector('span').innerText;
+                
+                // Re-render charts if analytics section is opened
+                if (targetId === 'section-analytics') renderCharts();
+            });
+        });
+        
+        // Basic Counter logic
+        document.querySelectorAll('[data-counter]').forEach(el => {
+            const target = parseInt(el.getAttribute('data-counter'));
+            let count = 0;
+            const inc = target / 20;
+            const int = setInterval(() => {
+                count += inc;
+                if (count >= target) {
+                    el.innerText = target;
+                    clearInterval(int);
+                } else {
+                    el.innerText = Math.floor(count);
+                }
+            }, 50);
+        });
+
+        // Batch Action Bar
+        function toggleBatchBar() {
+            const checks = document.querySelectorAll('.approval-check:checked');
+            const bar = document.getElementById('batch-actions-bar');
+            if(checks.length > 0) {
+                bar.style.display = 'block';
+                document.getElementById('batch-count').innerText = checks.length + ' selected';
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        // Dummy Chart setup using Chart.js
+        let chartsRendered = false;
+        function renderCharts() {
+            if (chartsRendered) return;
+            chartsRendered = true;
+            
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+            
+            new Chart(document.getElementById('chart-frequency'), {
+                type: 'bar',
+                data: {
+                    labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
+                    datasets: [{ label: 'Events', data: [5,8,12,7,15,6,10,14], backgroundColor: '#3B82F6', borderRadius: 4 }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+            
+            new Chart(document.getElementById('chart-attendance'), {
+                type: 'line',
+                data: {
+                    labels: ['W1','W2','W3','W4','W5','W6','W7','W8'],
+                    datasets: [{ label: 'Avg Attendance', data: [80,95,110,105,120,135,125,140], borderColor: '#10B981', tension: 0.4 }]
+                }
+            });
+            
+            new Chart(document.getElementById('chart-budget'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Technical', 'Cultural', 'Entrep.', 'Sports', 'Literary'],
+                    datasets: [{ data: [35, 25, 20, 12, 8], backgroundColor: ['#3B82F6', '#8B5CF6', '#F59E0B', '#10B981', '#EC4899'], borderWidth: 0 }]
+                }
+            });
+            
+            new Chart(document.getElementById('chart-radar'), {
+                type: 'radar',
+                data: {
+                    labels: ['Events', 'Attendance', 'Budget', 'Engagement', 'Quality'],
+                    datasets: [
+                        { label: 'GedIT', data: [90, 85, 75, 88, 92], borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.2)' },
+                        { label: 'EDC', data: [70, 75, 85, 80, 85], borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.2)' }
+                    ]
+                }
+            });
+        }
+    </script>
+</body>
+</html>
