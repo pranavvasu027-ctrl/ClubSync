@@ -75,31 +75,24 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
     const res = await signInWithGoogle();
     setIsAuthenticating(false);
 
-    if (res.success) {
-      // Auto populate with demo Google authenticated account
-      setName('Pranav Vasu');
-      setEmail('pranav.1251070582@vit.edu');
-      setPrn('1251070582');
+    if (!res.success) {
+      Alert.alert('Google Sign-In Failed', res.error || 'Something went wrong. Please try again.');
+      return;
+    }
+
+    if (res.isNewUser) {
+      // New user — send them to onboarding Step 2 to fill in PRN, Branch, etc.
+      // Pre-fill what we can from the Google account
+      const { getActiveSession } = require('../services/authService');
+      const session = await getActiveSession();
+      if (session?.user) {
+        setName(session.user.user_metadata?.full_name || '');
+        setEmail(session.user.email || '');
+      }
       setSelectedCollegeId('VIT_PUNE');
-      setBranch('Computer Engineering');
-      setYear('Third Year (TY)');
-      setCgpa('8.85');
-
-      const user: User = {
-        name: 'Pranav Vasu',
-        email: 'pranav.1251070582@vit.edu',
-        prn: '1251070582',
-        collegeId: 'VIT_PUNE',
-        collegeName: 'Vishwakarma Institute of Technology, Pune',
-        branch: 'Computer Engineering',
-        year: 'Third Year (TY)',
-        cgpa: 8.85,
-        skills: ['TypeScript', 'React Native', 'Node.js', 'PostgreSQL', 'AI/LLMs'],
-        interests: ['Tech & Hackathons', 'Entrepreneurship'],
-      };
-
-      await updateUserProfile(user);
-      Alert.alert('Google Sign-In Successful', 'Logged in as Pranav Vasu (Google Account: pranav.1251070582@vit.edu)');
+      setStep(2);
+    } else {
+      // Returning user — skip onboarding, go straight to app
       onComplete();
     }
   };

@@ -1,35 +1,72 @@
 import { supabase } from '../lib/supabase';
 import { User, setCurrentUser, getCurrentUser, updateUserProfile } from './clubSyncService';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
 
-export interface AuthState {
-  isAuthenticated: boolean;
-  user: User | null;
-  isLoading: boolean;
-}
+WebBrowser.maybeCompleteAuthSession();
 
 /**
  * Sign in using Google OAuth via Supabase
+ * Opens a browser window for Google login, then exchanges the session
  */
-export async function signInWithGoogle(): Promise<{ success: boolean; error?: string }> {
+export async function signInWithGoogle(): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> {
   try {
+    const redirectTo = makeRedirectUri();
+
+    // Ask Supabase for the Google OAuth URL
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'clubsync://auth/callback',
-        skipBrowserRedirect: false,
+        redirectTo,
+        skipBrowserRedirect: true,  // We handle the browser ourselves
       },
     });
 
-    if (error) {
-      console.warn('Supabase Google OAuth initiation error:', error.message);
-      // Fallback for mock/offline testing mode
-      return { success: true };
+    if (error || !data?.url) {
+      return { success: false, error: error?.message || 'Failed to get Google login URL' };
     }
 
-    return { success: true };
+    // Open the browser for the user to log in with Google
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+    if (result.type !== 'success' || !result.url) {
+      return { success: false, error: 'Google sign-in was cancelled' };
+    }
+
+    // Extract the access_token and refresh_token from the redirect URL
+    const url = new URL(result.url);
+    
+    // Supabase returns tokens in the URL fragment (after #)
+    const params = new URLSearchParams(url.hash.substring(1));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (!accessToken) {
+      return { success: false, error: 'No access token returned from Google' };
+    }
+
+    // Set the session in Supabase using the tokens
+    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken || '',
+    });
+
+    if (sessionError) {
+      return { success: false, error: sessionError.message };
+    }
+
+    // Check if this is a brand new user (profile might be empty)
+    const userId = sessionData.user?.id;
+    if (userId) {
+      const { data: profile } = await supabase.from('users').select('prn').eq('id', userId).single();
+      const isNewUser = !profile?.prn; // If no PRN set, they haven't completed onboarding
+      return { success: true, isNewUser };
+    }
+
+    return { success: true, isNewUser: true };
   } catch (err: any) {
     console.warn('Google sign in exception:', err);
-    return { success: true };
+    return { success: false, error: err.message || 'An unexpected error occurred' };
   }
 }
 
