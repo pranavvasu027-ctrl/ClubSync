@@ -19,6 +19,8 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
   // Auth State
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   // Form State
   const [selectedCollegeId, setSelectedCollegeId] = useState('VIT_PUNE');
@@ -307,14 +309,19 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
                     value={authEmail}
                     onChangeText={setAuthEmail}
                   />
-                  <TextInput 
-                    style={[styles.input, { marginBottom: 16 }]} 
-                    placeholder="Password" 
-                    placeholderTextColor="#94A3B8"
-                    secureTextEntry
-                    value={authPassword}
-                    onChangeText={setAuthPassword}
-                  />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, backgroundColor: '#fff', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 10 }}>
+                    <TextInput 
+                      style={[styles.input, { flex: 1, borderWidth: 0, marginBottom: 0 }]} 
+                      placeholder="Password" 
+                      placeholderTextColor="#94A3B8"
+                      secureTextEntry={!showAuthPassword}
+                      value={authPassword}
+                      onChangeText={setAuthPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowAuthPassword(!showAuthPassword)} style={{ paddingHorizontal: 14 }}>
+                      <Ionicons name={showAuthPassword ? "eye-off" : "eye"} size={20} color="#64748B" />
+                    </TouchableOpacity>
+                  </View>
                   
                   <TouchableOpacity 
                     style={styles.primaryBtn} 
@@ -362,7 +369,12 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
               <TextInput style={styles.input} placeholder="pranav.1251070582@vit.edu" keyboardType="email-address" value={email} onChangeText={setEmail} autoCapitalize="none" />
 
               <Text style={styles.label}>Create Password</Text>
-              <TextInput style={styles.input} placeholder="Must be at least 6 characters" secureTextEntry value={password} onChangeText={setPassword} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 10 }}>
+                <TextInput style={[styles.input, { flex: 1, borderWidth: 0 }]} placeholder="Must be at least 6 characters" secureTextEntry={!showSignupPassword} value={password} onChangeText={setPassword} />
+                <TouchableOpacity onPress={() => setShowSignupPassword(!showSignupPassword)} style={{ paddingHorizontal: 14 }}>
+                  <Ionicons name={showSignupPassword ? "eye-off" : "eye"} size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
 
               <Text style={styles.label}>Student ID / PRN / Roll No</Text>
               <TextInput style={styles.input} placeholder="e.g. 1251070582" value={prn} onChangeText={setPrn} autoCapitalize="characters" />
