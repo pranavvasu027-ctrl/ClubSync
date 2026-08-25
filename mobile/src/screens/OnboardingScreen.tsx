@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLLEGES } from '../data/mockData';
 import { User, setCurrentUser, updateUserProfile } from '../services/clubSyncService';
 import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
-import { signInWithGoogle } from '../services/authService';
+import { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword } from '../services/authService';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -16,6 +16,10 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   
+  // Auth State
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+
   // Form State
   const [selectedCollegeId, setSelectedCollegeId] = useState('VIT_PUNE');
   const [name, setName] = useState('');
@@ -24,6 +28,26 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
   const [branch, setBranch] = useState('Computer Engineering');
   const [year, setYear] = useState('Third Year (TY)');
   const [cgpa, setCgpa] = useState('8.85');
+
+  // ... (keep interests state and handle methods unchanged, we'll insert a handleEmailSignIn method)
+
+  const handleEmailSignIn = async () => {
+    if (!authEmail || !authPassword) {
+      Alert.alert('Missing Fields', 'Please enter your email and password.');
+      return;
+    }
+    
+    setIsAuthenticating(true);
+    const res = await signInWithEmail(authEmail, authPassword);
+    setIsAuthenticating(false);
+
+    if (res.success) {
+      Alert.alert('Login Successful', 'Welcome back to ClubSync!');
+      onComplete();
+    } else {
+      Alert.alert('Login Failed', res.error || 'Invalid credentials. If you are new, please sign up instead.');
+    }
+  };
 
   // Interests State
   const [interests, setInterests] = useState<{ [key: string]: boolean }>({
@@ -111,8 +135,12 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
   };
 
   const handleIdentitySubmit = () => {
-    if (!name || !email || !prn) {
-      Alert.alert('Missing Fields', 'Please fill in all required fields to proceed.');
+    if (!name || !email || !prn || !password) {
+      Alert.alert('Missing Fields', 'Please fill in all required fields including a password to proceed.');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Weak Password', 'Password must be at least 6 characters.');
       return;
     }
     setStep(3);
@@ -122,6 +150,36 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
     setInterests(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const [password, setPassword] = useState('');
+
+  const handleForgotPassword = async () => {
+    if (!authEmail) {
+      Alert.alert('Missing Email', 'Please enter your email address first so we know where to send the reset link.');
+      return;
+    }
+    
+    Alert.alert(
+      'Reset Password',
+      `Send a password reset link to ${authEmail}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Send Link', 
+          onPress: async () => {
+            setIsAuthenticating(true);
+            const res = await resetPassword(authEmail);
+            setIsAuthenticating(false);
+            if (res.success) {
+              Alert.alert('Email Sent!', 'Check your inbox for the password reset link.');
+            } else {
+              Alert.alert('Error', res.error || 'Failed to send reset link.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleComplete = async () => {
     const selectedCount = Object.values(interests).filter(Boolean).length;
     if (selectedCount === 0) {
@@ -129,23 +187,41 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
       return;
     }
 
+    if (!password || password.length < 6) {
+      Alert.alert('Invalid Password', 'Please enter a password of at least 6 characters in the previous step.');
+      setStep(2);
+      return;
+    }
+
+    setIsAuthenticating(true);
+    
     const college = COLLEGES.find(c => c.id === selectedCollegeId);
     
-    // Create the user profile
-    const newUser: User = {
-      name: name,
-      email: email,
-      prn: prn,
+    const profile = {
+      name,
+      prn,
       collegeId: selectedCollegeId,
       collegeName: college ? college.name : 'Vishwakarma Institute of Technology, Pune',
-      branch: branch,
-      year: year,
-      cgpa: parseFloat(cgpa) || 8.50,
-      interests: Object.keys(interests).filter(k => interests[k]),
+      branch,
+      year,
     };
-    
-    await updateUserProfile(newUser);
-    onComplete();
+
+    const res = await signUpWithEmail(email, password, profile);
+    setIsAuthenticating(false);
+
+    if (res.success && res.user) {
+      // Add interests and CGPA manually since signup doesn't cover them directly
+      await updateUserProfile({ ...res.user, interests: Object.keys(interests).filter(k => interests[k]), cgpa: parseFloat(cgpa) || 8.50 });
+      
+      // Tell user to verify email before completing
+      Alert.alert(
+        'Verify Your Email',
+        'We have sent a verification link to your email. You must click it before you can log in!',
+        [{ text: 'Got it!', onPress: () => setStep(1) }] // Send back to login step
+      );
+    } else {
+      Alert.alert('Sign Up Failed', res.error || 'Failed to create account. Email may already be in use.');
+    }
   };
 
   return (
@@ -177,23 +253,6 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
                 <>
                   <Ionicons name="logo-google" size={20} color="#EA4335" />
                   <Text style={styles.googleBtnText}>Continue with Google</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {/* Observer Demo Login */}
-            <TouchableOpacity 
-              style={[styles.googleBtn, { backgroundColor: '#F1F5F9', marginTop: 12 }]} 
-              onPress={handleObserverSignIn}
-              disabled={isAuthenticating}
-              activeOpacity={0.8}
-            >
-              {isAuthenticating ? (
-                <ActivityIndicator color="#0F172A" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="shield-checkmark" size={20} color="#0C447C" />
-                  <Text style={[styles.googleBtnText, { color: '#0C447C' }]}>Continue as Observer (Demo)</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -241,17 +300,51 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
               <>
                 <View style={styles.dividerRow}>
                   <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>OR MANUAL SETUP</Text>
+                  <Text style={styles.dividerText}>or sign in with email</Text>
                   <View style={styles.dividerLine} />
                 </View>
 
-                <TouchableOpacity 
-                  style={[styles.googleBtn, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#CBD5E1', marginTop: 12 }]} 
-                  onPress={() => handleCollegeSelect('VIT_PUNE')}
-                >
-                  <Ionicons name="mail-outline" size={20} color="#0F172A" />
-                  <Text style={[styles.googleBtnText, { color: '#0F172A' }]}>Sign up with Email</Text>
-                </TouchableOpacity>
+                <View style={{ marginTop: 12 }}>
+                  <TextInput 
+                    style={[styles.input, { marginBottom: 12 }]} 
+                    placeholder="Email Address (@vit.edu)" 
+                    placeholderTextColor="#94A3B8"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={authEmail}
+                    onChangeText={setAuthEmail}
+                  />
+                  <TextInput 
+                    style={[styles.input, { marginBottom: 16 }]} 
+                    placeholder="Password" 
+                    placeholderTextColor="#94A3B8"
+                    secureTextEntry
+                    value={authPassword}
+                    onChangeText={setAuthPassword}
+                  />
+                  
+                  <TouchableOpacity 
+                    style={styles.primaryBtn} 
+                    onPress={handleEmailSignIn}
+                    disabled={isAuthenticating}
+                  >
+                    {isAuthenticating ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.primaryBtnText}>Sign In</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                    <TouchableOpacity onPress={handleForgotPassword}>
+                      <Text style={{ color: '#64748B', fontWeight: '500', fontSize: 13 }}>Forgot Password?</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={() => handleCollegeSelect('VIT_PUNE')}>
+                      <Text style={{ color: '#0C447C', fontWeight: '600', fontSize: 14 }}>Create Account</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </>
             )}
           </View>
@@ -274,6 +367,9 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
 
               <Text style={styles.label}>College Email</Text>
               <TextInput style={styles.input} placeholder="pranav.1251070582@vit.edu" keyboardType="email-address" value={email} onChangeText={setEmail} autoCapitalize="none" />
+
+              <Text style={styles.label}>Create Password</Text>
+              <TextInput style={styles.input} placeholder="Must be at least 6 characters" secureTextEntry value={password} onChangeText={setPassword} />
 
               <Text style={styles.label}>Student ID / PRN / Roll No</Text>
               <TextInput style={styles.input} placeholder="e.g. 1251070582" value={prn} onChangeText={setPrn} autoCapitalize="characters" />

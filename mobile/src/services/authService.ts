@@ -44,10 +44,8 @@ export async function signInWithEmail(email: string, password: string): Promise<
     });
 
     if (error) {
-      // If Supabase auth errors or user is logging in test mode
-      console.warn('Supabase email login warning:', error.message);
-      const currentUser = getCurrentUser();
-      return { success: true, user: currentUser };
+      console.warn('Supabase email login error:', error.message);
+      return { success: false, error: error.message };
     }
 
     if (data?.user) {
@@ -60,9 +58,9 @@ export async function signInWithEmail(email: string, password: string): Promise<
       return { success: true, user: getCurrentUser() };
     }
 
-    return { success: true, user: getCurrentUser() };
+    return { success: false, error: 'Unknown error occurred' };
   } catch (err: any) {
-    return { success: true, user: getCurrentUser() };
+    return { success: false, error: err.message };
   }
 }
 
@@ -90,6 +88,11 @@ export async function signUpWithEmail(
       },
     });
 
+    if (error) {
+      console.warn('Supabase email signup error:', error.message);
+      return { success: false, error: error.message };
+    }
+
     const newUser: User = {
       email,
       name: profile.name,
@@ -104,18 +107,7 @@ export async function signUpWithEmail(
     await updateUserProfile(newUser);
     return { success: true, user: newUser };
   } catch (err: any) {
-    const newUser: User = {
-      email,
-      name: profile.name,
-      prn: profile.prn,
-      collegeId: profile.collegeId,
-      collegeName: profile.collegeName,
-      branch: profile.branch,
-      year: profile.year,
-      cgpa: 8.50,
-    };
-    setCurrentUser(newUser);
-    return { success: true, user: newUser };
+    return { success: false, error: err.message };
   }
 }
 
@@ -128,6 +120,26 @@ export async function signOut(): Promise<{ success: boolean }> {
     return { success: true };
   } catch (err) {
     return { success: true };
+  }
+}
+
+/**
+ * Send password reset email
+ */
+export async function resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'clubsync://reset-password',
+    });
+
+    if (error) {
+      console.warn('Supabase reset password error:', error.message);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }
 
