@@ -5,6 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken, markAttendance } from '../services/clubSyncService';
 import { DigitalTicket, MY_TICKETS, CLUBS, COLLEGES } from '../data/mockData';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ProfileScreen() {
@@ -345,7 +346,12 @@ export default function ProfileScreen() {
                   <TextInput style={styles.editInput} value={editPrn} onChangeText={setEditPrn} autoCapitalize="characters" />
 
                   <Text style={styles.editLabel}>College / Institute Name</Text>
-                  <TextInput style={styles.editInput} value={editCollegeName} onChangeText={setEditCollegeName} />
+                  <TextInput 
+                    style={[styles.editInput, !MULTI_COLLEGE_ENABLED && { backgroundColor: '#F1F5F9', color: '#94A3B8' }]} 
+                    value={editCollegeName} 
+                    onChangeText={setEditCollegeName} 
+                    editable={MULTI_COLLEGE_ENABLED} 
+                  />
 
                   <Text style={styles.editLabel}>Branch / Department</Text>
                   <TextInput style={styles.editInput} value={editBranch} onChangeText={setEditBranch} />

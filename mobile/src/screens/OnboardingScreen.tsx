@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLLEGES } from '../data/mockData';
 import { User, setCurrentUser, updateUserProfile } from '../services/clubSyncService';
+import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
 import { signInWithGoogle } from '../services/authService';
 
 interface OnboardingProps {
@@ -154,14 +155,14 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
           <View style={styles.logoBadge}>
             <Text style={styles.logoText}>CS</Text>
           </View>
-          <Text style={styles.brandTitle}>ClubSync National</Text>
+          <Text style={styles.brandTitle}>{MULTI_COLLEGE_ENABLED ? 'ClubSync National' : 'ClubSync VIT'}</Text>
         </View>
 
         {/* STEP 1: SELECT COLLEGE OR GOOGLE SIGN IN */}
         {step === 1 && (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Find your college</Text>
-            <Text style={styles.stepSub}>Join 45,000+ students & clubs across India.</Text>
+            <Text style={styles.stepTitle}>{MULTI_COLLEGE_ENABLED ? 'Find your college' : 'Welcome to ClubSync'}</Text>
+            <Text style={styles.stepSub}>{MULTI_COLLEGE_ENABLED ? 'Join 45,000+ students & clubs across India.' : 'Your VIT Pune campus companion.'}</Text>
 
             {/* Google OAuth Quick Action */}
             <TouchableOpacity 
@@ -182,51 +183,77 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
 
             {/* Observer Demo Login */}
             <TouchableOpacity 
-              style={[styles.googleBtn, { marginTop: 12, backgroundColor: '#0F172A' }]} 
+              style={[styles.googleBtn, { backgroundColor: '#F1F5F9', marginTop: 12 }]} 
               onPress={handleObserverSignIn}
               disabled={isAuthenticating}
               activeOpacity={0.8}
             >
-              <Ionicons name="shield-checkmark" size={20} color="#fff" />
-              <Text style={[styles.googleBtnText, { color: '#fff', marginLeft: 8 }]}>Continue as Observer (Demo)</Text>
+              {isAuthenticating ? (
+                <ActivityIndicator color="#0F172A" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="shield-checkmark" size={20} color="#0C447C" />
+                  <Text style={[styles.googleBtnText, { color: '#0C447C' }]}>Continue as Observer (Demo)</Text>
+                </>
+              )}
             </TouchableOpacity>
 
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or select your institute</Text>
-              <View style={styles.dividerLine} />
-            </View>
-            
-            <View style={styles.searchBox}>
-              <Ionicons name="search" size={18} color="#64748B" />
-              <TextInput 
-                style={styles.searchInput}
-                placeholder="Search VIT Pune, IIT Bombay, COEP..."
-                placeholderTextColor="#94A3B8"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
+            {MULTI_COLLEGE_ENABLED ? (
+              <>
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or select your institute</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+                
+                <View style={styles.searchBox}>
+                  <Ionicons name="search" size={18} color="#64748B" />
+                  <TextInput 
+                    style={styles.searchInput}
+                    placeholder="Search VIT Pune, IIT Bombay, COEP..."
+                    placeholderTextColor="#94A3B8"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                </View>
 
-            <ScrollView style={styles.collegeList} showsVerticalScrollIndicator={false}>
-              {filteredColleges.map((c) => (
+                <ScrollView style={styles.collegeList} showsVerticalScrollIndicator={false}>
+                  {filteredColleges.map((c) => (
+                    <TouchableOpacity 
+                      key={c.id} 
+                      style={styles.collegeCard}
+                      onPress={() => handleCollegeSelect(c.id)}
+                    >
+                      <View style={styles.collegeIcon}>
+                        <Ionicons name="business-outline" size={20} color="#0C447C" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.collegeShortName}>{c.shortName} · {c.city}</Text>
+                        <Text style={styles.collegeFullName} numberOfLines={1}>{c.name}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                    </TouchableOpacity>
+                  ))}
+                  <View style={{ height: 40 }} />
+                </ScrollView>
+              </>
+            ) : (
+              <>
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR MANUAL SETUP</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
                 <TouchableOpacity 
-                  key={c.id} 
-                  style={styles.collegeCard}
-                  onPress={() => handleCollegeSelect(c.id)}
+                  style={[styles.googleBtn, { backgroundColor: '#fff', borderWidth: 1, borderColor: '#CBD5E1', marginTop: 12 }]} 
+                  onPress={() => handleCollegeSelect('VIT_PUNE')}
                 >
-                  <View style={styles.collegeIcon}>
-                    <Ionicons name="business-outline" size={20} color="#0C447C" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.collegeShortName}>{c.shortName} · {c.city}</Text>
-                    <Text style={styles.collegeFullName} numberOfLines={1}>{c.name}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+                  <Ionicons name="mail-outline" size={20} color="#0F172A" />
+                  <Text style={[styles.googleBtnText, { color: '#0F172A' }]}>Sign up with Email</Text>
                 </TouchableOpacity>
-              ))}
-              <View style={{ height: 40 }} />
-            </ScrollView>
+              </>
+            )}
           </View>
         )}
 

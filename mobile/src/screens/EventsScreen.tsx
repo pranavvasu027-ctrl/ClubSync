@@ -11,6 +11,8 @@ interface EventsScreenProps {
   onNavigateToTickets?: () => void;
 }
 
+import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
+
 type MainTab = 'Discover' | 'Applied' | 'Watchlist' | 'Past';
 type CategoryFilter = 'All' | 'Hackathons' | 'Events & Workshops' | 'B-Plan & Case Studies' | 'Quizzes & CTFs' | 'Cultural & Sports';
 
@@ -22,6 +24,10 @@ export default function EventsScreen({ events: initialEvents, onRSVP, onNavigate
       ...e,
       category: e.vertical === 'Technical' ? 'Hackathons' : 'Events & Workshops'
     }));
+    
+    if (!MULTI_COLLEGE_ENABLED) {
+      return internal;
+    }
     
     const external = COMPETITIONS.map(c => ({
       id: c.id,
@@ -79,7 +85,7 @@ export default function EventsScreen({ events: initialEvents, onRSVP, onNavigate
   ];
 
   const filteredEvents = events.filter((evt) => {
-    if (CURRENT_USER.role !== 'observer') {
+    if (MULTI_COLLEGE_ENABLED && CURRENT_USER.role !== 'observer') {
       if (evt.collegeName !== CURRENT_USER.collegeName && evt.scope !== 'National') return false;
     }
 
@@ -260,7 +266,7 @@ export default function EventsScreen({ events: initialEvents, onRSVP, onNavigate
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.eventTitle}>{evt.title}</Text>
-                      <Text style={styles.clubName}>{evt.clubName} · {evt.collegeName}</Text>
+                      <Text style={styles.clubName}>{evt.clubName}{MULTI_COLLEGE_ENABLED ? ` · ${evt.collegeName}` : ''}</Text>
                     </View>
                     <TouchableOpacity onPress={() => toggleBookmark(evt.id)} style={{ paddingLeft: 8 }}>
                       <Ionicons name={bookmarkedIds[evt.id] ? "bookmark" : "bookmark-outline"} size={20} color={bookmarkedIds[evt.id] ? "#0C447C" : "#94A3B8"} />

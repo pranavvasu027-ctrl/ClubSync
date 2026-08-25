@@ -128,7 +128,7 @@ export interface EventItem {
   isHackathon?: boolean;
   prizePool?: string;
   ticketPrice: number;
-  scope: 'Intra-Collegiate' | 'Inter-Collegiate' | 'City-Wide' | 'State' | 'National';
+  scope: 'Intra-Collegiate' | 'Intra-Collegiate' | 'Intra-Collegiate' | 'State' | 'National';
   description: string;
   registeredCount: number;
   maxCapacity: number;
@@ -155,16 +155,17 @@ export interface DigitalTicket {
 }
 
 export const COLLEGES: College[] = [
-  { id: 'IIT_B', name: 'Indian Institute of Technology Bombay', shortName: 'IIT Bombay', city: 'Mumbai' },
-  { id: 'BITS_P', name: 'Birla Institute of Technology and Science', shortName: 'BITS Pilani', city: 'Pilani' },
-  { id: 'NIT_T', name: 'National Institute of Technology Trichy', shortName: 'NIT Trichy', city: 'Tiruchirappalli' },
-  { id: 'SRM_C', name: 'SRM Institute of Science and Technology', shortName: 'SRM Chennai', city: 'Chennai' },
   { id: 'VIT_PUNE', name: 'Vishwakarma Institute of Technology', shortName: 'VIT Pune', city: 'Pune' },
-  { id: 'COEP', name: 'College of Engineering Pune', shortName: 'COEP Tech', city: 'Pune' },
-  { id: 'PICT', name: 'Pune Institute of Computer Technology', shortName: 'PICT', city: 'Pune' },
-  { id: 'MIT_WPU', name: 'MIT World Peace University', shortName: 'MIT-WPU', city: 'Pune' },
-  { id: 'VIIT', name: 'Vishwakarma Institute of Information Technology', shortName: 'VIIT', city: 'Pune' },
-  { id: 'PCCOE', name: 'Pimpri Chinchwad College of Engineering', shortName: 'PCCOE', city: 'Pune' }
+  // V2: Re-enable for multi-college
+  // { id: 'IIT_B', name: 'Indian Institute of Technology Bombay', shortName: 'IIT Bombay', city: 'Mumbai' },
+  // { id: 'BITS_P', name: 'Birla Institute of Technology and Science', shortName: 'BITS Pilani', city: 'Pilani' },
+  // { id: 'NIT_T', name: 'National Institute of Technology Trichy', shortName: 'NIT Trichy', city: 'Tiruchirappalli' },
+  // { id: 'SRM_C', name: 'SRM Institute of Science and Technology', shortName: 'SRM Chennai', city: 'Chennai' },
+  // { id: 'COEP', name: 'College of Engineering Pune', shortName: 'COEP Tech', city: 'Pune' },
+  // { id: 'PICT', name: 'Pune Institute of Computer Technology', shortName: 'PICT', city: 'Pune' },
+  // { id: 'MIT_WPU', name: 'MIT World Peace University', shortName: 'MIT-WPU', city: 'Pune' },
+  // { id: 'VIIT', name: 'Vishwakarma Institute of Information Technology', shortName: 'VIIT', city: 'Pune' },
+  // { id: 'PCCOE', name: 'Pimpri Chinchwad College of Engineering', shortName: 'PCCOE', city: 'Pune' }
 ];
 
 export const CLUBS: Club[] = [
@@ -937,7 +938,7 @@ export const EVENTS: EventItem[] = [
     isHackathon: true,
     prizePool: '₹1,00,000',
     ticketPrice: 0,
-    scope: 'City-Wide',
+    scope: 'Intra-Collegiate',
     description: '36-Hour Hackathon with tracks in AI/ML, Web3, FinTech, and Smart Campus. Open to students across all Pune colleges.',
     registeredCount: 320,
     maxCapacity: 400,
@@ -956,7 +957,7 @@ export const EVENTS: EventItem[] = [
     time: '10:00 AM - 06:00 PM',
     venue: 'Bibwewadi Campus Main Ground',
     ticketPrice: 50,
-    scope: 'Inter-Collegiate',
+    scope: 'Intra-Collegiate',
     description: 'Live business & startup stalls where student entrepreneurs put their selling, marketing, and business acumen to the test.',
     registeredCount: 450,
     maxCapacity: 600,
@@ -976,7 +977,7 @@ export const EVENTS: EventItem[] = [
     venue: 'Audi 1, Ground Floor',
     prizePool: '₹25,000',
     ticketPrice: 0,
-    scope: 'Inter-Collegiate',
+    scope: 'Intra-Collegiate',
     description: '16 top debating teams from COEP, PICT, VIT, and MIT-WPU clash on economic and technological policies.',
     registeredCount: 95,
     maxCapacity: 120,
@@ -1054,7 +1055,7 @@ export const EVENTS: EventItem[] = [
     venue: 'Kondhwa Campus Arena',
     prizePool: '₹50,000',
     ticketPrice: 0,
-    scope: 'Inter-Collegiate',
+    scope: 'Intra-Collegiate',
     description: 'Obstacle navigation and lidar mapping competition with 28 inter-college teams.',
     registeredCount: 140,
     maxCapacity: 140,

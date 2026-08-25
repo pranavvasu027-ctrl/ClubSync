@@ -4,6 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLLEGES, EventItem, CLUBS } from '../data/mockData';
 import { CURRENT_USER } from '../services/clubSyncService';
 import { useTheme } from '../context/ThemeContext';
+import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
 
 interface HomeScreenProps {
   selectedCollege: string;
@@ -150,21 +151,23 @@ export default function HomeScreen({
       </View>
 
       {/* College Switcher Chips */}
-      <View style={styles.collegeSelectorContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
-          {COLLEGES.map((c) => (
-            <TouchableOpacity 
-              key={c.id} 
-              style={[styles.chip, selectedCollege === c.shortName && styles.chipActive]}
-              onPress={() => onSelectCollege(c.shortName)}
-            >
-              <Text style={[styles.chipText, selectedCollege === c.shortName && styles.chipTextActive]}>
-                {c.shortName}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {MULTI_COLLEGE_ENABLED && (
+        <View style={styles.collegeSelectorContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+            {COLLEGES.map((c) => (
+              <TouchableOpacity 
+                key={c.id} 
+                style={[styles.chip, selectedCollege === c.shortName && styles.chipActive]}
+                onPress={() => onSelectCollege(c.shortName)}
+              >
+                <Text style={[styles.chipText, selectedCollege === c.shortName && styles.chipTextActive]}>
+                  {c.shortName}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Quick Stats Grid — Clickable Navigation */}
@@ -231,7 +234,7 @@ export default function HomeScreen({
           <View style={styles.hackathonHeader}>
             <View style={styles.hackathonBadge}>
               <Ionicons name="trophy" size={12} color="#D97706" />
-              <Text style={styles.hackathonBadgeText}>Inter-College Grand Hackathon</Text>
+              <Text style={styles.hackathonBadgeText}>{MULTI_COLLEGE_ENABLED ? 'Inter-College Grand Hackathon' : 'VIT Grand Hackathon'}</Text>
             </View>
             <Text style={styles.hackathonPrize}>₹1,00,000</Text>
           </View>

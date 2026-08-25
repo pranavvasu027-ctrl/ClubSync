@@ -7,6 +7,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Club, CLUBS, CoreLead, ClubFlagshipEvent, ClubAchievement, RecruitmentPosition, COLLEGES } from '../data/mockData';
 import { CURRENT_USER, updateClubDetails, toggleFollowClub, submitApplication } from '../services/clubSyncService';
 import { useTheme } from '../context/ThemeContext';
+import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
 
 type SortOption = 'members' | 'hiring' | 'alphabetical' | 'year';
 type ClubDetailTab = 'overview' | 'leadership' | 'events' | 'achievements' | 'recruitment' | 'faqs';
@@ -197,29 +198,31 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
       </View>
 
       {/* ── College Selector ────────────────────────────────────────────────── */}
-      <View style={styles.collegeSelectorWrap}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.collegeSelectorScroll}>
-          {COLLEGES.map((c) => {
-            const active = browsingCollegeId === c.id;
-            const isHome = c.id === CURRENT_USER.collegeId;
-            return (
-              <TouchableOpacity
-                key={c.id}
-                style={[styles.collegeChip, active && styles.collegeChipActive]}
-                onPress={() => setBrowsingCollegeId(c.id)}
-              >
-                {isHome && <View style={[styles.homeDot, active && styles.homeDotActive]} />}
-                <Text style={[styles.collegeChipText, active && styles.collegeChipTextActive]}>
-                  {c.shortName}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+      {MULTI_COLLEGE_ENABLED && (
+        <View style={styles.collegeSelectorWrap}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.collegeSelectorScroll}>
+            {COLLEGES.map((c) => {
+              const active = browsingCollegeId === c.id;
+              const isHome = c.id === CURRENT_USER.collegeId;
+              return (
+                <TouchableOpacity
+                  key={c.id}
+                  style={[styles.collegeChip, active && styles.collegeChipActive]}
+                  onPress={() => setBrowsingCollegeId(c.id)}
+                >
+                  {isHome && <View style={[styles.homeDot, active && styles.homeDotActive]} />}
+                  <Text style={[styles.collegeChipText, active && styles.collegeChipTextActive]}>
+                    {c.shortName}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       {/* ── Cross-college notice ─────────────────────────────────────────────── */}
-      {!isHomeCollege && (
+      {MULTI_COLLEGE_ENABLED && !isHomeCollege && (
         <View style={styles.crossCollegeStrip}>
           <Ionicons name="eye-outline" size={13} color="#8A6D2F" />
           <Text style={styles.crossCollegeStripText}>
@@ -227,6 +230,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
           </Text>
         </View>
       )}
+
 
       {/* ── Domain Chips ─────────────────────────────────────────────────────── */}
       <View style={styles.chipsContainer}>
@@ -451,7 +455,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
               </View>
 
               {/* Cross-college banner */}
-              {selectedClub.collegeId !== CURRENT_USER.collegeId && (
+              {MULTI_COLLEGE_ENABLED && selectedClub.collegeId !== CURRENT_USER.collegeId && (
                 <View style={styles.crossCollegeBanner}>
                   <Ionicons name="eye-outline" size={14} color="#8A6D2F" />
                   <Text style={styles.crossCollegeText}>
