@@ -79,6 +79,31 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
     }
   };
 
+  const handleObserverSignIn = async () => {
+    setIsAuthenticating(true);
+    // Simulate Observer login (e.g. Faculty, DSA Head)
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsAuthenticating(false);
+
+    const observerUser: User = {
+      name: 'Dr. Faculty Admin',
+      email: 'admin@vit.edu',
+      prn: 'EMP-001',
+      collegeId: 'VIT_PUNE',
+      collegeName: 'Vishwakarma Institute of Technology, Pune',
+      branch: 'Administration',
+      year: 'Faculty',
+      cgpa: 0,
+      role: 'observer',
+      canScanQR: true,
+      bio: 'Dean of Student Affairs',
+    };
+
+    await updateUserProfile(observerUser);
+    Alert.alert('Observer Login Successful', 'Logged in as Faculty Administrator.');
+    onComplete();
+  };
+
   const handleCollegeSelect = (id: string) => {
     setSelectedCollegeId(id);
     setStep(2);
@@ -153,6 +178,17 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
                   <Text style={styles.googleBtnText}>Continue with Google</Text>
                 </>
               )}
+            </TouchableOpacity>
+
+            {/* Observer Demo Login */}
+            <TouchableOpacity 
+              style={[styles.googleBtn, { marginTop: 12, backgroundColor: '#0F172A' }]} 
+              onPress={handleObserverSignIn}
+              disabled={isAuthenticating}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="shield-checkmark" size={20} color="#fff" />
+              <Text style={[styles.googleBtnText, { color: '#fff', marginLeft: 8 }]}>Continue as Observer (Demo)</Text>
             </TouchableOpacity>
 
             <View style={styles.dividerRow}>

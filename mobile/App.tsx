@@ -6,12 +6,11 @@ import { EVENTS, EventItem } from './src/data/mockData';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import HomeScreen from './src/screens/HomeScreen';
 import EventsScreen from './src/screens/EventsScreen';
-import CompetitionsScreen from './src/screens/CompetitionsScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 
-type TabType = 'home' | 'events' | 'competitions' | 'clubs' | 'profile';
+type TabType = 'home' | 'events' | 'clubs' | 'profile';
 
 function MainApp() {
   const insets = useSafeAreaInsets();
@@ -53,7 +52,7 @@ function MainApp() {
             onRSVP={handleRSVP}
             onNavigateToEvents={() => setActiveTab('events')}
             onNavigateToClubs={handleNavigateToClubs}
-            onNavigateToCompetitions={() => setActiveTab('competitions')}
+            onNavigateToCompetitions={() => setActiveTab('events')}
             onNavigateToProfile={() => setActiveTab('profile')}
           />
         )}
@@ -66,16 +65,12 @@ function MainApp() {
           />
         )}
 
-        {activeTab === 'competitions' && (
-          <CompetitionsScreen events={events} />
-        )}
-
         {activeTab === 'clubs' && <ClubsScreen initialSortHiring={sortHiringFirst} />}
 
         {activeTab === 'profile' && <ProfileScreen />}
       </View>
 
-      {/* Persistent Dynamic Bottom Tab Bar (Home | Events | Competitions | Clubs | Profile) */}
+      {/* Persistent Dynamic Bottom Tab Bar (Home | Events | Clubs | Profile) */}
       <View style={[styles.bottomNav, { backgroundColor: theme.navBg, borderTopColor: theme.navBorder }]}>
         {/* 1. Home Tab */}
         <TouchableOpacity
@@ -119,38 +114,14 @@ function MainApp() {
           </Text>
         </TouchableOpacity>
 
-        {/* 3. Competitions Tab (Unstop Style) */}
+        {/* 3. Clubs Tab */}
         <TouchableOpacity
           style={styles.navItem}
-          onPress={() => setActiveTab('competitions')}
+          onPress={() => setActiveTab('clubs')}
         >
-          <Ionicons
-            name={activeTab === 'competitions' ? 'trophy' : 'trophy-outline'}
-            size={22}
-            color={activeTab === 'competitions' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
-          />
-          <Text
-            style={[
-              styles.navText,
-              { color: theme.textMuted },
-              activeTab === 'competitions' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
-            ]}
-          >
-            Competitions
-          </Text>
-        </TouchableOpacity>
-
-        {/* 4. Clubs Tab */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => {
-            setSortHiringFirst(false);
-            setActiveTab('clubs');
-          }}
-        >
-          <Ionicons
-            name={activeTab === 'clubs' ? 'people' : 'people-outline'}
-            size={22}
+          <MaterialCommunityIcons
+            name={activeTab === 'clubs' ? 'account-group' : 'account-group-outline'}
+            size={24}
             color={activeTab === 'clubs' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
           <Text
@@ -164,7 +135,7 @@ function MainApp() {
           </Text>
         </TouchableOpacity>
 
-        {/* 5. Profile & Passes Tab */}
+        {/* 4. Profile Tab */}
         <TouchableOpacity
           style={styles.navItem}
           onPress={() => setActiveTab('profile')}

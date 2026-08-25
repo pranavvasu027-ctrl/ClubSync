@@ -96,7 +96,15 @@ export default function HomeScreen({
   const collegeClubs = CLUBS.filter(c => c.collegeId === CURRENT_USER.collegeId); // Mock logic for now
   const approvedClubsCount = collegeClubs.length > 0 ? collegeClubs.length : Math.floor(Math.random() * 50) + 10;
   const openHiringCount = collegeClubs.filter(c => c.openRecruitment).length || Math.floor(Math.random() * 10) + 2;
-  const upcomingFestsCount = events.length; // Will refine later
+  
+  const featuredEvents = events.filter((evt) => {
+    if (CURRENT_USER.role !== 'observer') {
+      if (evt.collegeName !== CURRENT_USER.collegeName && evt.scope !== 'National') return false;
+    }
+    return true;
+  });
+  
+  const upcomingFestsCount = featuredEvents.length;
 
   return (
     <View style={styles.container}>
@@ -238,12 +246,12 @@ export default function HomeScreen({
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Featured Events & Stalls</Text>
           <TouchableOpacity onPress={onNavigateToEvents}>
-            <Text style={styles.seeAllText}>See all ({events.length})</Text>
+            <Text style={styles.seeAllText}>See all ({featuredEvents.length})</Text>
           </TouchableOpacity>
         </View>
 
         {/* Event Cards */}
-        {events.slice(0, 3).map((event) => (
+        {featuredEvents.slice(0, 3).map((event) => (
           <View key={event.id} style={styles.eventCard}>
             <View style={styles.eventLeft}>
               <View style={[styles.dateBlock, event.vertical === 'Technical' ? styles.dateTech : styles.dateCult]}>

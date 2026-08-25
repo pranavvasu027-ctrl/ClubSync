@@ -18,6 +18,8 @@ export interface User {
   githubHandle?: string;
   linkedinHandle?: string;
   avatarUrl?: string;
+  role?: 'student' | 'observer';
+  canScanQR?: boolean;
 }
 
 export let CURRENT_USER: User = {
@@ -615,3 +617,33 @@ export async function updateApplicationStatus(
   }
   return { success: true };
 }
+
+// ============================================================================
+// 7. QR CODE ATTENDANCE API
+// ============================================================================
+
+export async function markAttendance(token: string): Promise<{ success: boolean; studentName?: string; prn?: string; eventTitle?: string; message: string }> {
+  try {
+    // In a real implementation, this would call Supabase RPC or endpoint 
+    // to verify token and update attendance in one atomic transaction.
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    if (token.startsWith('TEST_INVALID')) {
+       return { success: false, message: 'Invalid ticket or ticket expired.' };
+    }
+    
+    // Simulate successful marking
+    return {
+      success: true,
+      studentName: 'Pranav Vasu',
+      prn: '1251070582',
+      eventTitle: 'Tech Summit 2026',
+      message: 'Attendance Marked'
+    };
+  } catch (err) {
+    return { success: false, message: 'Failed to connect to scanner service.' };
+  }
+}
+

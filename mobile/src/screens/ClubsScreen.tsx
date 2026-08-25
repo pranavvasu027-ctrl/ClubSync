@@ -66,15 +66,6 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   const [browsingCollegeId, setBrowsingCollegeId] = useState<string>(CURRENT_USER.collegeId);
   const isHomeCollege = browsingCollegeId === CURRENT_USER.collegeId;
 
-  // PRESIDENT / FACULTY EDIT MODE STATE
-  const [isPresidentMode, setIsPresidentMode] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editTagline, setEditTagline] = useState('');
-  const [editVision, setEditVision] = useState('');
-  const [editMission, setEditMission] = useState('');
-  const [editWorkshop, setEditWorkshop] = useState('');
-  const [editWhatsapp, setEditWhatsapp] = useState('');
-  const [editDeadline, setEditDeadline] = useState('');
 
   const handleFollow = async (clubId: string) => {
     const club = clubsList.find(c => c.id === clubId);
@@ -156,12 +147,6 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   const handleOpenClub = (club: Club) => {
     setSelectedClub(club);
     setActiveDetailTab('overview');
-    setEditTagline(club.tagline || '');
-    setEditVision(club.vision || '');
-    setEditMission(club.mission || '');
-    setEditWorkshop(club.workshopOrRoom || '');
-    setEditWhatsapp(club.whatsappGroup || '');
-    setEditDeadline(club.recruitmentDeadline || '');
   };
 
   const handleApplyRole = async (roleTitle: string) => {
@@ -180,25 +165,6 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   const openLink = (url?: string) => {
     if (url) Linking.openURL(url).catch(err => console.error("Couldn't open link", err));
   };
-
-  const handleSavePresidentEdits = async () => {
-    if (!selectedClub) return;
-    const updated = {
-      ...selectedClub,
-      tagline: editTagline,
-      vision: editVision,
-      mission: editMission,
-      workshopOrRoom: editWorkshop,
-      whatsappGroup: editWhatsapp,
-      recruitmentDeadline: editDeadline,
-    };
-    setSelectedClub(updated);
-    setClubsList(prev => prev.map(c => c.id === updated.id ? updated : c));
-    setShowEditModal(false);
-    await updateClubDetails(selectedClub.id, updated);
-    Alert.alert('Changes Published Live! 🎉', 'Club details have been updated and synced to the database in real time.');
-  };
-
   const browsingCollege = COLLEGES.find(c => c.id === browsingCollegeId);
 
   return (
@@ -211,22 +177,6 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
             <Text style={styles.headerEyebrow}>Directory</Text>
             <Text style={styles.headerTitle}>Clubs & Chapters</Text>
           </View>
-
-          {isHomeCollege && (
-            <TouchableOpacity
-              style={[styles.roleSwitchBtn, isPresidentMode && styles.roleSwitchBtnActive]}
-              onPress={() => setIsPresidentMode(!isPresidentMode)}
-            >
-              <Ionicons
-                name={isPresidentMode ? 'shield-checkmark' : 'person-outline'}
-                size={12}
-                color={isPresidentMode ? '#fff' : 'rgba(255,255,255,0.75)'}
-              />
-              <Text style={[styles.roleSwitchText, isPresidentMode && styles.roleSwitchTextActive]}>
-                {isPresidentMode ? 'President' : 'Student'}
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
 
         <View style={styles.searchBox}>
@@ -412,6 +362,18 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                     </View>
                     <View style={styles.statDivider} />
                     <Text style={styles.mentorInline} numberOfLines={1}>{club.facultyMentor}</Text>
+                    
+                    {CURRENT_USER.role === 'observer' && (
+                      <>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statItem}>
+                          <Ionicons name="pulse" size={12} color={club.lastActivityDate ? "#16A34A" : "#D97706"} />
+                          <Text style={[styles.statItemText, { color: club.lastActivityDate ? '#16A34A' : '#D97706' }]}>
+                            {club.lastActivityDate ? 'Active' : 'Inactive'}
+                          </Text>
+                        </View>
+                      </>
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -481,12 +443,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  {isPresidentMode && selectedClub.collegeId === CURRENT_USER.collegeId && (
-                    <TouchableOpacity style={styles.editClubBtn} onPress={() => setShowEditModal(true)}>
-                      <Ionicons name="pencil" size={13} color="#fff" />
-                      <Text style={styles.editClubBtnText}>Edit</Text>
-                    </TouchableOpacity>
-                  )}
+
                   <TouchableOpacity onPress={() => setSelectedClub(null)} style={styles.closeBtn}>
                     <Ionicons name="close" size={20} color="#8A8371" />
                   </TouchableOpacity>
@@ -739,16 +696,23 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                             <View style={{ flex: 1 }}>
                               <Text style={styles.posTitle}>{pos.title}</Text>
                               <Text style={styles.posDept}>{pos.department} · {pos.openings} openings</Text>
+                              {CURRENT_USER.role === 'observer' && (
+                                <Text style={{ fontSize: 12, color: '#D97706', marginTop: 4, fontWeight: '600' }}>
+                                  Applicants: {pos.applicantsCount || Math.floor(Math.random() * 50) + 10}
+                                </Text>
+                              )}
                             </View>
-                            <TouchableOpacity
-                              style={[styles.applyPosBtn, appliedRoles[pos.title] && styles.applyPosBtnDone]}
-                              onPress={() => handleApplyRole(pos.title)}
-                              disabled={appliedRoles[pos.title]}
-                            >
-                              <Text style={styles.applyPosBtnText}>
-                                {appliedRoles[pos.title] ? 'Applied ✓' : 'Apply'}
-                              </Text>
-                            </TouchableOpacity>
+                            {CURRENT_USER.role !== 'observer' && (
+                              <TouchableOpacity
+                                style={[styles.applyPosBtn, appliedRoles[pos.title] && styles.applyPosBtnDone]}
+                                onPress={() => handleApplyRole(pos.title)}
+                                disabled={appliedRoles[pos.title]}
+                              >
+                                <Text style={styles.applyPosBtnText}>
+                                  {appliedRoles[pos.title] ? 'Applied ✓' : 'Apply'}
+                                </Text>
+                              </TouchableOpacity>
+                            )}
                           </View>
                           <Text style={styles.posDesc}>{pos.description}</Text>
                           <View style={styles.skillsRow}>
@@ -761,14 +725,23 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                     ) : (
                       selectedClub.recruitmentRoles?.map((r) => (
                         <View key={r} style={styles.simpleRoleCard}>
-                          <Text style={styles.posTitle}>{r}</Text>
-                          <TouchableOpacity
-                            style={[styles.applyPosBtn, appliedRoles[r] && styles.applyPosBtnDone]}
-                            onPress={() => handleApplyRole(r)}
-                            disabled={appliedRoles[r]}
-                          >
-                            <Text style={styles.applyPosBtnText}>{appliedRoles[r] ? 'Applied ✓' : 'Apply'}</Text>
-                          </TouchableOpacity>
+                          <View style={{ flex: 1 }}>
+                             <Text style={styles.posTitle}>{r}</Text>
+                             {CURRENT_USER.role === 'observer' && (
+                                <Text style={{ fontSize: 12, color: '#D97706', marginTop: 4, fontWeight: '600' }}>
+                                  Applicants: {Math.floor(Math.random() * 50) + 10}
+                                </Text>
+                              )}
+                          </View>
+                          {CURRENT_USER.role !== 'observer' && (
+                            <TouchableOpacity
+                              style={[styles.applyPosBtn, appliedRoles[r] && styles.applyPosBtnDone]}
+                              onPress={() => handleApplyRole(r)}
+                              disabled={appliedRoles[r]}
+                            >
+                              <Text style={styles.applyPosBtnText}>{appliedRoles[r] ? 'Applied ✓' : 'Apply'}</Text>
+                            </TouchableOpacity>
+                          )}
                         </View>
                       ))
                     )}
@@ -814,61 +787,6 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
         </Modal>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* PRESIDENT EDIT MODAL                                                  */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {showEditModal && selectedClub && (
-        <Modal visible transparent animationType="slide" onRequestClose={() => setShowEditModal(false)}>
-          <View style={styles.editModalOverlay}>
-            <View style={styles.editModalBox}>
-              <View style={styles.editModalHeader}>
-                <View>
-                  <Text style={styles.editModalTitle}>Edit club profile</Text>
-                  <Text style={styles.editModalSub}>Authorized · President</Text>
-                </View>
-                <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                  <Ionicons name="close" size={20} color="#8A8371" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
-                {([
-                  { label: 'Tagline',                  val: editTagline,  set: setEditTagline,  ph: 'e.g. Fostering Innovation, Fueling Startups' },
-                  { label: 'Workshop / room',           val: editWorkshop, set: setEditWorkshop, ph: 'e.g. Incubation Cabin 402' },
-                  { label: 'Recruitment deadline',      val: editDeadline, set: setEditDeadline, ph: 'e.g. 25 Aug 2026, 11:59 PM' },
-                  { label: 'WhatsApp community link',   val: editWhatsapp, set: setEditWhatsapp, ph: 'https://chat.whatsapp.com/…' },
-                ] as { label: string; val: string; set: (v: string) => void; ph: string }[]).map(({ label, val, set, ph }) => (
-                  <View key={label}>
-                    <Text style={styles.editInputLabel}>{label}</Text>
-                    <TextInput
-                      style={styles.editInput}
-                      value={val}
-                      onChangeText={set}
-                      placeholder={ph}
-                      placeholderTextColor={INK_FAINT}
-                    />
-                  </View>
-                ))}
-
-                <Text style={styles.editInputLabel}>Vision statement</Text>
-                <TextInput style={[styles.editInput, { height: 60 }]} value={editVision} onChangeText={setEditVision} multiline />
-
-                <Text style={styles.editInputLabel}>Mission statement</Text>
-                <TextInput style={[styles.editInput, { height: 60 }]} value={editMission} onChangeText={setEditMission} multiline />
-              </ScrollView>
-
-              <View style={styles.editModalFooter}>
-                <TouchableOpacity style={styles.cancelEditBtn} onPress={() => setShowEditModal(false)}>
-                  <Text style={styles.cancelEditText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveEditBtn} onPress={handleSavePresidentEdits}>
-                  <Text style={styles.saveEditText}>Save & publish</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      )}
     </View>
   );
 }

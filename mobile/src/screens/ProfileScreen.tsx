@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
-import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken } from '../services/clubSyncService';
+import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken, markAttendance } from '../services/clubSyncService';
 import { DigitalTicket, MY_TICKETS, CLUBS, COLLEGES } from '../data/mockData';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ProfileScreen() {
@@ -31,10 +32,11 @@ export default function ProfileScreen() {
   const [editLinkedin, setEditLinkedin] = useState(userProfile.linkedinHandle || 'pranavvasu');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  // GATE SCANNER TEST STATE
-  const [showScannerModal, setShowScannerModal] = useState(false);
-  const [scanTokenInput, setScanTokenInput] = useState('');
-  const [scanResult, setScanResult] = useState<string | null>(null);
+  // GATE SCANNER STATE
+  const [permission, requestPermission] = useCameraPermissions();
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResultData, setScanResultData] = useState<{ success: boolean; studentName?: string; prn?: string; eventTitle?: string; message: string } | null>(null);
 
   useEffect(() => {
     setUserProfile(CURRENT_USER);
@@ -98,13 +100,28 @@ export default function ProfileScreen() {
     Alert.alert('Download Complete', `${type} saved to your device with cryptographic signature.`);
   };
 
-  const handleTestScanToken = async () => {
-    if (!scanTokenInput.trim()) {
-      Alert.alert('Enter Token', 'Please enter a ticket QR token to verify.');
-      return;
+  const handleBarcodeScanned = async ({ data }: { data: string }) => {
+    if (isScanning) return;
+    setIsScanning(true);
+    const res = await markAttendance(data);
+    setScanResultData(res);
+    
+    // Auto-reset after 3 seconds
+    setTimeout(() => {
+      setScanResultData(null);
+      setIsScanning(false);
+    }, 3000);
+  };
+
+  const handleOpenScanner = async () => {
+    if (!permission?.granted) {
+      const { granted } = await requestPermission();
+      if (!granted) {
+        Alert.alert('Permission required', 'We need camera access to scan QR codes.');
+        return;
+      }
     }
-    const res = await verifyGatePassToken(scanTokenInput.trim());
-    setScanResult(res.message);
+    setShowCameraScanner(true);
   };
 
   return (
@@ -137,90 +154,119 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Student Passport Card */}
-        <View style={[styles.passportCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-          <View style={[styles.passportTop, { borderBottomColor: theme.divider }]}>
-            <Text style={[styles.passportTitle, { color: isDarkMode ? theme.primary : '#0C447C' }]}>CLUBSYNC STUDENT PASSPORT</Text>
-            <View style={styles.verifiedTag}>
-              <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
-              <Text style={styles.verifiedText}>DB VERIFIED</Text>
+        {userProfile.role === 'observer' ? (
+          <View style={[styles.passportCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+            <View style={[styles.passportTop, { borderBottomColor: theme.divider }]}>
+              <Text style={[styles.passportTitle, { color: isDarkMode ? theme.primary : '#0C447C' }]}>OBSERVER DASHBOARD</Text>
+              <View style={styles.verifiedTag}>
+                <Ionicons name="shield-checkmark" size={12} color="#16a34a" />
+                <Text style={styles.verifiedText}>FACULTY / ADMIN</Text>
+              </View>
+            </View>
+
+            <View style={styles.passportGrid}>
+              <View style={styles.gridItem}>
+                <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Name</Text>
+                <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.name}</Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Designation</Text>
+                <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.bio || 'Faculty In-Charge'}</Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Institution</Text>
+                <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.collegeName}</Text>
+              </View>
             </View>
           </View>
-
-          <View style={styles.passportGrid}>
-            <View style={styles.gridItem}>
-              <Text style={[styles.gridLabel, { color: theme.textMuted }]}>PRN / Roll No</Text>
-              <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.prn}</Text>
-            </View>
-            <View style={styles.gridItem}>
-              <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Academic Year</Text>
-              <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.year.includes('FY') ? '2026–27 (FY)' : userProfile.year.includes('SY') ? '2026–27 (SY)' : '2026–27 (TY)'}</Text>
-            </View>
-            <View style={styles.gridItem}>
-              <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Cumulative CGPA</Text>
-              <Text style={[styles.gridValue, { color: '#16a34a' }]}>{userProfile.cgpa.toFixed(2)} / 10.0</Text>
-            </View>
-            <View style={styles.gridItem}>
-              <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Core Committee</Text>
-              <Text style={[styles.gridValue, { color: isDarkMode ? theme.primary : '#0C447C' }]}>{userProfile.cgpa >= 7.0 ? 'Eligible (≥ 7.0 ✓)' : 'Not Eligible (< 7.0)'}</Text>
-            </View>
-          </View>
-
-          {userProfile.bio ? (
-            <View style={[styles.bioBox, { borderTopColor: theme.divider }]}>
-              <Text style={[styles.bioText, { color: theme.textSecondary }]}>"{userProfile.bio}"</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {/* Engagement Stats */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-            <Text style={[styles.statNum, { color: theme.text }]}>{ticketsList.length}</Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Active Passes</Text>
-          </View>
-          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-            <Text style={[styles.statNum, { color: '#D97706' }]}>1</Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Trophies Won</Text>
-          </View>
-          <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-            <Text style={[styles.statNum, { color: isDarkMode ? theme.primary : '#0C447C' }]}>{CLUBS.filter(c => c.isFollowed).length}</Text>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Followed Clubs</Text>
-          </View>
-        </View>
-
-        {/* Digital Event Passes Wallet */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.menuHeading, { color: theme.text }]}>My Digital Passes & Gate Tickets</Text>
-          <Text style={[styles.badgeCounter, { backgroundColor: theme.badgeBg, color: theme.badgeText }]}>{ticketsList.length} Active</Text>
-        </View>
-
-        <View style={styles.ticketsWalletContainer}>
-          {ticketsList.map((ticket) => (
-            <TouchableOpacity 
-              key={ticket.id} 
-              style={[styles.ticketWalletCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
-              onPress={() => setSelectedTicket(ticket)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.ticketLeft}>
-                <View style={[styles.qrMiniBox, { backgroundColor: theme.badgeBg }]}>
-                  <Ionicons name="qr-code-outline" size={24} color={theme.primary} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.ticketEventTitle, { color: theme.text }]} numberOfLines={1}>{ticket.eventTitle}</Text>
-                  <Text style={[styles.ticketClubText, { color: theme.primary }]}>{ticket.clubName}</Text>
-                  <Text style={[styles.ticketVenueText, { color: theme.textSecondary }]}>📍 {ticket.venue}</Text>
-                  <Text style={[styles.ticketDateText, { color: theme.textMuted }]}>📅 {ticket.date} · {ticket.time}</Text>
+        ) : (
+          <>
+            {/* Student Passport Card */}
+            <View style={[styles.passportCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+              <View style={[styles.passportTop, { borderBottomColor: theme.divider }]}>
+                <Text style={[styles.passportTitle, { color: isDarkMode ? theme.primary : '#0C447C' }]}>CLUBSYNC STUDENT PASSPORT</Text>
+                <View style={styles.verifiedTag}>
+                  <Ionicons name="checkmark-circle" size={12} color="#16a34a" />
+                  <Text style={styles.verifiedText}>DB VERIFIED</Text>
                 </View>
               </View>
 
-              <View style={[styles.viewPassBtn, { backgroundColor: isDarkMode ? theme.primary : '#0C447C' }]}>
-                <Text style={[styles.viewPassText, { color: isDarkMode ? '#0F172A' : '#fff' }]}>Show Pass ➔</Text>
+              <View style={styles.passportGrid}>
+                <View style={styles.gridItem}>
+                  <Text style={[styles.gridLabel, { color: theme.textMuted }]}>PRN / Roll No</Text>
+                  <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.prn}</Text>
+                </View>
+                <View style={styles.gridItem}>
+                  <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Academic Year</Text>
+                  <Text style={[styles.gridValue, { color: theme.text }]}>{userProfile.year.includes('FY') ? '2026–27 (FY)' : userProfile.year.includes('SY') ? '2026–27 (SY)' : '2026–27 (TY)'}</Text>
+                </View>
+                <View style={styles.gridItem}>
+                  <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Cumulative CGPA</Text>
+                  <Text style={[styles.gridValue, { color: '#16a34a' }]}>{userProfile.cgpa.toFixed(2)} / 10.0</Text>
+                </View>
+                <View style={styles.gridItem}>
+                  <Text style={[styles.gridLabel, { color: theme.textMuted }]}>Core Committee</Text>
+                  <Text style={[styles.gridValue, { color: isDarkMode ? theme.primary : '#0C447C' }]}>{userProfile.cgpa >= 7.0 ? 'Eligible (≥ 7.0 ✓)' : 'Not Eligible (< 7.0)'}</Text>
+                </View>
               </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+
+              {userProfile.bio ? (
+                <View style={[styles.bioBox, { borderTopColor: theme.divider }]}>
+                  <Text style={[styles.bioText, { color: theme.textSecondary }]}>"{userProfile.bio}"</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Engagement Stats */}
+            <View style={styles.statsRow}>
+              <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                <Text style={[styles.statNum, { color: theme.text }]}>{ticketsList.length}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Active Passes</Text>
+              </View>
+              <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                <Text style={[styles.statNum, { color: '#D97706' }]}>1</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Trophies Won</Text>
+              </View>
+              <View style={[styles.statBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+                <Text style={[styles.statNum, { color: isDarkMode ? theme.primary : '#0C447C' }]}>{CLUBS.filter(c => c.isFollowed).length}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Followed Clubs</Text>
+              </View>
+            </View>
+
+            {/* Digital Event Passes Wallet */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.menuHeading, { color: theme.text }]}>My Digital Passes & Gate Tickets</Text>
+              <Text style={[styles.badgeCounter, { backgroundColor: theme.badgeBg, color: theme.badgeText }]}>{ticketsList.length} Active</Text>
+            </View>
+
+            <View style={styles.ticketsWalletContainer}>
+              {ticketsList.map((ticket) => (
+                <TouchableOpacity 
+                  key={ticket.id} 
+                  style={[styles.ticketWalletCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                  onPress={() => setSelectedTicket(ticket)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.ticketLeft}>
+                    <View style={[styles.qrMiniBox, { backgroundColor: theme.badgeBg }]}>
+                      <Ionicons name="qr-code-outline" size={24} color={theme.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.ticketEventTitle, { color: theme.text }]} numberOfLines={1}>{ticket.eventTitle}</Text>
+                      <Text style={[styles.ticketClubText, { color: theme.primary }]}>{ticket.clubName}</Text>
+                      <Text style={[styles.ticketVenueText, { color: theme.textSecondary }]}>📍 {ticket.venue}</Text>
+                      <Text style={[styles.ticketDateText, { color: theme.textMuted }]}>📅 {ticket.date} · {ticket.time}</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.viewPassBtn, { backgroundColor: isDarkMode ? theme.primary : '#0C447C' }]}>
+                    <Text style={[styles.viewPassText, { color: isDarkMode ? '#0F172A' : '#fff' }]}>Show Pass ➔</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
         {/* Preferences & Action Menu */}
         <Text style={[styles.menuHeading, { color: theme.text, marginTop: 16 }]}>Preferences & Appearance</Text>
@@ -239,16 +285,18 @@ export default function ProfileScreen() {
 
         <Text style={[styles.menuHeading, { color: theme.text, marginTop: 16 }]}>Activity & Credentials</Text>
         <View style={[styles.menuContainer, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-          <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.divider }]} onPress={() => setShowScannerModal(true)}>
-            <View style={[styles.menuIconBox, { backgroundColor: theme.badgeBg }]}>
-              <Ionicons name="scan-circle-outline" size={18} color={theme.primary} />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={[styles.menuTitle, { color: theme.text }]}>Gatekeeper QR Check-in Tester</Text>
-              <Text style={[styles.menuDesc, { color: theme.textSecondary }]}>Scan/verify dynamic gate tickets in real-time</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
-          </TouchableOpacity>
+          {userProfile.canScanQR === true && (
+            <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.divider }]} onPress={handleOpenScanner}>
+              <View style={[styles.menuIconBox, { backgroundColor: theme.badgeBg }]}>
+                <Ionicons name="qr-code-outline" size={18} color={theme.primary} />
+              </View>
+              <View style={styles.menuContent}>
+                <Text style={[styles.menuTitle, { color: theme.text }]}>Scan & Mark Attendance</Text>
+                <Text style={[styles.menuDesc, { color: theme.textSecondary }]}>Scan attendee tickets at the gate</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity style={[styles.menuItem, { borderBottomColor: theme.divider }]} onPress={() => setShowCertificate(true)}>
             <View style={[styles.menuIconBox, { backgroundColor: theme.badgeBg }]}>
@@ -393,45 +441,58 @@ export default function ProfileScreen() {
         </Modal>
       )}
 
-      {/* GATEKEEPER CHECK-IN SCANNER TEST MODAL */}
-      {showScannerModal && (
-        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowScannerModal(false)}>
+      {/* REAL CAMERA SCANNER MODAL */}
+      {showCameraScanner && (
+        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowCameraScanner(false)}>
           <View style={styles.modalOverlay}>
-            <View style={styles.scannerModal}>
-              <View style={styles.ticketHeader}>
-                <Text style={styles.ticketHeaderEvent}>Gatekeeper Check-in Terminal</Text>
-                <TouchableOpacity onPress={() => { setShowScannerModal(false); setScanResult(null); }}>
-                  <Ionicons name="close" size={22} color="#64748B" />
+            <View style={[styles.scannerModal, { padding: 0, overflow: 'hidden', height: '70%', width: '90%' }]}>
+              <View style={[styles.ticketHeader, { padding: 16, backgroundColor: '#0F172A' }]}>
+                <Text style={[styles.ticketHeaderEvent, { color: '#fff' }]}>Gatekeeper Check-in</Text>
+                <TouchableOpacity onPress={() => setShowCameraScanner(false)}>
+                  <Ionicons name="close" size={22} color="#fff" />
                 </TouchableOpacity>
               </View>
 
-              <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 12 }}>
-                Enter or paste a dynamic QR ticket token to test gate validation & live attendance check-in:
-              </Text>
-
-              <TextInput 
-                style={styles.scannerInput}
-                placeholder="e.g. CLUBSYNC-TKT-1-1251070582..."
-                value={scanTokenInput}
-                onChangeText={setScanTokenInput}
-              />
-
-              {scanResult && (
-                <View style={[styles.scanResultBox, scanResult.includes('Granted') ? styles.scanSuccess : styles.scanFail]}>
-                  <Text style={styles.scanResultText}>{scanResult}</Text>
+              <View style={{ flex: 1, backgroundColor: '#000', position: 'relative' }}>
+                <CameraView
+                  style={StyleSheet.absoluteFillObject}
+                  facing="back"
+                  onBarcodeScanned={isScanning ? undefined : handleBarcodeScanned}
+                  barcodeScannerSettings={{
+                    barcodeTypes: ["qr"],
+                  }}
+                />
+                
+                {/* Scanner Overlay UI */}
+                <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                  <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
+                  <View style={{ flexDirection: 'row', height: 250 }}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
+                    <View style={{ width: 250, borderColor: '#16A34A', borderWidth: 2, backgroundColor: 'transparent' }} />
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
                 </View>
-              )}
 
-              <View style={styles.editActionRow}>
-                <TouchableOpacity 
-                  style={[styles.cancelBtn, { flex: 1 }]} 
-                  onPress={() => setScanTokenInput(ticketsList[0]?.qrCodeString || '')}
-                >
-                  <Text style={styles.cancelBtnText}>Paste My Pass Token</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.saveBtn, { flex: 1 }]} onPress={handleTestScanToken}>
-                  <Text style={styles.saveBtnText}>Verify Token</Text>
-                </TouchableOpacity>
+                {/* Scan Result Floating Card */}
+                {scanResultData && (
+                  <View style={{ position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: '#fff', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 5, alignItems: 'center' }}>
+                    {scanResultData.success ? (
+                      <>
+                        <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A', marginTop: 8 }}>{scanResultData.message}</Text>
+                        <Text style={{ fontSize: 16, color: '#334155', marginTop: 4 }}>{scanResultData.studentName}</Text>
+                        <Text style={{ fontSize: 14, color: '#64748B' }}>PRN: {scanResultData.prn}</Text>
+                        <Text style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>{scanResultData.eventTitle}</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Ionicons name="close-circle" size={48} color="#DC2626" />
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: '#DC2626', marginTop: 8 }}>{scanResultData.message}</Text>
+                      </>
+                    )}
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -703,6 +764,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 16,
   },
+
   statBox: {
     width: '31%',
     backgroundColor: '#fff',

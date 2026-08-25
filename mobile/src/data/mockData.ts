@@ -37,6 +37,7 @@ export interface RecruitmentPosition {
   title: string;
   department: string;
   openings: number;
+  applicantsCount?: number; // Added for Observer Role
   skills: string[];
   description: string;
 }
@@ -84,6 +85,7 @@ export interface Club {
   achievements?: ClubAchievement[];
   faqs?: ClubFAQ[];
   logoBg: string;
+  lastActivityDate?: string;
 }
 
 export interface CompetitionItem {
@@ -117,7 +119,7 @@ export interface EventItem {
   title: string;
   clubName: string;
   collegeName: string;
-  vertical: 'Technical' | 'Cultural' | 'Sports' | 'Social' | 'Entrepreneurship' | 'Literary' | 'Others';
+  vertical: string;
   date: string;
   month: string;
   day: string;
