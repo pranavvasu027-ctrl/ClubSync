@@ -11,7 +11,7 @@ WebBrowser.maybeCompleteAuthSession();
  */
 export async function signInWithGoogle(): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> {
   try {
-    const redirectTo = makeRedirectUri();
+    const redirectTo = makeRedirectUri({ scheme: 'clubsync', path: 'auth/callback' });
 
     // Ask Supabase for the Google OAuth URL
     const { data, error } = await supabase.auth.signInWithOAuth({
