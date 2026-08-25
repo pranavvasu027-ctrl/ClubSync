@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, Linking, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  StyleSheet, Text, View, ScrollView, TouchableOpacity,
+  TextInput, Modal, Linking, Alert, Animated,
+} from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Club, CLUBS, CoreLead, ClubFlagshipEvent, ClubAchievement, RecruitmentPosition, COLLEGES } from '../data/mockData';
 import { CURRENT_USER, updateClubDetails, toggleFollowClub, submitApplication } from '../services/clubSyncService';
@@ -12,6 +15,42 @@ interface ClubsScreenProps {
   initialSortHiring?: boolean;
 }
 
+// ─── Vertical accent palette ────────────────────────────────────────────────
+const VERTICAL_ACCENT: Record<string, string> = {
+  Entrepreneurship: '#C47C2B',
+  Technical:        '#1A6FB5',
+  Cultural:         '#A84BA1',
+  Sports:           '#2E7D32',
+  Literary:         '#5C4E8B',
+  Social:           '#C0392B',
+  Others:           '#546E7A',
+};
+const VERTICAL_BG: Record<string, string> = {
+  Entrepreneurship: '#FFF3E0',
+  Technical:        '#E3F0FB',
+  Cultural:         '#F9EEF9',
+  Sports:           '#E8F5E9',
+  Literary:         '#EDE7F6',
+  Social:           '#FDECEA',
+  Others:           '#ECEFF1',
+};
+
+// ─── Animated hiring pulse dot ──────────────────────────────────────────────
+function PulseDot() {
+  const scale = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 1.55, duration: 700, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1,    duration: 700, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  return (
+    <Animated.View style={[styles.hiringDot, { transform: [{ scale }] }]} />
+  );
+}
+
 export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   const { theme, isDarkMode } = useTheme();
   const [clubsList, setClubsList] = useState<Club[]>(CLUBS);
@@ -22,6 +61,10 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   const [activeDetailTab, setActiveDetailTab] = useState<ClubDetailTab>('overview');
   const [showSortModal, setShowSortModal] = useState(false);
   const [appliedRoles, setAppliedRoles] = useState<{ [key: string]: boolean }>({});
+
+  // COLLEGE SELECTOR — defaults to the user's home college
+  const [browsingCollegeId, setBrowsingCollegeId] = useState<string>(CURRENT_USER.collegeId);
+  const isHomeCollege = browsingCollegeId === CURRENT_USER.collegeId;
 
   // PRESIDENT / FACULTY EDIT MODE STATE
   const [isPresidentMode, setIsPresidentMode] = useState(false);
@@ -40,23 +83,22 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
 
     const res = await toggleFollowClub(clubId);
 
-    // Update local state
-    setClubsList(prev => prev.map(c => 
-      c.id === clubId 
-        ? { ...c, isFollowed: res.isFollowed, followersCount: res.followersCount } 
+    setClubsList(prev => prev.map(c =>
+      c.id === clubId
+        ? { ...c, isFollowed: res.isFollowed, followersCount: res.followersCount }
         : c
     ));
     if (selectedClub && selectedClub.id === clubId) {
       setSelectedClub(prev => prev ? { ...prev, isFollowed: res.isFollowed, followersCount: res.followersCount } : prev);
     }
-    // Update global mock data
     const globalClub = CLUBS.find(c => c.id === clubId);
     if (globalClub) {
       globalClub.isFollowed = !globalClub.isFollowed;
-      globalClub.followersCount = globalClub.isFollowed ? (globalClub.followersCount || 0) + 1 : (globalClub.followersCount || 1) - 1;
+      globalClub.followersCount = globalClub.isFollowed
+        ? (globalClub.followersCount || 0) + 1
+        : (globalClub.followersCount || 1) - 1;
     }
 
-    // Cross-college follow value toast
     if (!wasFollowing && isCrossCollege) {
       Alert.alert(
         'Following! 🌍',
@@ -65,30 +107,31 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
     }
   };
 
+  // Clubs scoped to the college currently being browsed
+  const collegeScopedClubs = clubsList.filter(c => c.collegeId === browsingCollegeId);
+
   const domainOptions = [
-    { label: 'All', count: clubsList.length },
-    { label: 'Following', count: clubsList.filter(c => c.isFollowed).length },
-    { label: 'Entrepreneurship', count: clubsList.filter(c => c.vertical === 'Entrepreneurship').length },
-    { label: 'Technical', count: clubsList.filter(c => c.vertical === 'Technical').length },
-    { label: 'Cultural', count: clubsList.filter(c => c.vertical === 'Cultural').length },
-    { label: 'Sports', count: clubsList.filter(c => c.vertical === 'Sports').length },
-    { label: 'Literary', count: clubsList.filter(c => c.vertical === 'Literary').length },
-    { label: 'Social', count: clubsList.filter(c => c.vertical === 'Social').length },
-    { label: 'Others', count: clubsList.filter(c => c.vertical === 'Others').length },
+    { label: 'All',              count: collegeScopedClubs.length },
+    { label: 'Following',        count: collegeScopedClubs.filter(c => c.isFollowed).length },
+    { label: 'Entrepreneurship', count: collegeScopedClubs.filter(c => c.vertical === 'Entrepreneurship').length },
+    { label: 'Technical',        count: collegeScopedClubs.filter(c => c.vertical === 'Technical').length },
+    { label: 'Cultural',         count: collegeScopedClubs.filter(c => c.vertical === 'Cultural').length },
+    { label: 'Sports',           count: collegeScopedClubs.filter(c => c.vertical === 'Sports').length },
+    { label: 'Literary',         count: collegeScopedClubs.filter(c => c.vertical === 'Literary').length },
+    { label: 'Social',           count: collegeScopedClubs.filter(c => c.vertical === 'Social').length },
+    { label: 'Others',           count: collegeScopedClubs.filter(c => c.vertical === 'Others').length },
   ];
 
   const sortLabels: { [key in SortOption]: string } = {
-    members: '👥 Most Members (High to Low)',
-    hiring: '🔥 Hiring Open First',
-    alphabetical: '🔤 Alphabetical (A to Z)',
-    year: '🏛️ Established (Heritage)',
+    members:      'Most members',
+    hiring:       'Hiring open first',
+    alphabetical: 'A to Z',
+    year:         'Established (heritage)',
   };
 
-  // Filter by Domain & Search
-  let filteredClubs = clubsList.filter((club) => {
+  let filteredClubs = collegeScopedClubs.filter((club) => {
     if (selectedDomain === 'Following' && !club.isFollowed) return false;
     if (selectedDomain !== 'All' && selectedDomain !== 'Following' && club.vertical !== selectedDomain) return false;
-
     if (searchQuery.trim() !== '') {
       const q = searchQuery.toLowerCase();
       return (
@@ -102,21 +145,16 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
     return true;
   });
 
-  // Sort
   filteredClubs.sort((a, b) => {
-    if (sortBy === 'members') return b.membersCount - a.membersCount;
-    if (sortBy === 'hiring') {
-      if (a.openRecruitment === b.openRecruitment) return 0;
-      return a.openRecruitment ? -1 : 1;
-    }
+    if (sortBy === 'members')      return b.membersCount - a.membersCount;
+    if (sortBy === 'hiring')       return a.openRecruitment === b.openRecruitment ? 0 : a.openRecruitment ? -1 : 1;
     if (sortBy === 'alphabetical') return a.name.localeCompare(b.name);
-    if (sortBy === 'year') return a.establishedYear - b.establishedYear;
+    if (sortBy === 'year')         return a.establishedYear - b.establishedYear;
     return 0;
   });
 
   const handleOpenClub = (club: Club) => {
     setSelectedClub(club);
-    const sameCollege = club.collegeId === CURRENT_USER.collegeId;
     setActiveDetailTab('overview');
     setEditTagline(club.tagline || '');
     setEditVision(club.vision || '');
@@ -132,14 +170,15 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
       return;
     }
     setAppliedRoles(prev => ({ ...prev, [roleTitle]: true }));
-    const res = await submitApplication(selectedClub.id, roleTitle, `Passionate applicant from ${CURRENT_USER.branch} (${CURRENT_USER.year}). CGPA: ${CURRENT_USER.cgpa}`);
+    const res = await submitApplication(
+      selectedClub.id, roleTitle,
+      `Passionate applicant from ${CURRENT_USER.branch} (${CURRENT_USER.year}). CGPA: ${CURRENT_USER.cgpa}`
+    );
     Alert.alert('Application Submitted! 🚀', res.message);
   };
 
   const openLink = (url?: string) => {
-    if (url) {
-      Linking.openURL(url).catch(err => console.error("Couldn't open link", err));
-    }
+    if (url) Linking.openURL(url).catch(err => console.error("Couldn't open link", err));
   };
 
   const handleSavePresidentEdits = async () => {
@@ -160,158 +199,251 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
     Alert.alert('Changes Published Live! 🎉', 'Club details have been updated and synced to the database in real time.');
   };
 
+  const browsingCollege = COLLEGES.find(c => c.id === browsingCollegeId);
+
   return (
     <View style={styles.container}>
-      {/* Header */}
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <View>
-            <Text style={styles.headerTitle}>College Clubs & Chapters</Text>
-            <Text style={styles.headerSub}>Explore all {clubsList.length} Approved Student Organizations</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerEyebrow}>Directory</Text>
+            <Text style={styles.headerTitle}>Clubs & Chapters</Text>
           </View>
 
-          {/* Role Toggle: Student vs President / Authority */}
-          <TouchableOpacity 
-            style={[styles.roleSwitchBtn, isPresidentMode && styles.roleSwitchBtnActive]}
-            onPress={() => setIsPresidentMode(!isPresidentMode)}
-          >
-            <Ionicons name={isPresidentMode ? "shield-checkmark" : "person-outline"} size={13} color={isPresidentMode ? "#fff" : "#B5D4F4"} />
-            <Text style={[styles.roleSwitchText, isPresidentMode && styles.roleSwitchTextActive]}>
-              {isPresidentMode ? "President Mode" : "Student View"}
-            </Text>
-          </TouchableOpacity>
+          {isHomeCollege && (
+            <TouchableOpacity
+              style={[styles.roleSwitchBtn, isPresidentMode && styles.roleSwitchBtnActive]}
+              onPress={() => setIsPresidentMode(!isPresidentMode)}
+            >
+              <Ionicons
+                name={isPresidentMode ? 'shield-checkmark' : 'person-outline'}
+                size={12}
+                color={isPresidentMode ? '#fff' : 'rgba(255,255,255,0.75)'}
+              />
+              <Text style={[styles.roleSwitchText, isPresidentMode && styles.roleSwitchTextActive]}>
+                {isPresidentMode ? 'President' : 'Student'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color="#B5D4F4" />
-          <TextInput 
-            placeholder="Search EDC, CSI, Formula Racing, Mentors..." 
-            placeholderTextColor="#B5D4F4"
+          <Ionicons name="search" size={16} color="rgba(255,255,255,0.5)" />
+          <TextInput
+            placeholder="Search clubs, mentors, focus areas…"
+            placeholderTextColor="rgba(255,255,255,0.45)"
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery !== '' && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={16} color="#B5D4F4" />
+              <Ionicons name="close-circle" size={15} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Domain Category Filter Chips */}
-      <View style={styles.chipsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
-          {domainOptions.map((opt) => (
-            <TouchableOpacity 
-              key={opt.label}
-              style={[styles.chip, selectedDomain === opt.label && styles.chipActive]}
-              onPress={() => setSelectedDomain(opt.label)}
-            >
-              <Text style={[styles.chipText, selectedDomain === opt.label && styles.chipTextActive]}>
-                {opt.label} ({opt.count})
-              </Text>
-            </TouchableOpacity>
-          ))}
+      {/* ── College Selector ────────────────────────────────────────────────── */}
+      <View style={styles.collegeSelectorWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.collegeSelectorScroll}>
+          {COLLEGES.map((c) => {
+            const active = browsingCollegeId === c.id;
+            const isHome = c.id === CURRENT_USER.collegeId;
+            return (
+              <TouchableOpacity
+                key={c.id}
+                style={[styles.collegeChip, active && styles.collegeChipActive]}
+                onPress={() => setBrowsingCollegeId(c.id)}
+              >
+                {isHome && <View style={[styles.homeDot, active && styles.homeDotActive]} />}
+                <Text style={[styles.collegeChipText, active && styles.collegeChipTextActive]}>
+                  {c.shortName}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
 
-      {/* Sort & Result Bar */}
+      {/* ── Cross-college notice ─────────────────────────────────────────────── */}
+      {!isHomeCollege && (
+        <View style={styles.crossCollegeStrip}>
+          <Ionicons name="eye-outline" size={13} color="#8A6D2F" />
+          <Text style={styles.crossCollegeStripText}>
+            Browsing {browsingCollege?.shortName} · Read-only. You can follow clubs, but recruitment is for their own students.
+          </Text>
+        </View>
+      )}
+
+      {/* ── Domain Chips ─────────────────────────────────────────────────────── */}
+      <View style={styles.chipsContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsScroll}>
+          {domainOptions.map((opt) => {
+            const active = selectedDomain === opt.label;
+            const accent = VERTICAL_ACCENT[opt.label];
+            return (
+              <TouchableOpacity
+                key={opt.label}
+                style={[
+                  styles.chip,
+                  active && styles.chipActive,
+                  active && accent ? { backgroundColor: accent, borderColor: accent } : undefined,
+                ]}
+                onPress={() => setSelectedDomain(opt.label)}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                  {opt.label} · {opt.count}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* ── Sort & Result Bar ────────────────────────────────────────────────── */}
       <View style={styles.sortBar}>
         <Text style={styles.resultCountText}>
-          {filteredClubs.length} Clubs in {selectedDomain}
+          {filteredClubs.length} in {selectedDomain === 'All' ? (browsingCollege?.shortName || 'this college') : selectedDomain}
         </Text>
         <TouchableOpacity style={styles.sortBtn} onPress={() => setShowSortModal(true)}>
-          <Ionicons name="swap-vertical" size={13} color="#0C447C" />
+          <Ionicons name="swap-vertical" size={12} color={NAVY} />
           <Text style={styles.sortBtnText}>{sortLabels[sortBy]}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Clubs List */}
+      {/* ── Clubs List ───────────────────────────────────────────────────────── */}
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-        {filteredClubs.map((club) => (
-          <TouchableOpacity 
-            key={club.id} 
-            style={styles.clubCard}
-            onPress={() => handleOpenClub(club)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.clubLogo, { backgroundColor: club.logoBg }]}>
-              <Text style={styles.clubLogoText}>{club.shortName.substring(0, 2).toUpperCase()}</Text>
+        {collegeScopedClubs.length === 0 ? (
+          /* Empty state — college has no clubs yet */
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconRing}>
+              <MaterialCommunityIcons name="domain" size={26} color="#B8A87A" />
             </View>
+            <Text style={styles.emptyTitle}>No clubs listed yet for {browsingCollege?.shortName}</Text>
+            <Text style={styles.emptySub}>
+              We're rolling out ClubSync to more Pune colleges soon. Check back shortly, or switch back to your own college above.
+            </Text>
+            {!isHomeCollege && (
+              <TouchableOpacity
+                style={styles.emptyBackBtn}
+                onPress={() => setBrowsingCollegeId(CURRENT_USER.collegeId)}
+              >
+                <Text style={styles.emptyBackBtnText}>
+                  Back to {COLLEGES.find(c => c.id === CURRENT_USER.collegeId)?.shortName}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : filteredClubs.length === 0 ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconRing}>
+              <Ionicons name="search-outline" size={24} color="#B8A87A" />
+            </View>
+            <Text style={styles.emptyTitle}>No matches</Text>
+            <Text style={styles.emptySub}>Try a different search term or filter.</Text>
+          </View>
+        ) : (
+          filteredClubs.map((club) => {
+            const vAccent = VERTICAL_ACCENT[club.vertical] || NAVY;
+            const vBg     = VERTICAL_BG[club.vertical]    || '#EDF2F7';
+            return (
+              <TouchableOpacity
+                key={club.id}
+                style={styles.clubCard}
+                onPress={() => handleOpenClub(club)}
+                activeOpacity={0.75}
+              >
+                {/* Left accent stripe keyed to vertical */}
+                <View style={[styles.cardStripe, { backgroundColor: vAccent }]} />
 
-            <View style={styles.clubInfo}>
-              <View style={styles.badgeRow}>
-                <Text style={styles.verticalBadge}>{club.vertical}</Text>
-                {club.openRecruitment && (
-                  <View style={styles.hiringBadge}>
-                    <Text style={styles.hiringText}>Hiring Open</Text>
+                <View style={styles.cardInner}>
+                  <View style={styles.clubCardTop}>
+                    <View style={[styles.clubLogo, { backgroundColor: club.logoBg }]}>
+                      <Text style={styles.clubLogoText}>{club.shortName.substring(0, 2).toUpperCase()}</Text>
+                    </View>
+
+                    <View style={styles.clubInfo}>
+                      <View style={styles.badgeRow}>
+                        <View style={[styles.verticalPill, { backgroundColor: vBg }]}>
+                          <Text style={[styles.verticalBadge, { color: vAccent }]}>
+                            {club.vertical.toUpperCase()}
+                          </Text>
+                        </View>
+                        {club.openRecruitment && (
+                          <View style={styles.hiringBadge}>
+                            <PulseDot />
+                            <Text style={styles.hiringText}>Hiring</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.clubName} numberOfLines={1}>{club.name}</Text>
+                      {club.tagline ? (
+                        <Text style={styles.taglineText} numberOfLines={1}>{club.tagline}</Text>
+                      ) : null}
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.followBtn, club.isFollowed && styles.followBtnActive]}
+                      onPress={(e) => { e.stopPropagation(); handleFollow(club.id); }}
+                    >
+                      {club.isFollowed && (
+                        <Ionicons name="checkmark" size={11} color={INK_SOFT} style={{ marginRight: 2 }} />
+                      )}
+                      <Text style={[styles.followBtnText, club.isFollowed && styles.followBtnTextActive]}>
+                        {club.isFollowed ? 'Following' : 'Follow'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <Text style={[styles.clubName, { flex: 1, marginRight: 8 }]} numberOfLines={1}>{club.name}</Text>
-                <TouchableOpacity 
-                  style={[styles.followBtn, club.isFollowed && styles.followBtnActive]}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleFollow(club.id);
-                  }}
-                >
-                  <Text style={[styles.followBtnText, club.isFollowed && styles.followBtnTextActive]}>
-                    {club.isFollowed ? 'Following' : 'Follow'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              {club.tagline && <Text style={styles.taglineText} numberOfLines={1}>"{club.tagline}"</Text>}
-              <Text style={styles.mentorText}>Mentor: {club.facultyMentor}</Text>
-              <Text style={styles.clubDesc} numberOfLines={2}>{club.description}</Text>
+                  <Text style={styles.clubDesc} numberOfLines={2}>{club.description}</Text>
 
-              <View style={styles.statsRow}>
-                <View style={styles.statItem}>
-                  <Ionicons name="people-outline" size={12} color="#64748b" />
-                  <Text style={styles.statItemText}>{club.followersCount || club.membersCount} followers</Text>
+                  <View style={styles.cardFootRow}>
+                    <View style={styles.statItem}>
+                      <Ionicons name="people-outline" size={12} color="#8A8371" />
+                      <Text style={styles.statItemText}>{(club.followersCount || club.membersCount).toLocaleString()}</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                      <Ionicons name="location-outline" size={12} color="#8A8371" />
+                      <Text style={styles.statItemText} numberOfLines={1}>{club.workshopOrRoom || club.campus}</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <Text style={styles.mentorInline} numberOfLines={1}>{club.facultyMentor}</Text>
+                  </View>
                 </View>
-                <View style={styles.statItem}>
-                  <Ionicons name="location-outline" size={12} color="#64748b" />
-                  <Text style={styles.statItemText} numberOfLines={1}>{club.workshopOrRoom || club.campus}</Text>
-                </View>
-              </View>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
-          </TouchableOpacity>
-        ))}
-
+              </TouchableOpacity>
+            );
+          })
+        )}
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* SORT MODAL */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* SORT MODAL                                                            */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       {showSortModal && (
-        <Modal visible={true} transparent={true} animationType="fade" onRequestClose={() => setShowSortModal(false)}>
+        <Modal visible transparent animationType="fade" onRequestClose={() => setShowSortModal(false)}>
           <View style={styles.sortModalOverlay}>
             <View style={styles.sortModalBox}>
               <View style={styles.sortModalTop}>
-                <Text style={styles.sortModalHeadline}>Sort Clubs By</Text>
+                <Text style={styles.sortModalHeadline}>Sort clubs by</Text>
                 <TouchableOpacity onPress={() => setShowSortModal(false)}>
-                  <Ionicons name="close" size={20} color="#64748B" />
+                  <Ionicons name="close" size={18} color="#8A8371" />
                 </TouchableOpacity>
               </View>
-
               {(Object.keys(sortLabels) as SortOption[]).map((key) => (
-                <TouchableOpacity 
-                  key={key} 
+                <TouchableOpacity
+                  key={key}
                   style={[styles.sortOptionRow, sortBy === key && styles.sortOptionRowActive]}
-                  onPress={() => {
-                    setSortBy(key);
-                    setShowSortModal(false);
-                  }}
+                  onPress={() => { setSortBy(key); setShowSortModal(false); }}
                 >
                   <Text style={[styles.sortOptionText, sortBy === key && styles.sortOptionTextActive]}>
                     {sortLabels[key]}
                   </Text>
-                  {sortBy === key && <Ionicons name="checkmark-circle" size={18} color="#0C447C" />}
+                  {sortBy === key && <Ionicons name="checkmark" size={16} color={NAVY} />}
                 </TouchableOpacity>
               ))}
             </View>
@@ -319,14 +451,16 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
         </Modal>
       )}
 
-      {/* ========================================================================= */}
-      {/* 360-DEGREE FULL CLUB DETAIL MODAL */}
-      {/* ========================================================================= */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* FULL CLUB DETAIL MODAL                                                */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       {selectedClub && (
-        <Modal visible={true} animationType="slide" transparent={true} onRequestClose={() => setSelectedClub(null)}>
+        <Modal visible animationType="slide" transparent onRequestClose={() => setSelectedClub(null)}>
           <View style={styles.modalOverlay}>
             <View style={styles.fullClubModal}>
-              {/* Modal Top Bar */}
+              <View style={styles.modalGrabber} />
+
+              {/* Top bar */}
               <View style={styles.clubModalTopBar}>
                 <View style={styles.clubModalTitleBox}>
                   <View style={[styles.modalLogo, { backgroundColor: selectedClub.logoBg }]}>
@@ -335,212 +469,163 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                   <View style={{ flex: 1 }}>
                     <View style={styles.modalBadgeLine}>
                       <Text style={styles.clubCodeBadge}>{selectedClub.clubNo}</Text>
-                      <Text style={styles.verticalBadge}>{selectedClub.vertical}</Text>
+                      <View style={[styles.verticalPill, { backgroundColor: VERTICAL_BG[selectedClub.vertical] || '#EDF2F7' }]}>
+                        <Text style={[styles.verticalBadgeSmall, { color: VERTICAL_ACCENT[selectedClub.vertical] || NAVY }]}>
+                          {selectedClub.vertical.toUpperCase()}
+                        </Text>
+                      </View>
                     </View>
                     <Text style={styles.modalClubTitle} numberOfLines={1}>{selectedClub.name}</Text>
-                    {selectedClub.tagline && <Text style={styles.modalTagline}>"{selectedClub.tagline}"</Text>}
+                    {selectedClub.tagline && <Text style={styles.modalTagline}>{selectedClub.tagline}</Text>}
                   </View>
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  {isPresidentMode && (
+                  {isPresidentMode && selectedClub.collegeId === CURRENT_USER.collegeId && (
                     <TouchableOpacity style={styles.editClubBtn} onPress={() => setShowEditModal(true)}>
-                      <Ionicons name="pencil" size={14} color="#fff" />
-                      <Text style={styles.editClubBtnText}>Edit Info</Text>
+                      <Ionicons name="pencil" size={13} color="#fff" />
+                      <Text style={styles.editClubBtnText}>Edit</Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity onPress={() => setSelectedClub(null)} style={styles.closeBtn}>
-                    <Ionicons name="close" size={22} color="#64748B" />
+                    <Ionicons name="close" size={20} color="#8A8371" />
                   </TouchableOpacity>
                 </View>
               </View>
 
-              {/* Cross-College Access Banner */}
+              {/* Cross-college banner */}
               {selectedClub.collegeId !== CURRENT_USER.collegeId && (
                 <View style={styles.crossCollegeBanner}>
-                  <Ionicons name="globe-outline" size={16} color="#0C447C" />
+                  <Ionicons name="eye-outline" size={14} color="#8A6D2F" />
                   <Text style={styles.crossCollegeText}>
-                    External Club · Follow for event updates. Recruitment is for {COLLEGES.find(c => c.id === selectedClub.collegeId)?.shortName || 'their college'} students only.
+                    External club · Read-only. Follow for updates — recruitment is for{' '}
+                    {COLLEGES.find(c => c.id === selectedClub.collegeId)?.shortName || 'their college'} students only.
                   </Text>
                 </View>
               )}
 
-              {/* Sub-Navigation Tabs */}
+              {/* Sub-tabs */}
               <View style={styles.subTabsRow}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.subTabsScroll}>
-                  <TouchableOpacity 
-                    style={[styles.subTab, activeDetailTab === 'overview' && styles.subTabActive]}
-                    onPress={() => setActiveDetailTab('overview')}
-                  >
-                    <Text style={[styles.subTabText, activeDetailTab === 'overview' && styles.subTabTextActive]}>Overview</Text>
-                  </TouchableOpacity>
-
-                  {/* Leadership: show for same-college OR public clubs */}
-                  {(selectedClub.collegeId === CURRENT_USER.collegeId || selectedClub.contentVisibility === 'public') && (
-                    <TouchableOpacity 
-                      style={[styles.subTab, activeDetailTab === 'leadership' && styles.subTabActive]}
-                      onPress={() => setActiveDetailTab('leadership')}
-                    >
-                      <Text style={[styles.subTabText, activeDetailTab === 'leadership' && styles.subTabTextActive]}>Leadership & Mentors</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <TouchableOpacity 
-                    style={[styles.subTab, activeDetailTab === 'events' && styles.subTabActive]}
-                    onPress={() => setActiveDetailTab('events')}
-                  >
-                    <Text style={[styles.subTabText, activeDetailTab === 'events' && styles.subTabTextActive]}>
-                      Flagship Events ({selectedClub.flagshipEvents?.length || 0})
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity 
-                    style={[styles.subTab, activeDetailTab === 'achievements' && styles.subTabActive]}
-                    onPress={() => setActiveDetailTab('achievements')}
-                  >
-                    <Text style={[styles.subTabText, activeDetailTab === 'achievements' && styles.subTabTextActive]}>
-                      Trophies & Merits ({selectedClub.achievements?.length || 0})
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Recruitment: ONLY for same-college students */}
-                  {selectedClub.collegeId === CURRENT_USER.collegeId && (
-                    <TouchableOpacity 
-                      style={[styles.subTab, activeDetailTab === 'recruitment' && styles.subTabActive]}
-                      onPress={() => setActiveDetailTab('recruitment')}
-                    >
-                      <Text style={[styles.subTabText, activeDetailTab === 'recruitment' && styles.subTabTextActive]}>
-                        Recruitment Desk 🔥
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* FAQs: show for same-college OR public clubs */}
-                  {(selectedClub.collegeId === CURRENT_USER.collegeId || selectedClub.contentVisibility === 'public') && (
-                    <TouchableOpacity 
-                      style={[styles.subTab, activeDetailTab === 'faqs' && styles.subTabActive]}
-                      onPress={() => setActiveDetailTab('faqs')}
-                    >
-                      <Text style={[styles.subTabText, activeDetailTab === 'faqs' && styles.subTabTextActive]}>FAQs & Connect</Text>
-                    </TouchableOpacity>
-                  )}
+                  {([
+                    { key: 'overview',      label: 'Overview',                                          show: true },
+                    { key: 'leadership',    label: 'Leadership',                                        show: selectedClub.collegeId === CURRENT_USER.collegeId || selectedClub.contentVisibility === 'public' },
+                    { key: 'events',        label: `Events (${selectedClub.flagshipEvents?.length || 0})`, show: true },
+                    { key: 'achievements',  label: `Trophies (${selectedClub.achievements?.length || 0})`, show: true },
+                    { key: 'recruitment',   label: 'Recruitment',                                       show: selectedClub.collegeId === CURRENT_USER.collegeId },
+                    { key: 'faqs',          label: 'FAQs',                                              show: selectedClub.collegeId === CURRENT_USER.collegeId || selectedClub.contentVisibility === 'public' },
+                  ] as { key: ClubDetailTab; label: string; show: boolean }[])
+                    .filter(t => t.show)
+                    .map(t => (
+                      <TouchableOpacity
+                        key={t.key}
+                        style={[styles.subTab, activeDetailTab === t.key && styles.subTabActive]}
+                        onPress={() => setActiveDetailTab(t.key)}
+                      >
+                        <Text style={[styles.subTabText, activeDetailTab === t.key && styles.subTabTextActive]}>
+                          {t.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                 </ScrollView>
               </View>
 
-              {/* Scrollable Tab Body */}
+              {/* Scrollable tab body */}
               <ScrollView style={styles.modalScrollBody} showsVerticalScrollIndicator={false}>
 
-                {/* 1. OVERVIEW TAB */}
+                {/* ── OVERVIEW ── */}
                 {activeDetailTab === 'overview' && (
                   <View style={styles.tabContent}>
-                    <Text style={styles.sectionHeading}>About the Organization</Text>
+                    <Text style={styles.sectionHeading}>About</Text>
                     <Text style={styles.bodyParagraph}>{selectedClub.description}</Text>
 
                     {selectedClub.vision && (
                       <View style={styles.visionCard}>
-                        <View style={styles.visionHeader}>
-                          <Ionicons name="eye-outline" size={16} color="#0C447C" />
-                          <Text style={styles.visionTitle}>Our Vision</Text>
-                        </View>
+                        <Text style={styles.visionTitle}>Vision</Text>
                         <Text style={styles.visionText}>{selectedClub.vision}</Text>
                       </View>
                     )}
-
                     {selectedClub.mission && (
                       <View style={styles.missionCard}>
-                        <View style={styles.visionHeader}>
-                          <Ionicons name="rocket-outline" size={16} color="#16A34A" />
-                          <Text style={[styles.visionTitle, { color: '#16A34A' }]}>Our Mission</Text>
-                        </View>
+                        <Text style={[styles.visionTitle, { color: '#3D6B47' }]}>Mission</Text>
                         <Text style={styles.visionText}>{selectedClub.mission}</Text>
                       </View>
                     )}
 
-                    {/* Quick Info Grid */}
-                    <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Official Club Information</Text>
+                    <Text style={[styles.sectionHeading, { marginTop: 16 }]}>Club information</Text>
                     <View style={styles.infoGridBox}>
-                      <View style={styles.infoGridRow}>
-                        <Text style={styles.infoGridLabel}>Established Year</Text>
-                        <Text style={styles.infoGridValue}>{selectedClub.establishedYear} (Heritage)</Text>
-                      </View>
-                      <View style={styles.infoGridRow}>
-                        <Text style={styles.infoGridLabel}>Primary Workshop / Lab</Text>
-                        <Text style={styles.infoGridValue}>{selectedClub.workshopOrRoom || selectedClub.campus}</Text>
-                      </View>
-                      <View style={styles.infoGridRow}>
-                        <Text style={styles.infoGridLabel}>Total Active Strength</Text>
-                        <Text style={styles.infoGridValue}>{selectedClub.membersCount} Verified Students</Text>
-                      </View>
-                      <View style={styles.infoGridRow}>
-                        <Text style={styles.infoGridLabel}>Faculty Mentor</Text>
-                        <Text style={[styles.infoGridValue, { color: '#0C447C' }]}>{selectedClub.facultyMentor}</Text>
-                      </View>
-                      <View style={styles.infoGridRow}>
-                        <Text style={styles.infoGridLabel}>Official Email</Text>
-                        <Text style={[styles.infoGridValue, { color: '#0C447C' }]}>{selectedClub.officialEmail || `${selectedClub.shortName.toLowerCase()}@vit.edu`}</Text>
-                      </View>
+                      {([
+                        ['Established',     String(selectedClub.establishedYear)],
+                        ['Workshop / lab',  selectedClub.workshopOrRoom || selectedClub.campus],
+                        ['Active strength', `${selectedClub.membersCount} students`],
+                        ['Faculty mentor',  selectedClub.facultyMentor],
+                        ['Email',           selectedClub.officialEmail || `${selectedClub.shortName.toLowerCase()}@vit.edu`],
+                      ] as [string, string][]).map(([label, val], i) => (
+                        <View key={i} style={[styles.infoGridRow, i > 0 && styles.infoGridRowBorder]}>
+                          <Text style={styles.infoGridLabel}>{label}</Text>
+                          <Text style={[styles.infoGridValue, i >= 3 && { color: NAVY }]}>{val}</Text>
+                        </View>
+                      ))}
                     </View>
 
-                    {/* Direct Community Connect Buttons */}
-                    <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Direct In-App Channels (No External Site Needed)</Text>
+                    <Text style={[styles.sectionHeading, { marginTop: 16 }]}>Connect</Text>
                     <View style={styles.communityGrid}>
                       {selectedClub.whatsappGroup && (
                         <TouchableOpacity style={styles.commBtn} onPress={() => openLink(selectedClub.whatsappGroup)}>
-                          <Ionicons name="logo-whatsapp" size={18} color="#16A34A" />
-                          <Text style={styles.commBtnText}>WhatsApp Community</Text>
+                          <Ionicons name="logo-whatsapp" size={16} color="#3D6B47" />
+                          <Text style={styles.commBtnText}>WhatsApp community</Text>
+                          <Ionicons name="open-outline" size={12} color="#8A8371" />
                         </TouchableOpacity>
                       )}
-
                       {selectedClub.discord && (
                         <TouchableOpacity style={styles.commBtn} onPress={() => openLink(selectedClub.discord)}>
-                          <Ionicons name="logo-discord" size={18} color="#5865F2" />
-                          <Text style={styles.commBtnText}>Official Discord</Text>
+                          <Ionicons name="logo-discord" size={16} color="#5865F2" />
+                          <Text style={styles.commBtnText}>Discord</Text>
+                          <Ionicons name="open-outline" size={12} color="#8A8371" />
                         </TouchableOpacity>
                       )}
-
                       {selectedClub.websiteUrl && (
                         <TouchableOpacity style={styles.commBtn} onPress={() => openLink(selectedClub.websiteUrl)}>
-                          <Ionicons name="globe-outline" size={18} color="#0C447C" />
-                          <Text style={styles.commBtnText}>Website ({selectedClub.websiteUrl.replace('https://', '')})</Text>
+                          <Ionicons name="globe-outline" size={16} color={NAVY} />
+                          <Text style={styles.commBtnText}>{selectedClub.websiteUrl.replace('https://', '')}</Text>
+                          <Ionicons name="open-outline" size={12} color="#8A8371" />
                         </TouchableOpacity>
                       )}
                     </View>
                   </View>
                 )}
 
-                {/* 2. LEADERSHIP TAB */}
+                {/* ── LEADERSHIP ── */}
                 {activeDetailTab === 'leadership' && (
                   <View style={styles.tabContent}>
-                    {/* Faculty Mentor Card */}
-                    <Text style={styles.sectionHeading}>Institutional Faculty Mentorship</Text>
+                    <Text style={styles.sectionHeading}>Faculty mentorship</Text>
                     <View style={styles.mentorBannerCard}>
                       <View style={styles.mentorAvatarBox}>
-                        <Ionicons name="school" size={24} color="#0C447C" />
+                        <Ionicons name="school-outline" size={20} color={NAVY} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.mentorCardName}>{selectedClub.facultyMentor}</Text>
-                        <Text style={styles.mentorCardDesig}>{selectedClub.facultyDesignation || 'Professor & Faculty In-Charge'}</Text>
-                        <Text style={styles.mentorCardInst}>Vishwakarma Institute of Technology, Pune</Text>
+                        <Text style={styles.mentorCardDesig}>{selectedClub.facultyDesignation || 'Faculty in-charge'}</Text>
                       </View>
                     </View>
 
-                    {/* President Card */}
-                    <Text style={[styles.sectionHeading, { marginTop: 16 }]}>Student Executive Leadership (AY 2025–26)</Text>
+                    <Text style={[styles.sectionHeading, { marginTop: 16 }]}>Student leadership</Text>
                     <View style={styles.presidentCard}>
                       <View style={styles.presidentTop}>
                         <View style={styles.presAvatar}>
                           <Text style={styles.presAvatarText}>PR</Text>
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.presBadge}>CLUB PRESIDENT</Text>
-                          <Text style={styles.presName}>{selectedClub.presidentName || 'President In-Charge'}</Text>
-                          <Text style={styles.presContact}>{selectedClub.presidentContact || 'Authorized Representative'}</Text>
+                          <Text style={styles.presBadge}>PRESIDENT</Text>
+                          <Text style={styles.presName}>{selectedClub.presidentName || 'President in-charge'}</Text>
+                          <Text style={styles.presContact}>{selectedClub.presidentContact || 'Authorized representative'}</Text>
                         </View>
                       </View>
                     </View>
 
-                    {/* Core Committee Leads */}
-                    <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Official Core Committee Members ({selectedClub.coreCommittee?.length || 0})</Text>
+                    <Text style={[styles.sectionHeading, { marginTop: 14 }]}>
+                      Core committee ({selectedClub.coreCommittee?.length || 0})
+                    </Text>
                     {selectedClub.coreCommittee && selectedClub.coreCommittee.length > 0 ? (
                       selectedClub.coreCommittee.map((lead) => (
                         <View key={lead.name} style={styles.coreLeadCard}>
@@ -550,11 +635,10 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                           <View style={{ flex: 1 }}>
                             <Text style={styles.leadName}>{lead.name}</Text>
                             <Text style={styles.leadRole}>{lead.role}</Text>
-                            {lead.branch && <Text style={styles.leadDept}>{lead.year ? `${lead.year} · ` : ''}{lead.branch}</Text>}
                           </View>
                           {lead.email && (
                             <TouchableOpacity onPress={() => openLink(`mailto:${lead.email}`)}>
-                              <Ionicons name="mail-outline" size={18} color="#0C447C" />
+                              <Ionicons name="mail-outline" size={16} color={NAVY} />
                             </TouchableOpacity>
                           )}
                         </View>
@@ -565,17 +649,17 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                   </View>
                 )}
 
-                {/* 3. FLAGSHIP EVENTS TAB */}
+                {/* ── EVENTS ── */}
                 {activeDetailTab === 'events' && (
                   <View style={styles.tabContent}>
-                    <Text style={styles.sectionHeading}>Annual Signature Festivals & Competitions</Text>
+                    <Text style={styles.sectionHeading}>Signature events</Text>
                     {selectedClub.flagshipEvents && selectedClub.flagshipEvents.length > 0 ? (
                       selectedClub.flagshipEvents.map((evt) => (
                         <View key={evt.id} style={styles.flagshipCard}>
                           <View style={styles.flagshipTop}>
-                            <View>
+                            <View style={{ flex: 1 }}>
                               <Text style={styles.flagshipTitle}>{evt.title}</Text>
-                              <Text style={styles.flagshipTagline}>"{evt.tagline}"</Text>
+                              <Text style={styles.flagshipTagline}>{evt.tagline}</Text>
                             </View>
                             {evt.prizePool && (
                               <View style={styles.prizeBadge}>
@@ -583,17 +667,13 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                               </View>
                             )}
                           </View>
-
                           <View style={styles.flagshipMetaRow}>
-                            <Text style={styles.flagshipTimeline}>📅 {evt.timeline}</Text>
-                            <Text style={styles.flagshipFootfall}>👥 {evt.footfall}</Text>
+                            <Text style={styles.flagshipTimeline}>{evt.timeline}</Text>
+                            <Text style={styles.flagshipFootfall}>{evt.footfall}</Text>
                           </View>
-
                           <Text style={styles.flagshipDesc}>{evt.description}</Text>
-
-                          <Text style={styles.highlightsHeader}>Key Event Highlights:</Text>
                           {evt.highlights.map((h, i) => (
-                            <Text key={i} style={styles.highlightItem}>• {h}</Text>
+                            <Text key={i} style={styles.highlightItem}>· {h}</Text>
                           ))}
                         </View>
                       ))
@@ -603,73 +683,74 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                   </View>
                 )}
 
-                {/* 4. ACHIEVEMENTS & LEGACY TAB */}
+                {/* ── ACHIEVEMENTS ── */}
                 {activeDetailTab === 'achievements' && (
                   <View style={styles.tabContent}>
-                    <Text style={styles.sectionHeading}>Awards, Trophies & National Accolades</Text>
+                    <Text style={styles.sectionHeading}>Awards & accolades</Text>
                     {selectedClub.achievements && selectedClub.achievements.length > 0 ? (
                       selectedClub.achievements.map((ach, idx) => (
                         <View key={idx} style={styles.achievementCard}>
                           <View style={styles.achieveIconBox}>
-                            <Ionicons name="trophy" size={24} color="#D97706" />
+                            <Ionicons name="trophy-outline" size={20} color="#B8860B" />
                           </View>
                           <View style={{ flex: 1 }}>
                             <View style={styles.achieveTop}>
                               <Text style={styles.achieveTitle}>{ach.title}</Text>
                               <Text style={styles.achieveRank}>{ach.rankBadge}</Text>
                             </View>
-                            <Text style={styles.achieveYear}>Awarded: {ach.year}</Text>
+                            <Text style={styles.achieveYear}>{ach.year}</Text>
                             <Text style={styles.achieveDesc}>{ach.description}</Text>
                           </View>
                         </View>
                       ))
                     ) : (
-                      <Text style={styles.noInfoText}>Club achievements verified under Institutional NAAC records.</Text>
+                      <Text style={styles.noInfoText}>Club achievements verified under institutional records.</Text>
                     )}
                   </View>
                 )}
 
-                {/* 5. RECRUITMENT DESK TAB */}
+                {/* ── RECRUITMENT ── */}
                 {activeDetailTab === 'recruitment' && (
                   <View style={styles.tabContent}>
                     <View style={styles.recruitBanner}>
-                      <View style={styles.recruitBannerHeader}>
-                        <Ionicons name="sparkles" size={18} color="#fff" />
-                        <Text style={styles.recruitBannerTitle}>Core Team Recruitment AY 2026–27</Text>
-                      </View>
-                      <Text style={styles.recruitBannerSub}>Deadline: {selectedClub.recruitmentDeadline || 'Open'} · Min CGPA: 7.0 (Verified)</Text>
+                      <Text style={styles.recruitBannerTitle}>Core team recruitment · AY 2026–27</Text>
+                      <Text style={styles.recruitBannerSub}>
+                        Deadline: {selectedClub.recruitmentDeadline || 'Open'} · Min CGPA 7.0
+                      </Text>
                     </View>
 
-                    {/* Selection Process Pipeline */}
-                    <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Official 3-Stage Selection Process</Text>
-                    {selectedClub.recruitmentRounds?.map((rnd, i) => (
-                      <View key={i} style={styles.roundCard}>
-                        <View style={styles.roundNum}><Text style={styles.roundNumText}>{i + 1}</Text></View>
-                        <Text style={styles.roundText}>{rnd}</Text>
-                      </View>
-                    ))}
+                    {selectedClub.recruitmentRounds && (
+                      <>
+                        <Text style={[styles.sectionHeading, { marginTop: 16 }]}>Selection process</Text>
+                        {selectedClub.recruitmentRounds.map((rnd, i) => (
+                          <View key={i} style={styles.roundCard}>
+                            <View style={styles.roundNum}><Text style={styles.roundNumText}>{i + 1}</Text></View>
+                            <Text style={styles.roundText}>{rnd}</Text>
+                          </View>
+                        ))}
+                      </>
+                    )}
 
-                    {/* Open Positions */}
-                    <Text style={[styles.sectionHeading, { marginTop: 14 }]}>Open Executive Positions</Text>
+                    <Text style={[styles.sectionHeading, { marginTop: 16 }]}>Open positions</Text>
                     {selectedClub.recruitmentPositions && selectedClub.recruitmentPositions.length > 0 ? (
                       selectedClub.recruitmentPositions.map((pos) => (
                         <View key={pos.title} style={styles.positionCard}>
                           <View style={styles.posTop}>
-                            <View>
+                            <View style={{ flex: 1 }}>
                               <Text style={styles.posTitle}>{pos.title}</Text>
-                              <Text style={styles.posDept}>{pos.department} · {pos.openings} Openings</Text>
+                              <Text style={styles.posDept}>{pos.department} · {pos.openings} openings</Text>
                             </View>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                               style={[styles.applyPosBtn, appliedRoles[pos.title] && styles.applyPosBtnDone]}
                               onPress={() => handleApplyRole(pos.title)}
                               disabled={appliedRoles[pos.title]}
                             >
-                              <Text style={styles.applyPosBtnText}>{appliedRoles[pos.title] ? 'Applied ✓' : 'Apply Now'}</Text>
+                              <Text style={styles.applyPosBtnText}>
+                                {appliedRoles[pos.title] ? 'Applied ✓' : 'Apply'}
+                              </Text>
                             </TouchableOpacity>
                           </View>
-
                           <Text style={styles.posDesc}>{pos.description}</Text>
-
                           <View style={styles.skillsRow}>
                             {pos.skills.map((s) => (
                               <Text key={s} style={styles.skillChip}>{s}</Text>
@@ -681,7 +762,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                       selectedClub.recruitmentRoles?.map((r) => (
                         <View key={r} style={styles.simpleRoleCard}>
                           <Text style={styles.posTitle}>{r}</Text>
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             style={[styles.applyPosBtn, appliedRoles[r] && styles.applyPosBtnDone]}
                             onPress={() => handleApplyRole(r)}
                             disabled={appliedRoles[r]}
@@ -694,29 +775,33 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                   </View>
                 )}
 
-                {/* 6. FAQS TAB */}
+                {/* ── FAQs ── */}
                 {activeDetailTab === 'faqs' && (
                   <View style={styles.tabContent}>
-                    <Text style={styles.sectionHeading}>Frequently Asked Student Questions</Text>
+                    <Text style={styles.sectionHeading}>Frequently asked</Text>
                     {selectedClub.faqs && selectedClub.faqs.length > 0 ? (
                       selectedClub.faqs.map((faq, idx) => (
                         <View key={idx} style={styles.faqCard}>
-                          <Text style={styles.faqQ}>Q: {faq.question}</Text>
+                          <Text style={styles.faqQ}>{faq.question}</Text>
                           <Text style={styles.faqA}>{faq.answer}</Text>
                         </View>
                       ))
                     ) : (
                       <View style={styles.faqCard}>
-                        <Text style={styles.faqQ}>Q: How can students get involved with {selectedClub.shortName}?</Text>
-                        <Text style={styles.faqA}>You can register for any upcoming event or apply during our open recruitment drive in the Recruitment tab.</Text>
+                        <Text style={styles.faqQ}>How can students get involved with {selectedClub.shortName}?</Text>
+                        <Text style={styles.faqA}>
+                          Register for any upcoming event, or apply during the open recruitment drive in the Recruitment tab.
+                        </Text>
                       </View>
                     )}
 
                     <View style={styles.contactDeskBox}>
-                      <Ionicons name="help-buoy-outline" size={22} color="#0C447C" />
+                      <Ionicons name="help-buoy-outline" size={20} color={NAVY} />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.contactDeskTitle}>Need Direct Support?</Text>
-                        <Text style={styles.contactDeskDesc}>Reach out directly to {selectedClub.officialEmail || 'the club president'}</Text>
+                        <Text style={styles.contactDeskTitle}>Need direct support?</Text>
+                        <Text style={styles.contactDeskDesc}>
+                          Reach {selectedClub.officialEmail || 'the club president'}
+                        </Text>
                       </View>
                     </View>
                   </View>
@@ -729,71 +814,47 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
         </Modal>
       )}
 
-      {/* ========================================================================= */}
-      {/* PRESIDENT / AUTHORITY EDIT MODAL */}
-      {/* ========================================================================= */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* PRESIDENT EDIT MODAL                                                  */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       {showEditModal && selectedClub && (
-        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowEditModal(false)}>
+        <Modal visible transparent animationType="slide" onRequestClose={() => setShowEditModal(false)}>
           <View style={styles.editModalOverlay}>
             <View style={styles.editModalBox}>
               <View style={styles.editModalHeader}>
                 <View>
-                  <Text style={styles.editModalTitle}>Edit Club Profile & Recruitment</Text>
-                  <Text style={styles.editModalSub}>Authorized: President · {selectedClub.name}</Text>
+                  <Text style={styles.editModalTitle}>Edit club profile</Text>
+                  <Text style={styles.editModalSub}>Authorized · President</Text>
                 </View>
                 <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                  <Ionicons name="close" size={22} color="#64748B" />
+                  <Ionicons name="close" size={20} color="#8A8371" />
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
-                <Text style={styles.editInputLabel}>Club Tagline / Motto</Text>
-                <TextInput 
-                  style={styles.editInput} 
-                  value={editTagline} 
-                  onChangeText={setEditTagline}
-                  placeholder="e.g. Fostering Innovation, Fueling Startups"
-                />
+                {([
+                  { label: 'Tagline',                  val: editTagline,  set: setEditTagline,  ph: 'e.g. Fostering Innovation, Fueling Startups' },
+                  { label: 'Workshop / room',           val: editWorkshop, set: setEditWorkshop, ph: 'e.g. Incubation Cabin 402' },
+                  { label: 'Recruitment deadline',      val: editDeadline, set: setEditDeadline, ph: 'e.g. 25 Aug 2026, 11:59 PM' },
+                  { label: 'WhatsApp community link',   val: editWhatsapp, set: setEditWhatsapp, ph: 'https://chat.whatsapp.com/…' },
+                ] as { label: string; val: string; set: (v: string) => void; ph: string }[]).map(({ label, val, set, ph }) => (
+                  <View key={label}>
+                    <Text style={styles.editInputLabel}>{label}</Text>
+                    <TextInput
+                      style={styles.editInput}
+                      value={val}
+                      onChangeText={set}
+                      placeholder={ph}
+                      placeholderTextColor={INK_FAINT}
+                    />
+                  </View>
+                ))}
 
-                <Text style={styles.editInputLabel}>Workshop / Room Location</Text>
-                <TextInput 
-                  style={styles.editInput} 
-                  value={editWorkshop} 
-                  onChangeText={setEditWorkshop}
-                  placeholder="e.g. Incubation Cabin 402, Building 3"
-                />
+                <Text style={styles.editInputLabel}>Vision statement</Text>
+                <TextInput style={[styles.editInput, { height: 60 }]} value={editVision} onChangeText={setEditVision} multiline />
 
-                <Text style={styles.editInputLabel}>Recruitment Deadline</Text>
-                <TextInput 
-                  style={styles.editInput} 
-                  value={editDeadline} 
-                  onChangeText={setEditDeadline}
-                  placeholder="e.g. 25 Aug 2026, 11:59 PM"
-                />
-
-                <Text style={styles.editInputLabel}>Official WhatsApp Community Invite Link</Text>
-                <TextInput 
-                  style={styles.editInput} 
-                  value={editWhatsapp} 
-                  onChangeText={setEditWhatsapp}
-                  placeholder="https://chat.whatsapp.com/..."
-                />
-
-                <Text style={styles.editInputLabel}>Vision Statement</Text>
-                <TextInput 
-                  style={[styles.editInput, { height: 60 }]} 
-                  value={editVision} 
-                  onChangeText={setEditVision}
-                  multiline={true}
-                />
-
-                <Text style={styles.editInputLabel}>Mission Statement</Text>
-                <TextInput 
-                  style={[styles.editInput, { height: 60 }]} 
-                  value={editMission} 
-                  onChangeText={setEditMission}
-                  multiline={true}
-                />
+                <Text style={styles.editInputLabel}>Mission statement</Text>
+                <TextInput style={[styles.editInput, { height: 60 }]} value={editMission} onChangeText={setEditMission} multiline />
               </ScrollView>
 
               <View style={styles.editModalFooter}>
@@ -801,8 +862,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                   <Text style={styles.cancelEditText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveEditBtn} onPress={handleSavePresidentEdits}>
-                  <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                  <Text style={styles.saveEditText}>Save & Publish Live</Text>
+                  <Text style={styles.saveEditText}>Save & publish</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -813,64 +873,80 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   );
 }
 
+// ─── Design tokens ──────────────────────────────────────────────────────────
+const PAPER      = '#FAF8F3';
+const PAPER_DEEP = '#F1EDE1';
+const INK        = '#221F14';
+const INK_SOFT   = '#6B6455';
+const INK_FAINT  = '#A69E8A';
+const RULE       = '#E6E0CE';
+const NAVY       = '#0C447C';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: PAPER,
   },
+
+  // ── Header
   header: {
-    backgroundColor: '#0C447C',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
+    backgroundColor: NAVY,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 14,
   },
   headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  headerEyebrow: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 1.3,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 21,
     fontWeight: '700',
-    marginBottom: 2,
-  },
-  headerSub: {
-    color: '#B5D4F4',
-    fontSize: 11.5,
+    letterSpacing: -0.3,
   },
   roleSwitchBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255,255,255,0.16)',
+    marginTop: 2,
   },
   roleSwitchBtnActive: {
-    backgroundColor: '#16A34A',
-    borderColor: '#86EFAC',
+    backgroundColor: '#3D6B47',
+    borderColor: '#5B9166',
   },
   roleSwitchText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#B5D4F4',
+    color: 'rgba(255,255,255,0.75)',
   },
-  roleSwitchTextActive: {
-    color: '#fff',
-  },
+  roleSwitchTextActive: { color: '#fff' },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#185FA5',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 9,
     gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   searchInput: {
     flex: 1,
@@ -878,164 +954,290 @@ const styles = StyleSheet.create({
     fontSize: 13,
     padding: 0,
   },
-  chipsContainer: {
+
+  // ── College selector
+  collegeSelectorWrap: {
+    backgroundColor: PAPER,
+    borderBottomWidth: 1,
+    borderBottomColor: RULE,
+    paddingVertical: 10,
+  },
+  collegeSelectorScroll: {
+    paddingHorizontal: 16,
+    gap: 7,
+  },
+  collegeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: RULE,
+  },
+  collegeChipActive: {
+    backgroundColor: INK,
+    borderColor: INK,
+  },
+  homeDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#3D6B47',
+  },
+  homeDotActive: { backgroundColor: '#8CF06E' },
+  collegeChipText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: INK_SOFT,
+  },
+  collegeChipTextActive: { color: '#fff' },
+
+  // ── Cross-college strip
+  crossCollegeStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#FBF3DE',
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#EEDFAF',
+  },
+  crossCollegeStripText: {
+    flex: 1,
+    fontSize: 10.5,
+    color: '#7A5E22',
+    fontWeight: '500',
+    lineHeight: 14,
+  },
+
+  // ── Domain chips
+  chipsContainer: {
+    backgroundColor: PAPER,
+    paddingVertical: 8,
   },
   chipsScroll: {
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 7,
   },
   chip: {
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: RULE,
   },
   chipActive: {
-    backgroundColor: '#185FA5',
+    backgroundColor: NAVY,
+    borderColor: NAVY,
   },
   chipText: {
-    fontSize: 11.5,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  chipTextActive: {
-    color: '#fff',
+    fontSize: 11,
+    color: INK_SOFT,
     fontWeight: '600',
   },
+  chipTextActive: { color: '#fff' },
+
+  // ── Sort bar
   sortBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RULE,
   },
   resultCountText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '700',
-    color: '#64748B',
+    color: INK_FAINT,
     textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#E6F1FB',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
   },
   sortBtnText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
-    color: '#0C447C',
+    color: '#8A6D2F',
   },
+
+  // ── List
   list: {
     flex: 1,
     padding: 14,
   },
+
+  // ── Empty state
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 56,
+    paddingHorizontal: 24,
+  },
+  emptyIconRing: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: PAPER_DEEP,
+    borderWidth: 1,
+    borderColor: RULE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: INK,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  emptySub: {
+    fontSize: 12.5,
+    color: INK_SOFT,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  emptyBackBtn: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 8,
+    backgroundColor: NAVY,
+  },
+  emptyBackBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // ── Club card — stripe layout
   clubCard: {
+    flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
+    overflow: 'hidden',
+  },
+  cardStripe: {
+    width: 4,
+    alignSelf: 'stretch',
+  },
+  cardInner: {
+    flex: 1,
+    padding: 14,
+  },
+  clubCardTop: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    alignItems: 'flex-start',
+    gap: 11,
+    marginBottom: 9,
   },
   clubLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clubLogoText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
   },
   clubInfo: {
     flex: 1,
+    minWidth: 0,
   },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginBottom: 3,
-    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 4,
+  },
+  verticalPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   verticalBadge: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#185FA5',
-    backgroundColor: '#E6F1FB',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   hiringBadge: {
-    backgroundColor: '#DCFCE7',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E8F5E9',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
+  hiringDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#3D6B47',
+  },
   hiringText: {
-    color: '#15803D',
+    color: '#3D6B47',
     fontSize: 9.5,
     fontWeight: '700',
   },
   clubName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: INK,
+    marginBottom: 1,
+  },
+  taglineText: {
+    fontSize: 11,
+    color: INK_SOFT,
+    fontStyle: 'italic',
   },
   followBtn: {
-    backgroundColor: '#0C447C',
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: NAVY,
+    paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 16,
   },
   followBtnActive: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: PAPER_DEEP,
+    borderColor: RULE,
   },
   followBtnText: {
-    color: '#fff',
-    fontSize: 12,
+    color: NAVY,
+    fontSize: 11,
     fontWeight: '700',
   },
-  followBtnTextActive: {
-    color: '#64748B',
-  },
-  taglineText: {
-    fontSize: 10.5,
-    fontStyle: 'italic',
-    color: '#D97706',
-    marginBottom: 2,
-  },
-  mentorText: {
-    fontSize: 11,
-    color: '#0C447C',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
+  followBtnTextActive: { color: INK_SOFT },
   clubDesc: {
-    fontSize: 11,
-    color: '#64748b',
+    fontSize: 11.5,
+    color: INK_SOFT,
     lineHeight: 16,
-    marginBottom: 6,
+    marginBottom: 10,
   },
-  statsRow: {
+  cardFootRow: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: 9,
+    borderTopWidth: 1,
+    borderTopColor: '#F1EEE2',
   },
   statItem: {
     flexDirection: 'row',
@@ -1044,28 +1246,49 @@ const styles = StyleSheet.create({
   },
   statItemText: {
     fontSize: 10,
-    color: '#64748b',
+    color: '#8A8371',
+    fontWeight: '600',
   },
+  statDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: RULE,
+  },
+  mentorInline: {
+    fontSize: 10,
+    color: '#8A8371',
+    flex: 1,
+  },
+
+  // ── Modal shared
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(20,18,10,0.55)',
     justifyContent: 'flex-end',
   },
   fullClubModal: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: PAPER,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
     height: '92%',
-    display: 'flex',
     flexDirection: 'column',
+  },
+  modalGrabber: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: RULE,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 4,
   },
   clubModalTopBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RULE,
   },
   clubModalTitleBox: {
     flexDirection: 'row',
@@ -1074,102 +1297,104 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modalLogo: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 42,
+    height: 42,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalLogoText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
   },
   modalBadgeLine: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    gap: 6,
     marginBottom: 2,
   },
   clubCodeBadge: {
     fontSize: 8.5,
     fontFamily: 'monospace',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 4,
-    borderRadius: 3,
-    color: '#64748B',
+    color: INK_FAINT,
+  },
+  verticalBadgeSmall: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   modalClubTitle: {
     fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: '700',
+    color: INK,
   },
   modalTagline: {
     fontSize: 10.5,
     fontStyle: 'italic',
-    color: '#D97706',
+    color: INK_SOFT,
   },
   editClubBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#0C447C',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 6,
+    backgroundColor: NAVY,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   editClubBtnText: {
     color: '#fff',
     fontSize: 11,
     fontWeight: '700',
   },
-  closeBtn: {
-    padding: 4,
-  },
+  closeBtn: { padding: 4 },
+
   crossCollegeBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    padding: 12,
+    backgroundColor: '#FBF3DE',
+    padding: 11,
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
+    marginTop: 12,
+    marginBottom: 4,
+    borderRadius: 10,
     gap: 8,
   },
   crossCollegeText: {
     flex: 1,
-    fontSize: 12,
-    color: '#1E3A8A',
+    fontSize: 11.5,
+    color: '#7A5E22',
     fontWeight: '500',
-    lineHeight: 18,
+    lineHeight: 16,
   },
+
+  // ── Sub-tabs
   subTabsRow: {
-    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RULE,
   },
   subTabsScroll: {
     paddingHorizontal: 12,
     gap: 6,
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   subTab: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 16,
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
   },
   subTabActive: {
-    backgroundColor: '#0C447C',
-    borderColor: '#0C447C',
+    backgroundColor: INK,
+    borderColor: INK,
   },
   subTabText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: INK_SOFT,
   },
   subTabTextActive: {
     color: '#fff',
@@ -1179,131 +1404,122 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  tabContent: {
-    gap: 8,
-  },
+  tabContent: { gap: 8 },
+
   sectionHeading: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: INK_FAINT,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 6,
   },
   bodyParagraph: {
-    fontSize: 12.5,
-    color: '#475569',
-    lineHeight: 18,
-    marginBottom: 10,
+    fontSize: 13,
+    color: '#40392A',
+    lineHeight: 19,
+    marginBottom: 8,
   },
+
   visionCard: {
-    backgroundColor: '#E6F1FB',
-    borderRadius: 12,
+    backgroundColor: '#EAF1F8',
+    borderRadius: 10,
     padding: 12,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
     marginBottom: 8,
   },
   missionCard: {
-    backgroundColor: '#F0FDF4',
-    borderRadius: 12,
+    backgroundColor: '#EBF3EB',
+    borderRadius: 10,
     padding: 12,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
     marginBottom: 8,
   },
-  visionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  visionTitle: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: NAVY,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
-  visionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0C447C',
-  },
   visionText: {
-    fontSize: 11.5,
-    color: '#334155',
-    lineHeight: 16,
+    fontSize: 12,
+    color: '#40392A',
+    lineHeight: 17,
   },
+
   infoGridBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    gap: 6,
+    borderColor: RULE,
   },
   infoGridRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  infoGridRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1EEE2',
   },
   infoGridLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: INK_SOFT,
   },
   infoGridValue: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#0F172A',
+    color: INK,
+    maxWidth: '60%',
+    textAlign: 'right',
   },
-  communityGrid: {
-    gap: 8,
-    marginTop: 4,
-  },
+
+  communityGrid: { gap: 8, marginTop: 2 },
   commBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F8FAFC',
+    gap: 9,
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 10,
+    borderColor: RULE,
+    padding: 11,
     borderRadius: 10,
   },
   commBtnText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: '600',
+    color: INK,
+    flex: 1,
   },
+
   mentorBannerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
   },
   mentorAvatarBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#E6F1FB',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#EAF1F8',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mentorCardName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  mentorCardDesig: {
-    fontSize: 11,
-    color: '#0C447C',
-    fontWeight: '600',
-  },
-  mentorCardInst: {
-    fontSize: 10,
-    color: '#64748B',
-  },
+  mentorCardName: { fontSize: 13.5, fontWeight: '700', color: INK },
+  mentorCardDesig: { fontSize: 11, color: NAVY, fontWeight: '600' },
   presidentCard: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 12,
+    backgroundColor: '#FBF6E9',
+    borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#F0E3BE',
   },
   presidentTop: {
     flexDirection: 'row',
@@ -1311,33 +1527,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   presAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#D97706',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#B8860B',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  presAvatarText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  presBadge: {
-    fontSize: 8.5,
-    fontWeight: '900',
-    color: '#B45309',
-    letterSpacing: 0.5,
-  },
-  presName: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  presContact: {
-    fontSize: 10.5,
-    color: '#78350F',
-  },
+  presAvatarText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  presBadge: { fontSize: 8.5, fontWeight: '800', color: '#8A6D2F', letterSpacing: 0.6 },
+  presName: { fontSize: 13, fontWeight: '700', color: INK },
+  presContact: { fontSize: 10.5, color: INK_SOFT },
   coreLeadCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1345,43 +1545,28 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
     marginBottom: 6,
     gap: 10,
   },
   leadAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E2E8F0',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: PAPER_DEEP,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  leadAvatarText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  leadName: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  leadRole: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#0C447C',
-  },
-  leadDept: {
-    fontSize: 10,
-    color: '#64748B',
-  },
+  leadAvatarText: { fontSize: 10.5, fontWeight: '700', color: INK_SOFT },
+  leadName: { fontSize: 12.5, fontWeight: '700', color: INK },
+  leadRole: { fontSize: 10.5, fontWeight: '600', color: NAVY },
+
   flagshipCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
     marginBottom: 10,
   },
   flagshipTop: {
@@ -1390,162 +1575,79 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 4,
   },
-  flagshipTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  flagshipTagline: {
-    fontSize: 10.5,
-    fontStyle: 'italic',
-    color: '#D97706',
-  },
+  flagshipTitle: { fontSize: 13.5, fontWeight: '700', color: INK },
+  flagshipTagline: { fontSize: 10.5, fontStyle: 'italic', color: INK_SOFT },
   prizeBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: '#FBF3DE',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  prizeBadgeText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#92400E',
-  },
-  flagshipMetaRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginVertical: 4,
-  },
-  flagshipTimeline: {
-    fontSize: 10.5,
-    color: '#0C447C',
-    fontWeight: '600',
-  },
-  flagshipFootfall: {
-    fontSize: 10.5,
-    color: '#16A34A',
-    fontWeight: '600',
-  },
-  flagshipDesc: {
-    fontSize: 11.5,
-    color: '#475569',
-    lineHeight: 16,
-    marginVertical: 4,
-  },
-  highlightsHeader: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginTop: 4,
-  },
-  highlightItem: {
-    fontSize: 10.5,
-    color: '#64748B',
-    lineHeight: 15,
-  },
+  prizeBadgeText: { fontSize: 9.5, fontWeight: '700', color: '#8A6D2F' },
+  flagshipMetaRow: { flexDirection: 'row', gap: 12, marginVertical: 4 },
+  flagshipTimeline: { fontSize: 10.5, color: NAVY, fontWeight: '600' },
+  flagshipFootfall: { fontSize: 10.5, color: '#3D6B47', fontWeight: '600' },
+  flagshipDesc: { fontSize: 11.5, color: INK_SOFT, lineHeight: 16, marginVertical: 4 },
+  highlightItem: { fontSize: 10.5, color: '#8A8371', lineHeight: 15 },
+
   achievementCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
     marginBottom: 8,
     gap: 12,
   },
   achieveIconBox: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 10,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FBF3DE',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  achieveTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  achieveTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  achieveRank: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#15803D',
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  achieveYear: {
-    fontSize: 10,
-    color: '#D97706',
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  achieveDesc: {
-    fontSize: 11,
-    color: '#475569',
-    lineHeight: 15,
-  },
+  achieveTop: { flexDirection: 'row', justifyContent: 'space-between' },
+  achieveTitle: { fontSize: 12.5, fontWeight: '700', color: INK, flex: 1, marginRight: 8 },
+  achieveRank: { fontSize: 9, fontWeight: '700', color: '#3D6B47' },
+  achieveYear: { fontSize: 10, color: '#8A6D2F', fontWeight: '700', marginBottom: 2 },
+  achieveDesc: { fontSize: 11, color: INK_SOFT, lineHeight: 15 },
+
   recruitBanner: {
-    backgroundColor: '#0C447C',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: NAVY,
+    borderRadius: 10,
+    padding: 13,
   },
-  recruitBannerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
-  },
-  recruitBannerTitle: {
-    fontSize: 13.5,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  recruitBannerSub: {
-    fontSize: 10.5,
-    color: '#B5D4F4',
-  },
+  recruitBannerTitle: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  recruitBannerSub: { fontSize: 10.5, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
   roundCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 8,
+    padding: 9,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
     marginBottom: 6,
-    gap: 8,
+    gap: 9,
   },
   roundNum: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#0C447C',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: NAVY,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  roundNumText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  roundText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#334155',
-    flex: 1,
-  },
+  roundNumText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  roundText: { fontSize: 11, fontWeight: '600', color: '#40392A', flex: 1 },
   positionCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
     marginBottom: 8,
   },
   posTop: {
@@ -1553,51 +1655,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 4,
+    gap: 8,
   },
-  posTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  posDept: {
-    fontSize: 10,
-    color: '#0C447C',
-    fontWeight: '600',
-  },
-  posDesc: {
-    fontSize: 11,
-    color: '#475569',
-    lineHeight: 15,
-    marginVertical: 4,
-  },
-  skillsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 4,
-  },
+  posTitle: { fontSize: 12.5, fontWeight: '700', color: INK },
+  posDept: { fontSize: 10, color: NAVY, fontWeight: '600' },
+  posDesc: { fontSize: 11, color: INK_SOFT, lineHeight: 15, marginVertical: 4 },
+  skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
   skillChip: {
     fontSize: 9,
-    color: '#1E40AF',
-    backgroundColor: '#EFF6FF',
+    color: NAVY,
+    backgroundColor: '#EAF1F8',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   applyPosBtn: {
-    backgroundColor: '#0C447C',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    backgroundColor: NAVY,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
-  applyPosBtnDone: {
-    backgroundColor: '#16A34A',
-  },
-  applyPosBtnText: {
-    color: '#fff',
-    fontSize: 10.5,
-    fontWeight: '700',
-  },
+  applyPosBtnDone: { backgroundColor: '#3D6B47' },
+  applyPosBtnText: { color: '#fff', fontSize: 10.5, fontWeight: '700' },
   simpleRoleCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1606,148 +1685,116 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
     marginBottom: 6,
   },
+
   faqCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#fff',
     borderRadius: 10,
-    padding: 10,
+    padding: 11,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: RULE,
     marginBottom: 8,
   },
-  faqQ: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 2,
-  },
-  faqA: {
-    fontSize: 11,
-    color: '#475569',
-    lineHeight: 15,
-  },
+  faqQ: { fontSize: 12, fontWeight: '700', color: INK, marginBottom: 3 },
+  faqA: { fontSize: 11, color: INK_SOFT, lineHeight: 15 },
   contactDeskBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#E6F1FB',
+    backgroundColor: '#EAF1F8',
     padding: 12,
     borderRadius: 10,
     marginTop: 8,
   },
-  contactDeskTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0C447C',
-  },
-  contactDeskDesc: {
-    fontSize: 10.5,
-    color: '#185FA5',
-  },
-  noInfoText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontStyle: 'italic',
-  },
+  contactDeskTitle: { fontSize: 12, fontWeight: '700', color: NAVY },
+  contactDeskDesc: { fontSize: 10.5, color: '#3B6591' },
+  noInfoText: { fontSize: 11, color: INK_FAINT, fontStyle: 'italic' },
+
+  // ── Sort modal
   sortModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(20,18,10,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   sortModalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 18,
+    backgroundColor: PAPER,
+    borderRadius: 16,
+    padding: 16,
     width: '100%',
     maxWidth: 340,
+    borderWidth: 1,
+    borderColor: RULE,
   },
   sortModalTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RULE,
     paddingBottom: 10,
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  sortModalHeadline: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
+  sortModalHeadline: { fontSize: 14.5, fontWeight: '700', color: INK },
   sortOptionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 11,
     paddingHorizontal: 8,
     borderRadius: 8,
   },
-  sortOptionRowActive: {
-    backgroundColor: '#E6F1FB',
-  },
-  sortOptionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  sortOptionTextActive: {
-    color: '#0C447C',
-    fontWeight: '700',
-  },
+  sortOptionRowActive: { backgroundColor: '#EAF1F8' },
+  sortOptionText: { fontSize: 12.5, fontWeight: '600', color: '#40392A' },
+  sortOptionTextActive: { color: NAVY, fontWeight: '700' },
+
+  // ── Edit modal
   editModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(20,18,10,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   editModalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: PAPER,
+    borderRadius: 18,
     padding: 18,
     width: '100%',
     maxWidth: 400,
+    borderWidth: 1,
+    borderColor: RULE,
   },
   editModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: RULE,
     paddingBottom: 10,
     marginBottom: 10,
   },
-  editModalTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  editModalSub: {
-    fontSize: 10.5,
-    color: '#16A34A',
-    fontWeight: '600',
-  },
+  editModalTitle: { fontSize: 15, fontWeight: '700', color: INK },
+  editModalSub: { fontSize: 10.5, color: '#3D6B47', fontWeight: '600' },
   editInputLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#334155',
+    color: INK_SOFT,
     marginTop: 8,
     marginBottom: 3,
   },
   editInput: {
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: RULE,
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
     fontSize: 12,
-    color: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    color: INK,
+    backgroundColor: '#fff',
   },
   editModalFooter: {
     flexDirection: 'row',
@@ -1755,33 +1802,22 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: RULE,
     paddingTop: 10,
   },
   cancelEditBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: RULE,
   },
-  cancelEditText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
+  cancelEditText: { fontSize: 12, fontWeight: '600', color: INK_SOFT },
   saveEditBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#0C447C',
+    backgroundColor: NAVY,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 9,
     borderRadius: 8,
   },
-  saveEditText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
+  saveEditText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 });
