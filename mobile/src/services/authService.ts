@@ -33,26 +33,41 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
       return { success: false, error: 'Google sign-in was cancelled' };
     }
 
-    // Extract the access_token and refresh_token from the redirect URL
-    const url = new URL(result.url);
+    // Parse the redirect URL manually (React Native URL polyfill can be buggy with custom schemes)
+    const queryString = result.url.split('#')[1] || result.url.split('?')[1];
     
-    // Supabase returns tokens in the URL fragment (after #)
-    const params = new URLSearchParams(url.hash.substring(1));
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-
-    if (!accessToken) {
-      return { success: false, error: 'No access token returned from Google' };
+    if (!queryString) {
+      return { success: false, error: 'Invalid redirect format: ' + result.url };
     }
 
-    // Set the session in Supabase using the tokens
-    const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken || '',
-    });
+    // Convert query string to object
+    const params = queryString.split('&').reduce((acc, current) => {
+      const [key, value] = current.split('=');
+      if (key) acc[key] = decodeURIComponent(value || '');
+      return acc;
+    }, {} as Record<string, string>);
 
-    if (sessionError) {
-      return { success: false, error: sessionError.message };
+    if (params.error_description || params.error) {
+      return { success: false, error: params.error_description || params.error };
+    }
+
+    let sessionData;
+    
+    if (params.access_token) {
+      // Flow 1: Implicit Flow (returns access_token in fragment)
+      const { data, error } = await supabase.auth.setSession({
+        access_token: params.access_token,
+        refresh_token: params.refresh_token || '',
+      });
+      if (error) return { success: false, error: error.message };
+      sessionData = data;
+    } else if (params.code) {
+      // Flow 2: PKCE Flow (returns code in query parameters)
+      const { data, error } = await supabase.auth.exchangeCodeForSession(params.code);
+      if (error) return { success: false, error: error.message };
+      sessionData = data;
+    } else {
+      return { success: false, error: 'Auth failed. Raw URL: ' + result.url };
     }
 
     // Check if this is a brand new user (profile might be empty)
