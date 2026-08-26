@@ -99,30 +99,6 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
     }
   };
 
-  const handleObserverSignIn = async () => {
-    setIsAuthenticating(true);
-    // Simulate Observer login (e.g. Faculty, DSA Head)
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsAuthenticating(false);
-
-    const observerUser: User = {
-      name: 'Dr. Faculty Admin',
-      email: 'admin@vit.edu',
-      prn: 'EMP-001',
-      collegeId: 'VIT_PUNE',
-      collegeName: 'Vishwakarma Institute of Technology, Pune',
-      branch: 'Administration',
-      year: 'Faculty',
-      cgpa: 0,
-      role: 'observer',
-      canScanQR: true,
-      bio: 'Dean of Student Affairs',
-    };
-
-    await updateUserProfile(observerUser);
-    Alert.alert('Observer Login Successful', 'Logged in as Faculty Administrator.');
-    onComplete();
-  };
 
   const handleCollegeSelect = (id: string) => {
     setSelectedCollegeId(id);

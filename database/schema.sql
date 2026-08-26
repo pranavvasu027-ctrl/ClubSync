@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS users (
     github_handle VARCHAR(100),
     linkedin_handle VARCHAR(100),
     avatar_url TEXT,
+    is_archived BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -86,6 +87,7 @@ CREATE TABLE IF NOT EXISTS clubs (
     recruitment_roles TEXT[] DEFAULT '{}',
     logo_bg VARCHAR(20) DEFAULT '#0C447C',
     status VARCHAR(30) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'PENDING_RENEWAL', 'PROBATION', 'INACTIVE')),
+    is_archived BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -113,7 +115,10 @@ CREATE TABLE IF NOT EXISTS memberships (
     academic_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
     status VARCHAR(30) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'COMPLETED', 'REVOKED')),
     joined_date DATE DEFAULT CURRENT_DATE,
-    UNIQUE(user_id, club_id, academic_year)
+    valid_from DATE DEFAULT CURRENT_DATE,
+    valid_to DATE DEFAULT NULL,
+    changed_by UUID REFERENCES users(user_id),
+    UNIQUE(user_id, club_id, academic_year, role_id, valid_from)
 );
 
 -- ==============================================================================
@@ -295,6 +300,14 @@ CREATE TABLE IF NOT EXISTS applications (
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS interview_evaluations (
+    evaluation_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    application_id UUID REFERENCES applications(application_id) ON DELETE CASCADE,
+    interviewer_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    score NUMERIC(5,2),
+    remarks TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 -- ==============================================================================
 -- 8. USER NOTIFICATIONS
 -- ==============================================================================
@@ -323,6 +336,9 @@ CREATE TABLE IF NOT EXISTS finance_transactions (
     description TEXT NOT NULL,
     bill_receipt_url TEXT,
     txn_date DATE DEFAULT CURRENT_DATE,
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','REJECTED')),
+    approved_by UUID REFERENCES users(user_id),
+    approved_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -335,8 +351,10 @@ CREATE INDEX IF NOT EXISTS idx_clubs_college ON clubs(college_id);
 CREATE INDEX IF NOT EXISTS idx_events_college ON events(college_id);
 CREATE INDEX IF NOT EXISTS idx_registrations_user ON event_registrations(user_id);
 CREATE INDEX IF NOT EXISTS idx_registrations_event ON event_registrations(event_id);
+CREATE INDEX IF NOT EXISTS idx_registrations_pair ON event_registrations(event_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_followers_club ON club_followers(club_id);
 CREATE INDEX IF NOT EXISTS idx_followers_user ON club_followers(user_id);
+CREATE INDEX IF NOT EXISTS idx_club_followers_pair ON club_followers(club_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_applications_club ON applications(club_id);
 CREATE INDEX IF NOT EXISTS idx_applications_user ON applications(applicant_id);
 
@@ -423,17 +441,49 @@ CREATE POLICY "Public competitions read" ON competitions FOR SELECT USING (true)
 CREATE POLICY "Public winners read" ON winners FOR SELECT USING (true);
 CREATE POLICY "Public users read" ON users FOR SELECT USING (true);
 
--- User Self-Management & Core Committee Edits
-CREATE POLICY "Users can insert/update own profile" ON users FOR ALL USING (true);
-CREATE POLICY "Clubs can be updated" ON clubs FOR ALL USING (true);
-CREATE POLICY "Followers can be managed" ON club_followers FOR ALL USING (true);
+-- User Self-Management
+CREATE POLICY "Users can insert/update own profile" ON users FOR ALL USING (auth_user_id = auth.uid());
+
+-- Follower Management (Only act on your own behalf)
+CREATE POLICY "Followers can be managed" ON club_followers FOR ALL USING (
+    user_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
+);
+
+-- Ticketing & Event Registration (Register as yourself, view own tickets)
+CREATE POLICY "Registrations can be created and managed" ON event_registrations FOR ALL USING (
+    user_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
+);
+
+-- Application Management
+CREATE POLICY "Applications can be created and reviewed" ON applications FOR ALL USING (
+    applicant_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
+);
+
+-- Teams Management
+CREATE POLICY "Teams can be created" ON teams FOR ALL USING (
+    lead_user_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
+);
+
+-- Notifications
+CREATE POLICY "Notifications can be read and updated" ON notifications FOR ALL USING (
+    user_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
+);
+
+-- Club Admins (Requires Active Core Committee Membership)
+CREATE POLICY "Clubs can be updated by core committee" ON clubs FOR UPDATE USING (
+    EXISTS (
+        SELECT 1 FROM memberships m 
+        JOIN users u ON m.user_id = u.user_id 
+        WHERE m.club_id = clubs.club_id 
+        AND u.auth_user_id = auth.uid() 
+        AND m.status = 'ACTIVE'
+    )
+);
+
+-- Temporary open policies for development (Events, Finance, Competitions)
 CREATE POLICY "Events can be created and managed" ON events FOR ALL USING (true);
-CREATE POLICY "Registrations can be created and managed" ON event_registrations FOR ALL USING (true);
 CREATE POLICY "Competitions can be created and managed" ON competitions FOR ALL USING (true);
-CREATE POLICY "Teams can be created" ON teams FOR ALL USING (true);
 CREATE POLICY "Team members can be managed" ON team_members FOR ALL USING (true);
-CREATE POLICY "Applications can be created and reviewed" ON applications FOR ALL USING (true);
-CREATE POLICY "Notifications can be read and updated" ON notifications FOR ALL USING (true);
 CREATE POLICY "Finance can be managed" ON finance_transactions FOR ALL USING (true);
 
 -- ==============================================================================
@@ -478,3 +528,31 @@ INSERT INTO competitions (title, organizer, organizer_logo_bg, college_name, cat
 ('COEP Tech Innovation Cup 2026', 'COEP Technological University', '#EA580C', 'COEP Tech', 'Hackathons', 'Offline On-Campus', 'Shivajinagar, Pune', '2 - 4 Members', 2, 4, '8 Days', '31 Aug 2026', '₹1,50,000', 0.00, 195, 'Hardware prototyping, IoT sensors, and autonomous robotics challenge.'),
 ('Unstop National Case Study Challenge', 'EDC BITS Pilani', '#D97706', 'BITS Pilani', 'B-Plan & Case Studies', 'Online', 'Online Pan-India', '1 - 3 Members', 1, 3, '5 Days', '28 Aug 2026', '₹75,000', 0.00, 410, 'Solve real-world go-to-market and growth engineering bottlenecks for Indian unicorns.')
 ON CONFLICT DO NOTHING;
+
+-- ==============================================================================
+-- 13. STORAGE BUCKETS & POLICIES
+-- ==============================================================================
+
+INSERT INTO storage.buckets (id, name, public) VALUES 
+('avatars', 'avatars', true),
+('club_logos', 'club_logos', true),
+('event_banners', 'event_banners', true),
+('resumes', 'resumes', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow Public Read for Public Buckets
+CREATE POLICY "Public Read Avatars" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+CREATE POLICY "Public Read Logos" ON storage.objects FOR SELECT USING (bucket_id = 'club_logos');
+CREATE POLICY "Public Read Banners" ON storage.objects FOR SELECT USING (bucket_id = 'event_banners');
+
+-- Allow Authenticated Users to Upload Avatars
+CREATE POLICY "Auth Users Upload Avatars" ON storage.objects FOR INSERT USING (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+CREATE POLICY "Users Update Own Avatars" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid() = owner);
+
+-- ==============================================================================
+-- 14. REALTIME CONFIGURATION
+-- ==============================================================================
+-- Enable logical replication (Supabase Realtime) for specific highly dynamic tables
+ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE events;
+ALTER PUBLICATION supabase_realtime ADD TABLE event_registrations;

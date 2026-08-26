@@ -240,6 +240,20 @@ export async function toggleFollowClub(clubId: string): Promise<{ success: boole
   );
 
   try {
+    if (CURRENT_USER.id) {
+      if (nextIsFollowed) {
+        await supabase.from('club_followers').insert({
+          club_id: clubId,
+          user_id: CURRENT_USER.id,
+        });
+      } else {
+        await supabase.from('club_followers')
+          .delete()
+          .eq('club_id', clubId)
+          .eq('user_id', CURRENT_USER.id);
+      }
+    }
+
     await supabase.from('clubs').update({
       followers_count: nextCount,
     }).eq('club_id', clubId);
@@ -397,6 +411,7 @@ export async function registerForEvent(event: EventItem): Promise<{ success: boo
 
     // Supabase persist
     await supabase.from('event_registrations').insert({
+      user_id: CURRENT_USER.id,
       event_id: event.id,
       college_id: CURRENT_USER.collegeId,
       attendee_name: CURRENT_USER.name,
@@ -563,6 +578,7 @@ export async function registerCompetitionTeam(
     await supabase.from('teams').insert({
       competition_id: compId,
       team_name: teamName,
+      lead_user_id: CURRENT_USER.id,
       lead_prn: CURRENT_USER.prn,
       representing_college: CURRENT_USER.collegeName,
     });
@@ -586,6 +602,7 @@ export async function submitApplication(
   try {
     await supabase.from('applications').insert({
       club_id: clubId,
+      applicant_id: CURRENT_USER.id,
       applicant_name: CURRENT_USER.name,
       applicant_email: CURRENT_USER.email,
       applicant_prn: CURRENT_USER.prn,
@@ -624,26 +641,80 @@ export async function updateApplicationStatus(
 
 export async function markAttendance(token: string): Promise<{ success: boolean; studentName?: string; prn?: string; eventTitle?: string; message: string }> {
   try {
-    // In a real implementation, this would call Supabase RPC or endpoint 
-    // to verify token and update attendance in one atomic transaction.
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
     if (token.startsWith('TEST_INVALID')) {
        return { success: false, message: 'Invalid ticket or ticket expired.' };
     }
-    
-    // Simulate successful marking
+
+    const { data, error } = await supabase
+      .from('event_registrations')
+      .update({ check_in_status: 'ATTENDED' })
+      .eq('qr_token', token)
+      .select('attendee_name, attendee_prn, events(title)')
+      .single();
+
+    if (error || !data) {
+      return { success: false, message: 'Invalid ticket or already checked in.' };
+    }
+
     return {
       success: true,
-      studentName: 'Pranav Vasu',
-      prn: '1251070582',
-      eventTitle: 'Tech Summit 2026',
+      studentName: data.attendee_name,
+      prn: data.attendee_prn,
+      eventTitle: data.events?.title || 'Event',
       message: 'Attendance Marked'
     };
   } catch (err) {
     return { success: false, message: 'Failed to connect to scanner service.' };
+  }
+}
+
+export async function getUserTickets(prn: string): Promise<DigitalTicket[]> {
+  try {
+    const { data, error } = await supabase
+      .from('event_registrations')
+      .select('*, events(title, club_name, venue_name, event_date, event_time)')
+      .eq('attendee_prn', prn);
+
+    if (error || !data || data.length === 0) {
+      return runtimeTickets;
+    }
+
+    const tickets: DigitalTicket[] = data.map((r: any) => ({
+      id: r.registration_id || `TCK_${r.id || Math.floor(Math.random()*1000)}`,
+      eventId: r.event_id,
+      eventTitle: r.events?.title || r.event_title || 'Event',
+      clubName: r.events?.club_name || r.club_name || '',
+      venue: r.events?.venue_name || r.venue || '',
+      date: r.events?.event_date || r.event_date || '',
+      time: r.events?.event_time || r.event_time || '',
+      attendeeName: r.attendee_name,
+      prn: r.attendee_prn,
+      college: r.college_name || CURRENT_USER.collegeName,
+      ticketTier: r.ticket_tier || 'Standard Entry Pass',
+      qrCodeString: r.qr_token,
+      checkInStatus: r.check_in_status,
+    }));
+
+    runtimeTickets = tickets;
+    return tickets;
+  } catch (err) {
+    return runtimeTickets;
+  }
+}
+
+export async function getNotifications(userId: string): Promise<any[]> {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error || !data) return [];
+    return data;
+  } catch (err) {
+    return [];
   }
 }
 

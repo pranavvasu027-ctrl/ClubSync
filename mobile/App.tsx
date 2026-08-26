@@ -9,17 +9,35 @@ import EventsScreen from './src/screens/EventsScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { ActivityIndicator } from 'react-native';
 
 type TabType = 'home' | 'events' | 'clubs' | 'profile';
+
+import { getEvents } from './src/services/clubSyncService';
 
 function MainApp() {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode, toggleTheme } = useTheme();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [selectedCollege, setSelectedCollege] = useState('VIT Pune');
   const [events, setEvents] = useState<EventItem[]>(EVENTS);
   const [sortHiringFirst, setSortHiringFirst] = useState(false);
+
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const liveEvents = await getEvents();
+        if (mounted) setEvents(liveEvents);
+      } catch (err) {
+        console.warn('Failed to load live events in App:', err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [isAuthenticated]);
 
   const handleRSVP = (eventId: string) => {
     setEvents((prev) =>
@@ -34,8 +52,16 @@ function MainApp() {
     setActiveTab('clubs');
   };
 
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: theme.headerBg }]}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    );
+  }
+
   if (!isAuthenticated) {
-    return <OnboardingScreen onComplete={() => setIsAuthenticated(true)} />;
+    return <OnboardingScreen onComplete={() => {}} />;
   }
 
   return (
@@ -164,7 +190,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <MainApp />
+        <AuthProvider>
+          <MainApp />
+        </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

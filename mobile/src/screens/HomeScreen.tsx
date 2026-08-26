@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLLEGES, EventItem, CLUBS } from '../data/mockData';
-import { CURRENT_USER } from '../services/clubSyncService';
+import { CURRENT_USER, getNotifications } from '../services/clubSyncService';
+import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
 
 interface HomeScreenProps {
@@ -73,6 +75,59 @@ export default function HomeScreen({
       isRead: true,
     },
   ]);
+
+  const { user } = useAuth();
+  const safeUser = user || CURRENT_USER;
+
+  useEffect(() => {
+    let mounted = true;
+    const userId = (safeUser as any)?.id || safeUser?.prn;
+
+    (async () => {
+      try {
+        const liveNotifs = await getNotifications(userId);
+        if (mounted && liveNotifs.length > 0) {
+          const mappedNotifs = liveNotifs.map(n => ({
+            id: n.notification_id,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            time: new Date(n.created_at).toLocaleDateString(),
+            isRead: n.is_read
+          }));
+          setNotifications(mappedNotifs);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch live notifications:', err);
+      }
+    })();
+
+    // 🔴 Realtime Subscription for Notifications
+    const channel = supabase
+      .channel('public:notifications')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          if (!mounted) return;
+          const newNotif = payload.new as any;
+          setNotifications(prev => [{
+            id: newNotif.notification_id,
+            type: newNotif.type,
+            title: newNotif.title,
+            message: newNotif.message,
+            time: 'Just now',
+            isRead: false
+          }, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => { 
+      mounted = false; 
+      supabase.removeChannel(channel);
+    };
+  }, [safeUser]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 

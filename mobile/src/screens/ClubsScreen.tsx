@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Club, CLUBS, CoreLead, ClubFlagshipEvent, ClubAchievement, RecruitmentPosition, COLLEGES } from '../data/mockData';
-import { CURRENT_USER, updateClubDetails, toggleFollowClub, submitApplication } from '../services/clubSyncService';
+import { CURRENT_USER, updateClubDetails, toggleFollowClub, submitApplication, getClubs } from '../services/clubSyncService';
 import { useTheme } from '../context/ThemeContext';
 import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
 
@@ -55,8 +55,24 @@ function PulseDot() {
 export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
   const { theme, isDarkMode } = useTheme();
   const [clubsList, setClubsList] = useState<Club[]>(CLUBS);
+  const [isLoadingClubs, setIsLoadingClubs] = useState(true);
   const [selectedDomain, setSelectedDomain] = useState<string>('All');
   const [sortBy, setSortBy] = useState<SortOption>(initialSortHiring ? 'hiring' : 'members');
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const liveClubs = await getClubs();
+        if (mounted) setClubsList(liveClubs);
+      } catch (err) {
+        console.warn('Failed to fetch live clubs:', err);
+      } finally {
+        if (mounted) setIsLoadingClubs(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<ClubDetailTab>('overview');

@@ -1,19 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
-import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken, markAttendance } from '../services/clubSyncService';
+import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken, markAttendance, getUserTickets } from '../services/clubSyncService';
+import { pickAndUploadImage } from '../services/storageService';
 import { DigitalTicket, MY_TICKETS, CLUBS, COLLEGES } from '../data/mockData';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
+import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfileScreen() {
   const { theme, isDarkMode, toggleTheme } = useTheme();
-  const [userProfile, setUserProfile] = useState<User>(CURRENT_USER);
-  const [ticketsList, setTicketsList] = useState<DigitalTicket[]>(
-    MY_TICKETS.map(t => ({ ...t, attendeeName: CURRENT_USER.name, prn: CURRENT_USER.prn, college: CURRENT_USER.collegeName }))
-  );
+  const { user, signOut } = useAuth();
+  const safeUser = user || CURRENT_USER;
+  const [userProfile, setUserProfile] = useState<User>(safeUser);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(true);
+  const [ticketsList, setTicketsList] = useState<DigitalTicket[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const liveTickets = await getUserTickets(safeUser.prn);
+        if (mounted) {
+          if (liveTickets.length > 0) {
+            setTicketsList(liveTickets);
+          } else {
+            setTicketsList(MY_TICKETS.map(t => ({ ...t, attendeeName: safeUser.name, prn: safeUser.prn, college: safeUser.collegeName })));
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load tickets', e);
+      } finally {
+        if (mounted) setIsLoadingTickets(false);
+      }
+    })();
+
+    // 🔴 Realtime Subscription for Tickets (Check-in scanner updates)
+    const channel = supabase
+      .channel('public:event_registrations')
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'event_registrations', 
+          filter: `attendee_prn=eq.${safeUser.prn}` 
+        },
+        (payload) => {
+          if (!mounted) return;
+          const updated = payload.new as any;
+          setTicketsList(prev => prev.map(t => 
+            t.qrCodeString === updated.qr_token 
+              ? { ...t, checkInStatus: updated.check_in_status }
+              : t
+          ));
+        }
+      )
+      .subscribe();
+
+    return () => { 
+      mounted = false; 
+      supabase.removeChannel(channel);
+    };
+  }, [safeUser.prn]);
   const [showCertificate, setShowCertificate] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<DigitalTicket | null>(null);
@@ -32,6 +84,19 @@ export default function ProfileScreen() {
   const [editGithub, setEditGithub] = useState(userProfile.githubHandle || 'pranavvasu');
   const [editLinkedin, setEditLinkedin] = useState(userProfile.linkedinHandle || 'pranavvasu');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async () => {
+    setIsUploadingAvatar(true);
+    const publicUrl = await pickAndUploadImage('avatars', userProfile.prn);
+    if (publicUrl) {
+      const res = await updateUserProfile({ avatarUrl: publicUrl });
+      if (res.success) {
+        setUserProfile(res.user);
+      }
+    }
+    setIsUploadingAvatar(false);
+  };
 
   // GATE SCANNER STATE
   const [permission, requestPermission] = useCameraPermissions();
@@ -39,9 +104,6 @@ export default function ProfileScreen() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanResultData, setScanResultData] = useState<{ success: boolean; studentName?: string; prn?: string; eventTitle?: string; message: string } | null>(null);
 
-  useEffect(() => {
-    setUserProfile(CURRENT_USER);
-  }, []);
 
   const handleOpenEditModal = () => {
     setEditName(userProfile.name);
@@ -139,11 +201,27 @@ export default function ProfileScreen() {
             <Ionicons name="create-outline" size={15} color="#fff" />
             <Text style={styles.editProfileBtnText}>Edit Profile</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.editProfileBtn, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]} onPress={signOut}>
+            <Ionicons name="log-out-outline" size={15} color="#FCA5A5" />
+            <Text style={[styles.editProfileBtnText, { color: '#FCA5A5' }]}>Sign Out</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.avatarLarge}>
-          <Text style={styles.avatarText}>{userProfile.name.substring(0, 2).toUpperCase()}</Text>
-        </View>
+        <TouchableOpacity onPress={handleAvatarUpload} disabled={isUploadingAvatar}>
+          <View style={styles.avatarLarge}>
+            {isUploadingAvatar ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : userProfile.avatarUrl ? (
+              <Image source={{ uri: userProfile.avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{userProfile.name.substring(0, 2).toUpperCase()}</Text>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Ionicons name="camera" size={14} color="#fff" />
+            </View>
+          </View>
+        </TouchableOpacity>
         <Text style={styles.userName}>{userProfile.name}</Text>
         <Text style={styles.userEmail}>{userProfile.email}</Text>
         <Text style={styles.userSub}>{userProfile.branch} · {userProfile.year}</Text>
@@ -654,6 +732,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#0C447C',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#fff',
   },

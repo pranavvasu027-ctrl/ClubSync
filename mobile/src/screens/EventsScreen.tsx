@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Modal, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { EventItem, COMPETITIONS } from '../data/mockData';
-import { CURRENT_USER, registerForEvent } from '../services/clubSyncService';
+import { CURRENT_USER, registerForEvent, getEvents, getCompetitions } from '../services/clubSyncService';
+import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
 
 interface EventsScreenProps {
@@ -57,6 +58,82 @@ export default function EventsScreen({ events: initialEvents, onRSVP, onNavigate
   }, [initialEvents]);
 
   const [events, setEvents] = useState(mergedEvents);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [liveEvents, liveComps] = await Promise.all([
+          getEvents(),
+          getCompetitions(),
+        ]);
+        
+        const internal = liveEvents.map(e => ({
+          ...e,
+          category: e.vertical === 'Technical' ? 'Hackathons' : 'Events & Workshops'
+        }));
+
+        let external: any[] = [];
+        if (MULTI_COLLEGE_ENABLED) {
+          external = liveComps.map(c => ({
+            id: c.id,
+            title: c.title,
+            clubName: c.organizer,
+            collegeName: c.collegeName,
+            vertical: c.category,
+            category: c.category,
+            date: c.deadlineDate,
+            month: c.deadlineDate.split(' ')[1] || 'TBD',
+            day: c.deadlineDate.split(' ')[0] || 'TBD',
+            time: '11:59 PM',
+            venue: c.location,
+            isHackathon: c.category === 'Hackathons',
+            prizePool: c.prizePool,
+            ticketPrice: c.entryFee,
+            scope: 'National' as const,
+            description: c.description,
+            registeredCount: c.registeredCount,
+            maxCapacity: 500,
+            isRegistered: c.isRegistered,
+            status: (c.status || 'upcoming') as 'upcoming'|'past',
+            winner: c.winner,
+            winningCollege: c.winningCollege,
+          }));
+        }
+
+        if (mounted) setEvents([...internal, ...external]);
+      } catch (err) {
+        console.warn('Failed to load events in EventsScreen:', err);
+      } finally {
+        if (mounted) setIsLoadingEvents(false);
+      }
+    })();
+
+    // 🔴 Realtime Subscription for Events
+    const channel = supabase
+      .channel('public:events')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'events' },
+        (payload) => {
+          if (!mounted) return;
+          const updated = payload.new as any;
+          setEvents(prev => prev.map(e => 
+            e.id === updated.event_id 
+              ? { ...e, registeredCount: updated.registered_count } 
+              : e
+          ));
+        }
+      )
+      .subscribe();
+
+    return () => { 
+      mounted = false; 
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const [mainTab, setMainTab] = useState<MainTab>('Discover');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('All');
   const [searchQuery, setSearchQuery] = useState('');
