@@ -4,6 +4,7 @@ import Topbar from '../components/Topbar';
 import Proposals from '../components/Proposals';
 import Approvals from '../components/Approvals';
 import Recruitments from '../components/Recruitments';
+import Analytics from '../components/Analytics';
 import { Users, Ticket, CheckCircle, FileWarning } from 'lucide-react';
 
 export default function Dashboard() {
@@ -124,8 +125,9 @@ export default function Dashboard() {
           {activeTab === 'proposals' && <Proposals />}
           {activeTab === 'approvals' && <Approvals />}
           {activeTab === 'recruitments' && <Recruitments />}
+          {activeTab === 'analytics' && <Analytics />}
 
-          {activeTab !== 'dashboard' && activeTab !== 'proposals' && activeTab !== 'approvals' && activeTab !== 'recruitments' && (
+          {activeTab !== 'dashboard' && activeTab !== 'proposals' && activeTab !== 'approvals' && activeTab !== 'recruitments' && activeTab !== 'analytics' && (
             <div style={{ textAlign: 'center', padding: 40, color: '#64748B' }}>
               <Users size={48} style={{ margin: '0 auto 16px', opacity: 0.5 }} />
               <h2>{getTitle()}</h2>

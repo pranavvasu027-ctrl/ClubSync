@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Club, EventItem, CompetitionItem, DigitalTicket, CLUBS, EVENTS, COMPETITIONS, MY_TICKETS } from '../data/mockData';
 
 export interface User {
@@ -273,6 +274,24 @@ export async function toggleFollowClub(clubId: string): Promise<{ success: boole
  */
 export async function getEvents(): Promise<EventItem[]> {
   try {
+    const cachedEvents = await AsyncStorage.getItem('@events_cache');
+    if (cachedEvents && !global.hasInitialFetchDone) {
+      // Return cache immediately to paint screen, then background update
+      global.hasInitialFetchDone = true;
+      setTimeout(() => fetchEventsFromSupabase(), 0);
+      return JSON.parse(cachedEvents);
+    }
+    
+    return await fetchEventsFromSupabase();
+  } catch (err) {
+    return runtimeEvents;
+  }
+}
+
+declare global { var hasInitialFetchDone: boolean; }
+
+async function fetchEventsFromSupabase(): Promise<EventItem[]> {
+  try {
     const { data, error } = await supabase.from('events').select('*');
     if (error || !data || data.length === 0) {
       return runtimeEvents;
@@ -307,6 +326,7 @@ export async function getEvents(): Promise<EventItem[]> {
     });
 
     runtimeEvents = fetchedEvents;
+    AsyncStorage.setItem('@events_cache', JSON.stringify(fetchedEvents)).catch(console.warn);
     return fetchedEvents;
   } catch (err) {
     console.warn('Using local events data:', err);

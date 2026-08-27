@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, StatusBar, TouchableOpacity, Text, Platform } from 'react-native';
+import { StyleSheet, View, StatusBar, TouchableOpacity, Text, Platform, LayoutAnimation, UIManager } from 'react-native';
+
+if (Platform.OS === 'android') {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { EVENTS, EventItem } from './src/data/mockData';
@@ -15,6 +21,7 @@ import { ActivityIndicator } from 'react-native';
 type TabType = 'home' | 'events' | 'clubs' | 'profile';
 
 import { getEvents } from './src/services/clubSyncService';
+import { registerForPushNotificationsAsync } from './src/services/notificationService';
 
 function MainApp() {
   const insets = useSafeAreaInsets();
@@ -34,6 +41,15 @@ function MainApp() {
         if (mounted) setEvents(liveEvents);
       } catch (err) {
         console.warn('Failed to load live events in App:', err);
+      }
+      
+      // Setup Push Notifications when user logs in
+      if (mounted) {
+        try {
+          await registerForPushNotificationsAsync();
+        } catch (e) {
+          console.warn('Push notification setup failed:', e);
+        }
       }
     })();
     return () => { mounted = false; };
@@ -60,26 +76,29 @@ function MainApp() {
     );
   }
 
+  const switchTab = (tab: TabType) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setActiveTab(tab);
+  };
+
   if (!isAuthenticated) {
     return <OnboardingScreen onComplete={() => {}} />;
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: theme.headerBg }]}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.headerBg} translucent={false} />
-
-      {/* Dynamic Screen Content */}
-      <View style={[styles.content, { backgroundColor: theme.bg }]}>
+    <View style={[styles.container, { backgroundColor: theme.bg }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <View style={styles.content}>
         {activeTab === 'home' && (
           <HomeScreen
             selectedCollege={selectedCollege}
             onSelectCollege={setSelectedCollege}
             events={events}
             onRSVP={handleRSVP}
-            onNavigateToEvents={() => setActiveTab('events')}
+            onNavigateToEvents={() => switchTab('events')}
             onNavigateToClubs={handleNavigateToClubs}
-            onNavigateToCompetitions={() => setActiveTab('events')}
-            onNavigateToProfile={() => setActiveTab('profile')}
+            onNavigateToCompetitions={() => switchTab('events')}
+            onNavigateToProfile={() => switchTab('profile')}
           />
         )}
 
@@ -87,7 +106,7 @@ function MainApp() {
           <EventsScreen 
             events={events} 
             onRSVP={handleRSVP} 
-            onNavigateToTickets={() => setActiveTab('profile')}
+            onNavigateToTickets={() => switchTab('profile')}
           />
         )}
 
@@ -96,90 +115,46 @@ function MainApp() {
         {activeTab === 'profile' && <ProfileScreen />}
       </View>
 
-      {/* Persistent Dynamic Bottom Tab Bar (Home | Events | Clubs | Profile) */}
-      <View style={[styles.bottomNav, { backgroundColor: theme.navBg, borderTopColor: theme.navBorder }]}>
+      {/* BOTTOM NAVIGATION */}
+      <View style={[styles.bottomNav, { backgroundColor: theme.navBg, borderTopColor: theme.navBorder, paddingBottom: insets.bottom || 10 }]}>
         {/* 1. Home Tab */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => setActiveTab('home')}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => switchTab('home')}>
           <Ionicons
             name={activeTab === 'home' ? 'home' : 'home-outline'}
             size={22}
             color={activeTab === 'home' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
-          <Text
-            style={[
-              styles.navText,
-              { color: theme.textMuted },
-              activeTab === 'home' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
-            ]}
-          >
-            Home
-          </Text>
+          <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'home' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Home</Text>
         </TouchableOpacity>
 
         {/* 2. Events Tab */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => setActiveTab('events')}
-        >
-          <Ionicons
-            name={activeTab === 'events' ? 'calendar' : 'calendar-outline'}
-            size={22}
+        <TouchableOpacity style={styles.navItem} onPress={() => switchTab('events')}>
+          <MaterialCommunityIcons
+            name={activeTab === 'events' ? 'calendar-month' : 'calendar-month-outline'}
+            size={24}
             color={activeTab === 'events' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
-          <Text
-            style={[
-              styles.navText,
-              { color: theme.textMuted },
-              activeTab === 'events' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
-            ]}
-          >
-            Events
-          </Text>
+          <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'events' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Events</Text>
         </TouchableOpacity>
 
         {/* 3. Clubs Tab */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => setActiveTab('clubs')}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => switchTab('clubs')}>
           <MaterialCommunityIcons
             name={activeTab === 'clubs' ? 'account-group' : 'account-group-outline'}
             size={24}
             color={activeTab === 'clubs' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
-          <Text
-            style={[
-              styles.navText,
-              { color: theme.textMuted },
-              activeTab === 'clubs' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
-            ]}
-          >
-            Clubs
-          </Text>
+          <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'clubs' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Clubs</Text>
         </TouchableOpacity>
 
         {/* 4. Profile Tab */}
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => setActiveTab('profile')}
-        >
+        <TouchableOpacity style={styles.navItem} onPress={() => switchTab('profile')}>
           <Ionicons
             name={activeTab === 'profile' ? 'person' : 'person-outline'}
             size={22}
             color={activeTab === 'profile' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
           />
-          <Text
-            style={[
-              styles.navText,
-              { color: theme.textMuted },
-              activeTab === 'profile' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }],
-            ]}
-          >
-            Profile
-          </Text>
+          <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'profile' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Profile</Text>
         </TouchableOpacity>
       </View>
     </View>
