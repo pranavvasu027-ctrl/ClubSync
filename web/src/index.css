@@ -164,6 +164,10 @@ tr:hover td { background: #F8FAFC; }
 .badge-pending { background: var(--warning-bg); color: var(--warning); }
 .badge-rejected { background: var(--danger-bg); color: var(--danger); }
 
+/* SPINNER */
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.spinner { animation: spin 1s linear infinite; }
+
 /* BUTTONS & FORMS */
 .btn {
   padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
