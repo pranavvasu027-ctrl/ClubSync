@@ -3,17 +3,20 @@ import { LayoutDashboard, FilePlus, ClipboardCheck, QrCode, Users, Trophy, FileT
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const role = profile?.user_type || 'CLUB_LEAD'; // Default for UI purposes if missing
   
   const navItems = [
-    { id: 'dashboard', icon: <LayoutDashboard size={19} />, label: 'Overview & Stats' },
-    { id: 'proposals', icon: <FilePlus size={19} />, label: 'Event Proposals' },
-    { id: 'approvals', icon: <ClipboardCheck size={19} />, label: 'Faculty Approvals' },
-    { id: 'scanner', icon: <QrCode size={19} />, label: 'Day-of-Event Scanner' },
-    { id: 'recruitments', icon: <Users size={19} />, label: 'Recruitment Drives' },
-    { id: 'analytics', icon: <Trophy size={19} />, label: 'Inter-College Leaderboard' },
-    { id: 'reports', icon: <FileText size={19} />, label: 'Annual Renewal & NAAC' },
+    { id: 'dashboard', icon: <LayoutDashboard size={19} />, label: 'Overview & Stats', roles: ['CLUB_LEAD', 'FACULTY_MENTOR', 'DEAN_ADMIN', 'STUDENT'] },
+    { id: 'proposals', icon: <FilePlus size={19} />, label: 'Event Proposals', roles: ['CLUB_LEAD', 'DEAN_ADMIN'] },
+    { id: 'approvals', icon: <ClipboardCheck size={19} />, label: 'Faculty Approvals', roles: ['FACULTY_MENTOR', 'DEAN_ADMIN'] },
+    { id: 'scanner', icon: <QrCode size={19} />, label: 'Day-of-Event Scanner', roles: ['CLUB_LEAD', 'STUDENT', 'DEAN_ADMIN'] },
+    { id: 'recruitments', icon: <Users size={19} />, label: 'Recruitment CRM', roles: ['CLUB_LEAD', 'DEAN_ADMIN'] },
+    { id: 'analytics', icon: <Trophy size={19} />, label: 'Inter-College Leaderboard', roles: ['CLUB_LEAD', 'FACULTY_MENTOR', 'DEAN_ADMIN'] },
+    { id: 'reports', icon: <FileText size={19} />, label: 'Annual Renewal & NAAC', roles: ['CLUB_LEAD', 'DEAN_ADMIN'] },
   ];
+
+  const visibleNavItems = navItems.filter(item => item.roles.includes(role));
 
   return (
     <div className="sidebar">
@@ -26,7 +29,7 @@ export default function Sidebar({ activeTab, setActiveTab }: { activeTab: string
       </div>
 
       <div className="nav-menu">
-        {navItems.map(item => (
+        {visibleNavItems.map(item => (
           <div 
             key={item.id}
             className={`nav-item ${activeTab === item.id ? 'active' : ''}`} 
@@ -40,11 +43,11 @@ export default function Sidebar({ activeTab, setActiveTab }: { activeTab: string
       <div className="sidebar-user">
         <div className="user-badge">
           <div className="user-avatar">
-            {user?.email?.substring(0, 2).toUpperCase() || 'AD'}
+            {profile?.name?.substring(0, 2).toUpperCase() || user?.email?.substring(0, 2).toUpperCase() || 'AD'}
           </div>
           <div className="user-info">
-            <h4>{user?.user_metadata?.name || 'Administrator'}</h4>
-            <p>{user?.email || 'admin@college.edu'}</p>
+            <h4>{profile?.name || user?.user_metadata?.name || 'Administrator'}</h4>
+            <p style={{ fontSize: 11, color: 'var(--primary)' }}>{role.replace('_', ' ')}</p>
           </div>
         </div>
       </div>
