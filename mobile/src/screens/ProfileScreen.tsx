@@ -6,6 +6,7 @@ import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken, markAttenda
 import { pickAndUploadImage } from '../services/storageService';
 import { DigitalTicket, MY_TICKETS, CLUBS, COLLEGES } from '../data/mockData';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import ScannerScreen from './ScannerScreen';
 import { MULTI_COLLEGE_ENABLED } from '../config/featureFlags';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
@@ -528,58 +529,7 @@ export default function ProfileScreen() {
       {/* REAL CAMERA SCANNER MODAL */}
       {showCameraScanner && (
         <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowCameraScanner(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.scannerModal, { padding: 0, overflow: 'hidden', height: '70%', width: '90%' }]}>
-              <View style={[styles.ticketHeader, { padding: 16, backgroundColor: '#0F172A' }]}>
-                <Text style={[styles.ticketHeaderEvent, { color: '#fff' }]}>Gatekeeper Check-in</Text>
-                <TouchableOpacity onPress={() => setShowCameraScanner(false)}>
-                  <Ionicons name="close" size={22} color="#fff" />
-                </TouchableOpacity>
-              </View>
-
-              <View style={{ flex: 1, backgroundColor: '#000', position: 'relative' }}>
-                <CameraView
-                  style={StyleSheet.absoluteFillObject}
-                  facing="back"
-                  onBarcodeScanned={isScanning ? undefined : handleBarcodeScanned}
-                  barcodeScannerSettings={{
-                    barcodeTypes: ["qr"],
-                  }}
-                />
-                
-                {/* Scanner Overlay UI */}
-                <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-                  <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-                  <View style={{ flexDirection: 'row', height: 250 }}>
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-                    <View style={{ width: 250, borderColor: '#16A34A', borderWidth: 2, backgroundColor: 'transparent' }} />
-                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-                  </View>
-                  <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-                </View>
-
-                {/* Scan Result Floating Card */}
-                {scanResultData && (
-                  <View style={{ position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: '#fff', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 5, alignItems: 'center' }}>
-                    {scanResultData.success ? (
-                      <>
-                        <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
-                        <Text style={{ fontSize: 18, fontWeight: '700', color: '#0F172A', marginTop: 8 }}>{scanResultData.message}</Text>
-                        <Text style={{ fontSize: 16, color: '#334155', marginTop: 4 }}>{scanResultData.studentName}</Text>
-                        <Text style={{ fontSize: 14, color: '#64748B' }}>PRN: {scanResultData.prn}</Text>
-                        <Text style={{ fontSize: 14, color: '#64748B', marginTop: 8 }}>{scanResultData.eventTitle}</Text>
-                      </>
-                    ) : (
-                      <>
-                        <Ionicons name="close-circle" size={48} color="#DC2626" />
-                        <Text style={{ fontSize: 18, fontWeight: '700', color: '#DC2626', marginTop: 8 }}>{scanResultData.message}</Text>
-                      </>
-                    )}
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
+          <ScannerScreen onClose={() => setShowCameraScanner(false)} />
         </Modal>
       )}
 
