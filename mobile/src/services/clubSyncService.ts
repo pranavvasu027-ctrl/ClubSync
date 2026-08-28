@@ -620,16 +620,41 @@ export async function submitApplication(
   resumeUrl?: string
 ): Promise<{ success: boolean; message: string }> {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    let applicantData = {
+      id: CURRENT_USER.id,
+      name: CURRENT_USER.name,
+      email: CURRENT_USER.email,
+      prn: CURRENT_USER.prn,
+      cgpa: CURRENT_USER.cgpa,
+      linkedin: CURRENT_USER.linkedinHandle
+    };
+
+    if (session?.user) {
+      const { data: profile } = await supabase.from('users').select('*').eq('auth_user_id', session.user.id).single();
+      if (profile) {
+        applicantData = {
+          id: profile.user_id,
+          name: profile.name,
+          email: profile.email,
+          prn: profile.prn_or_roll,
+          cgpa: profile.cgpa,
+          linkedin: profile.linkedin_handle
+        };
+      }
+    }
+
     await supabase.from('applications').insert({
       club_id: clubId,
-      applicant_id: CURRENT_USER.id,
-      applicant_name: CURRENT_USER.name,
-      applicant_email: CURRENT_USER.email,
-      applicant_prn: CURRENT_USER.prn,
-      applicant_cgpa: CURRENT_USER.cgpa,
+      applicant_id: applicantData.id || '33333333-3333-3333-3333-333333333333', // Default mock student ID
+      applicant_name: applicantData.name,
+      applicant_email: applicantData.email,
+      applicant_prn: applicantData.prn,
+      applicant_cgpa: applicantData.cgpa,
       applied_role: role,
       sop_statement: sop,
-      resume_url: resumeUrl || 'https://linkedin.com/in/' + CURRENT_USER.linkedinHandle,
+      resume_url: resumeUrl || 'https://linkedin.com/in/' + applicantData.linkedin,
       status: 'APPLIED',
     });
 

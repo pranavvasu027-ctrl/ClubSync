@@ -166,16 +166,31 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
     setActiveDetailTab('overview');
   };
 
-  const handleApplyRole = async (roleTitle: string) => {
+  const [showAppForm, setShowAppForm] = useState(false);
+  const [applyingRole, setApplyingRole] = useState('');
+  const [sop, setSop] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleOpenApply = (roleTitle: string) => {
     if (!selectedClub || selectedClub.collegeId !== CURRENT_USER.collegeId) {
       Alert.alert('Not Available', 'Recruitment is exclusive to students of this college.');
       return;
     }
-    setAppliedRoles(prev => ({ ...prev, [roleTitle]: true }));
-    const res = await submitApplication(
-      selectedClub.id, roleTitle,
-      `Passionate applicant from ${CURRENT_USER.branch} (${CURRENT_USER.year}). CGPA: ${CURRENT_USER.cgpa}`
-    );
+    setApplyingRole(roleTitle);
+    setSop('');
+    setShowAppForm(true);
+  };
+
+  const handleSubmitApplication = async () => {
+    if (!sop.trim()) {
+      Alert.alert('Required', 'Please write a brief statement of purpose.');
+      return;
+    }
+    setIsSubmitting(true);
+    const res = await submitApplication(selectedClub!.id, applyingRole, sop);
+    setIsSubmitting(false);
+    setShowAppForm(false);
+    setAppliedRoles(prev => ({ ...prev, [applyingRole]: true }));
     Alert.alert('Application Submitted! 🚀', res.message);
   };
 
@@ -725,7 +740,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                             {CURRENT_USER.role !== 'observer' && (
                               <TouchableOpacity
                                 style={[styles.applyPosBtn, appliedRoles[pos.title] && styles.applyPosBtnDone]}
-                                onPress={() => handleApplyRole(pos.title)}
+                                onPress={() => handleOpenApply(pos.title)}
                                 disabled={appliedRoles[pos.title]}
                               >
                                 <Text style={styles.applyPosBtnText}>
@@ -756,7 +771,7 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
                           {CURRENT_USER.role !== 'observer' && (
                             <TouchableOpacity
                               style={[styles.applyPosBtn, appliedRoles[r] && styles.applyPosBtnDone]}
-                              onPress={() => handleApplyRole(r)}
+                              onPress={() => handleOpenApply(r)}
                               disabled={appliedRoles[r]}
                             >
                               <Text style={styles.applyPosBtnText}>{appliedRoles[r] ? 'Applied ✓' : 'Apply'}</Text>
@@ -802,6 +817,47 @@ export default function ClubsScreen({ initialSortHiring }: ClubsScreenProps) {
 
                 <View style={{ height: 40 }} />
               </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* APPLICATION FORM MODAL */}
+      {showAppForm && (
+        <Modal visible transparent animationType="slide" onRequestClose={() => setShowAppForm(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.appFormBox}>
+              <View style={styles.appFormTop}>
+                <View>
+                  <Text style={styles.appFormTitle}>Apply for {applyingRole}</Text>
+                  <Text style={styles.appFormSub}>{selectedClub?.name}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setShowAppForm(false)}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.appFormLabel}>Statement of Purpose (SOP) *</Text>
+              <TextInput
+                style={styles.appFormInput}
+                placeholder="Why are you a good fit for this role?"
+                placeholderTextColor="#94A3B8"
+                multiline
+                value={sop}
+                onChangeText={setSop}
+              />
+              <Text style={styles.appFormHint}>Your profile (Name, PRN, CGPA, GitHub, etc.) will be automatically attached to this application.</Text>
+
+              <TouchableOpacity 
+                style={[styles.appFormSubmitBtn, isSubmitting && { opacity: 0.7 }]} 
+                onPress={handleSubmitApplication}
+                disabled={isSubmitting}
+              >
+                <Text style={styles.appFormSubmitText}>
+                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                </Text>
+                {!isSubmitting && <Ionicons name="send" size={16} color="#fff" />}
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -1758,4 +1814,70 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   saveEditText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+
+  // ── Application Form Modal
+  appFormBox: {
+    backgroundColor: '#fff',
+    width: '90%',
+    maxWidth: 400,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  appFormTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  appFormTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  appFormSub: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  appFormLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 8,
+  },
+  appFormInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 14,
+    color: '#0F172A',
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  appFormHint: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  appFormSubmitBtn: {
+    backgroundColor: '#16A34A',
+    borderRadius: 12,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  appFormSubmitText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  }
 });
