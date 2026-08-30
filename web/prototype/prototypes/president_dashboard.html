@@ -1,1285 +1,1104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>President Dashboard - ClubSync</title>
-    
-    <!-- Tabler Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
-    
-    <!-- ClubSync Design System -->
-    <link rel="stylesheet" href="clubsync-design-system.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>President Desk · ClubSync</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<style>
+:root{
+  --paper:#FAF7F0;
+  --paper-deep:#F2EDE1;
+  --card:#FFFFFF;
+  --ink:#1B2A4A;
+  --ink-soft:#5B6478;
+  --ink-faint:#9AA1B3;
+  --rule:#E4DDCB;
+  --rule-strong:#D8CFB6;
+  --red:#C7452C;
+  --red-soft:#F7E4DE;
+  --amber:#B8791A;
+  --amber-soft:#F5E8CE;
+  --green:#3D6B47;
+  --green-soft:#E3EDDF;
+  --navy:#1B2A4A;
+  --navy-soft:#E4E9F2;
+  --radius:10px;
+  --shadow-card: 0 1px 2px rgba(27,42,74,0.06), 0 8px 20px -12px rgba(27,42,74,0.18);
+  --shadow-lift: 0 10px 28px -10px rgba(27,42,74,0.28);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Inter',-apple-system,sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(27,42,74,0.045) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+.display{font-family:'Fraunces',serif;}
+.mono{font-family:'JetBrains Mono',monospace;}
 
-    <!-- CDN Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--rule-strong);border-radius:4px;}
+::-webkit-scrollbar-track{background:transparent;}
 
-    <style>
-        /* President Specific Styles */
-        :root {
-            --accent-color: #EF4444; /* Ruby Red */
-            --accent-rgb: 239, 68, 68;
-        }
+/* ===== SHELL ===== */
+.shell{display:flex;min-height:100vh;}
 
-        /* Role Badge */
-        .role-badge.president {
-            background: rgba(var(--accent-rgb), 0.15);
-            color: var(--accent-color);
-            border: 1px solid rgba(var(--accent-rgb), 0.3);
-        }
+/* ===== SIDEBAR — clipboard ===== */
+.rail{
+  width:236px;flex-shrink:0;
+  background:var(--card);
+  border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;
+  padding:0;
+  position:relative;
+}
+.rail::after{
+  content:'';position:absolute;top:0;right:-1px;bottom:0;width:1px;
+  background:repeating-linear-gradient(to bottom, var(--rule) 0 6px, transparent 6px 12px);
+}
+.rail-clip{
+  height:14px;background:var(--red);
+  position:relative;
+}
+.rail-clip::before,.rail-clip::after{
+  content:'';position:absolute;top:100%;width:26px;height:10px;
+  background:var(--red);border-radius:0 0 6px 6px;
+}
+.rail-clip::before{left:22px;}
+.rail-clip::after{right:22px;}
 
-        /* Event Kanban */
-        .kanban-board {
-            display: flex;
-            gap: 1rem;
-            overflow-x: auto;
-            padding-bottom: 1rem;
-        }
-        .kanban-column {
-            flex: 0 0 300px;
-            background: var(--surface-light);
-            border-radius: var(--radius-lg);
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            border: 1px solid var(--border-color);
-        }
-        .kanban-column-header {
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .kanban-card {
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            cursor: grab;
-            transition: transform 0.2s;
-        }
-        .kanban-card:active {
-            cursor: grabbing;
-        }
-        
-        /* Wizard Steps */
-        .wizard-steps {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-            position: relative;
-        }
-        .wizard-steps::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--border-color);
-            z-index: 1;
-            transform: translateY(-50%);
-        }
-        .step-indicator {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: var(--surface-light);
-            border: 2px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 2;
-            font-weight: 600;
-            color: var(--text-muted);
-            transition: all 0.3s;
-        }
-        .step-indicator.active {
-            background: var(--accent-color);
-            border-color: var(--accent-color);
-            color: white;
-        }
-        .wizard-content > div {
-            display: none;
-        }
-        .wizard-content > div.active {
-            display: block;
-        }
+.rail-top{padding:34px 22px 22px;}
+.brand{display:flex;align-items:center;gap:11px;margin-bottom:6px;}
+.brand-mark{
+  width:36px;height:36px;border-radius:8px;
+  background:var(--navy);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:700;font-size:16px;
+  transform:rotate(-3deg);
+}
+.brand-name{font-family:'Fraunces',serif;font-weight:600;font-size:18px;letter-spacing:-0.2px;}
+.brand-sub{font-size:10.5px;color:var(--ink-faint);letter-spacing:0.06em;text-transform:uppercase;margin-left:47px;}
 
-        /* Org Chart */
-        .org-chart {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2rem;
-            margin: 2rem 0;
-            padding: 2rem;
-            background: var(--surface);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-        }
-        .org-level {
-            display: flex;
-            gap: 2rem;
-            position: relative;
-        }
-        .org-node {
-            background: var(--surface-light);
-            padding: 1rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            text-align: center;
-            min-width: 150px;
-        }
-        .org-node.highlight {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.2);
-        }
+.desk-tag{
+  margin:22px 22px 0;
+  padding:10px 12px;
+  background:var(--paper-deep);
+  border:1px dashed var(--rule-strong);
+  border-radius:8px;
+  font-size:11px;color:var(--ink-soft);
+  display:flex;align-items:center;gap:8px;
+}
+.desk-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
 
-        /* Toggle Button */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 20px;
-        }
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: var(--surface-light);
-            transition: .4s;
-            border-radius: 20px;
-            border: 1px solid var(--border-color);
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 14px;
-            width: 14px;
-            left: 2px;
-            bottom: 2px;
-            background-color: var(--text-muted);
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider {
-            background-color: var(--accent-color);
-        }
-        input:checked + .slider:before {
-            transform: translateX(20px);
-            background-color: white;
-        }
-    </style>
+.nav{padding:20px 14px;display:flex;flex-direction:column;gap:2px;flex:1;}
+.nav-label{
+  font-size:10px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.08em;
+  padding:12px 10px 6px;font-weight:700;
+}
+.nav-item{
+  display:flex;align-items:center;gap:11px;
+  padding:9px 10px;border-radius:7px;
+  color:var(--ink-soft);text-decoration:none;font-size:13.5px;font-weight:500;
+  cursor:pointer;position:relative;
+}
+.nav-item i{font-size:17px;width:18px;text-align:center;}
+.nav-item:hover{background:var(--paper-deep);color:var(--ink);}
+.nav-item.active{background:var(--navy);color:#fff;font-weight:600;}
+.nav-item.active i{color:#fff;}
+
+.rail-bottom{padding:16px 22px 22px;border-top:1px solid var(--rule);}
+.who{display:flex;align-items:center;gap:10px;}
+.who-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--red);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:12.5px;font-family:'Fraunces',serif;
+  flex-shrink:0;
+}
+.who-name{font-size:12.5px;font-weight:700;}
+.who-role{font-size:10.5px;color:var(--ink-faint);}
+
+/* ===== MAIN ===== */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+.topbar{
+  height:64px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 32px;
+  border-bottom:1px solid var(--rule);
+  background:var(--paper);
+}
+.crumbs{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-faint);}
+.crumbs .current{color:var(--ink);font-weight:600;}
+.crumbs i{font-size:13px;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.icon-btn{
+  width:36px;height:36px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--rule);background:var(--card);color:var(--ink-soft);
+  cursor:pointer;font-size:16px;position:relative;
+}
+.icon-btn:hover{border-color:var(--rule-strong);color:var(--ink);}
+.icon-btn .ping{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid var(--paper);}
+
+.content{flex:1;overflow-y:auto;padding:32px;}
+.wrap{max-width:1180px;margin:0 auto;}
+
+/* ===== HERO ===== */
+.hero{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  margin-bottom:30px;padding-bottom:22px;
+  border-bottom:2px solid var(--ink);
+}
+.hero-eyebrow{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--red);font-weight:700;margin-bottom:8px;}
+.hero h1{font-family:'Fraunces',serif;font-weight:600;font-size:34px;letter-spacing:-0.5px;line-height:1.05;}
+.hero p{color:var(--ink-soft);font-size:14px;margin-top:6px;}
+.hero-date{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-faint);text-align:right;}
+.hero-date strong{display:block;color:var(--ink);font-size:15px;margin-bottom:2px;}
+
+.section-panel{display:none;}
+.section-panel.active{display:block;}
+
+/* ===== BENTO STATS ===== */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+.stat-card{
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);
+  padding:18px 18px 16px;position:relative;box-shadow:var(--shadow-card);
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:16px;right:16px;height:3px;
+  border-radius:0 0 3px 3px;
+}
+.stat-card.c-red::before{background:var(--red);}
+.stat-card.c-navy::before{background:var(--navy);}
+.stat-card.c-green::before{background:var(--green);}
+.stat-card.c-amber::before{background:var(--amber);}
+.stat-icon{font-size:18px;color:var(--ink-faint);margin-bottom:10px;}
+.stat-label{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:6px;}
+.stat-value{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--ink);}
+.stat-value small{font-size:13px;color:var(--ink-faint);font-weight:500;}
+.stat-foot{font-size:11px;margin-top:6px;font-weight:600;}
+.stat-foot.up{color:var(--green);}
+.stat-foot.warn{color:var(--amber);}
+.stat-foot.flat{color:var(--ink-faint);}
+
+/* budget bar */
+.budget-track{height:7px;background:var(--paper-deep);border-radius:4px;overflow:hidden;margin-top:10px;border:1px solid var(--rule);}
+.budget-fill{height:100%;background:var(--green);border-radius:4px;}
+
+/* ===== CARD SHELL ===== */
+.panel{
+  background:var(--card);border:1px solid var(--rule);border-radius:var(--radius);
+  box-shadow:var(--shadow-card);
+  margin-bottom:22px;
+}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px;border-bottom:1px solid var(--rule);
+}
+.panel-title{font-family:'Fraunces',serif;font-weight:600;font-size:17px;}
+.panel-sub{font-size:11.5px;color:var(--ink-faint);margin-top:2px;}
+.panel-body{padding:20px;}
+
+/* ===== BUTTONS ===== */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 15px;border-radius:7px;font-size:12.5px;font-weight:600;
+  border:1px solid transparent;cursor:pointer;font-family:'Inter',sans-serif;
+}
+.btn-stamp{background:var(--red);color:#fff;box-shadow:0 2px 0 #9C3620;}
+.btn-stamp:hover{transform:translateY(1px);box-shadow:0 1px 0 #9C3620;}
+.btn-ghost{background:var(--card);border-color:var(--rule-strong);color:var(--ink);}
+.btn-ghost:hover{background:var(--paper-deep);}
+.btn-ink{background:var(--navy);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-row{display:flex;gap:8px;}
+
+/* ===== TABS (kanban/table toggle) ===== */
+.seg{display:flex;background:var(--paper-deep);border:1px solid var(--rule);border-radius:8px;padding:3px;gap:2px;}
+.seg button{
+  border:none;background:none;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;
+  color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;gap:5px;
+}
+.seg button.active{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+
+/* ===== EVENT INDEX CARDS ===== */
+.event-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.event-card{
+  background:var(--card);
+  border:1px solid var(--rule);
+  border-left:3px solid var(--rule-strong);
+  border-radius:8px;padding:15px 16px;
+  position:relative;
+  transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.event-card:hover{transform:translateY(-2px) rotate(-0.3deg);box-shadow:var(--shadow-lift);}
+.event-card.st-live{border-left-color:var(--red);}
+.event-card.st-approved{border-left-color:var(--green);}
+.event-card.st-pending{border-left-color:var(--amber);}
+.event-card.st-draft{border-left-color:var(--ink-faint);}
+
+.stamp{
+  position:absolute;top:12px;right:12px;
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+  letter-spacing:0.06em;text-transform:uppercase;
+  padding:3px 8px;border-radius:3px;
+  border:1.5px solid currentColor;
+  transform:rotate(4deg);
+}
+.stamp.st-live{color:var(--red);}
+.stamp.st-approved{color:var(--green);}
+.stamp.st-pending{color:var(--amber);}
+.stamp.st-draft{color:var(--ink-faint);}
+
+.event-title{font-family:'Fraunces',serif;font-weight:600;font-size:15.5px;padding-right:70px;margin-bottom:4px;}
+.event-meta{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;}
+.event-meta span{display:flex;align-items:center;gap:4px;}
+.event-foot{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px dashed var(--rule);}
+.event-budget{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--ink);}
+
+/* ===== TABLE ===== */
+table{width:100%;border-collapse:collapse;}
+th{
+  text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;
+  color:var(--ink-faint);font-weight:700;padding:9px 14px;border-bottom:1.5px solid var(--ink);
+}
+td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--rule);}
+tbody tr:hover td{background:var(--paper-deep);}
+.tbl-status{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;
+}
+.tbl-status.live{background:var(--red-soft);color:var(--red);}
+.tbl-status.approved{background:var(--green-soft);color:var(--green);}
+.tbl-status.pending{background:var(--amber-soft);color:var(--amber);}
+.tbl-status.draft{background:var(--paper-deep);color:var(--ink-faint);}
+.tbl-status .dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+/* ===== KANBAN ===== */
+.kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;}
+.kcol{flex:0 0 250px;background:var(--paper-deep);border:1px solid var(--rule);border-radius:9px;padding:12px;}
+.kcol-head{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;margin-bottom:10px;padding:0 2px;}
+.kcol-head .count{background:var(--card);border:1px solid var(--rule-strong);border-radius:10px;padding:1px 7px;font-size:10.5px;color:var(--ink-soft);}
+.kcard{
+  background:var(--card);border:1px solid var(--rule);border-radius:7px;
+  padding:11px 12px;margin-bottom:9px;cursor:grab;font-size:12.5px;
+  box-shadow:var(--shadow-card);
+}
+.kcard-title{font-weight:600;margin-bottom:4px;}
+.kcard-meta{font-size:10.5px;color:var(--ink-faint);display:flex;align-items:center;gap:4px;}
+.sortable-ghost{opacity:0.4;}
+
+/* ===== LEDGER ===== */
+.ledger-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.ledger-box{border:1px solid var(--rule);border-radius:9px;padding:16px;background:var(--card);}
+.ledger-box .lbl{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:6px;}
+.ledger-box .val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;}
+.ledger-box.in .val{color:var(--green);}
+.ledger-box.out .val{color:var(--red);}
+
+.txn-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--rule);}
+.txn-row:last-child{border-bottom:none;}
+.txn-cat{
+  width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:15px;
+}
+.txn-cat.in{background:var(--green-soft);color:var(--green);}
+.txn-cat.out{background:var(--red-soft);color:var(--red);}
+.txn-info{flex:1;min-width:0;}
+.txn-desc{font-size:13px;font-weight:600;}
+.txn-date{font-size:11px;color:var(--ink-faint);}
+.txn-amt{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13.5px;flex-shrink:0;}
+.txn-amt.in{color:var(--green);}
+.txn-amt.out{color:var(--red);}
+
+/* ===== ORG CHART ===== */
+.org{display:flex;flex-direction:column;align-items:center;gap:26px;padding:20px 0;}
+.org-node{
+  background:var(--card);border:1.5px solid var(--rule-strong);border-radius:9px;
+  padding:12px 18px;text-align:center;min-width:150px;box-shadow:var(--shadow-card);
+}
+.org-node.top{border-color:var(--red);background:var(--red-soft);}
+.org-node .avatar-sm{
+  width:32px;height:32px;border-radius:50%;background:var(--navy);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  margin:0 auto 6px;font-family:'Fraunces',serif;
+}
+.org-node .nm{font-size:12.5px;font-weight:700;}
+.org-node .rl{font-size:10.5px;color:var(--ink-faint);}
+.org-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+.org-connector{width:1.5px;height:22px;background:var(--rule-strong);}
+
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.team-card{
+  background:var(--card);border:1px solid var(--rule);border-radius:9px;padding:14px;
+  display:flex;align-items:center;gap:11px;cursor:pointer;
+}
+.team-card:hover{border-color:var(--rule-strong);background:var(--paper-deep);}
+.avatar-md{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;
+  font-family:'Fraunces',serif;
+}
+.badge-active{margin-left:auto;font-size:10px;font-weight:700;color:var(--green);background:var(--green-soft);padding:2px 8px;border-radius:10px;}
+
+/* ===== REPORT CARD ===== */
+.report-card{border:1px solid var(--rule);border-radius:9px;padding:16px;margin-bottom:12px;background:var(--card);}
+.report-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.report-who{display:flex;align-items:center;gap:10px;}
+.report-body{font-size:13px;color:var(--ink-soft);line-height:1.5;margin-bottom:10px;}
+.report-foot{display:flex;justify-content:space-between;align-items:center;}
+.pill{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:10px;}
+.pill.done{background:var(--green-soft);color:var(--green);}
+.pill.pend{background:var(--amber-soft);color:var(--amber);}
+
+/* ===== MODAL ===== */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(27,42,74,0.42);
+  display:none;align-items:center;justify-content:center;z-index:200;padding:20px;
+}
+.modal-overlay.active{display:flex;}
+.modal-box{
+  background:var(--card);width:600px;max-width:100%;border-radius:12px;
+  box-shadow:0 30px 60px -20px rgba(27,42,74,0.5);
+  max-height:88vh;display:flex;flex-direction:column;
+}
+.modal-head{
+  padding:18px 22px;border-bottom:1px solid var(--rule);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.modal-head h3{font-family:'Fraunces',serif;font-weight:600;font-size:18px;}
+.modal-close{width:30px;height:30px;border-radius:7px;border:1px solid var(--rule);background:none;cursor:pointer;color:var(--ink-soft);}
+.modal-body{padding:20px 22px;overflow-y:auto;flex:1;}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;}
+
+/* wizard */
+.wiz-steps{display:flex;align-items:center;gap:6px;margin-bottom:22px;}
+.wiz-step{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;border:1.5px solid var(--rule-strong);color:var(--ink-faint);flex-shrink:0;
+}
+.wiz-step.active{background:var(--red);border-color:var(--red);color:#fff;}
+.wiz-step.done{background:var(--green);border-color:var(--green);color:#fff;}
+.wiz-line{flex:1;height:1.5px;background:var(--rule-strong);}
+.wiz-pane{display:none;}
+.wiz-pane.active{display:block;}
+
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11.5px;font-weight:700;color:var(--ink);margin-bottom:5px;display:block;}
+.form-control{
+  width:100%;padding:9px 12px;border:1px solid var(--rule-strong);border-radius:7px;
+  font-size:13px;font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);
+}
+.form-control:focus{outline:none;border-color:var(--navy);}
+.form-row{display:flex;gap:10px;}
+.form-row > *{flex:1;}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{
+  padding:6px 12px;border-radius:14px;font-size:11.5px;font-weight:600;
+  border:1px solid var(--rule-strong);background:var(--card);color:var(--ink-soft);cursor:pointer;
+}
+.chip.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+
+.toast-container{position:fixed;top:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:10px;}
+.toast{
+  background:var(--ink);color:#fff;padding:12px 16px;border-radius:8px;font-size:13px;font-weight:600;
+  box-shadow:0 10px 30px -6px rgba(0,0,0,0.4);display:flex;align-items:center;gap:8px;
+  animation:toastIn .3s ease;min-width:220px;
+}
+@keyframes toastIn{from{transform:translateX(30px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.toast i{color:var(--green);}
+
+@media (max-width:1000px){
+  .stat-row{grid-template-columns:repeat(2,1fr);}
+  .event-grid{grid-template-columns:1fr;}
+  .team-grid{grid-template-columns:1fr 1fr;}
+  .ledger-summary{grid-template-columns:1fr;}
+  .rail{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);z-index:150;transition:transform .2s;}
+  .rail.open{transform:translateX(0);}
+}
+</style>
 </head>
 <body>
-    <div class="app-shell">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">
-                    <i class="ti ti-hexagon-letter-c"></i>
-                    <span>ClubSync</span>
-                </div>
-            </div>
-            
-            <div class="sidebar-user">
-                <div class="avatar" style="background: linear-gradient(135deg, var(--accent-color), #B91C1C)">KP</div>
-                <div class="user-info">
-                    <div class="user-name">Kuldeep Patil</div>
-                    <div class="role-badge president">President</div>
-                </div>
-            </div>
 
-            <nav class="sidebar-nav">
-                <div class="nav-section">MAIN</div>
-                <a href="#" class="nav-item active" data-section="section-overview">
-                    <i class="ti ti-layout-dashboard"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#" class="nav-item" data-section="section-events">
-                    <i class="ti ti-calendar-event"></i>
-                    <span>Events</span>
-                </a>
-                <a href="#" class="nav-item" data-section="section-ledger">
-                    <i class="ti ti-receipt"></i>
-                    <span>Ledger</span>
-                </a>
-                <a href="#" class="nav-item" data-section="section-team">
-                    <i class="ti ti-users"></i>
-                    <span>Team</span>
-                </a>
-                <a href="#" class="nav-item" data-section="section-recruitment">
-                    <i class="ti ti-user-plus"></i>
-                    <span>Recruitment</span>
-                </a>
-                <a href="#" class="nav-item" data-section="section-reports">
-                    <i class="ti ti-file-text"></i>
-                    <span>Reports</span>
-                </a>
-                <div class="nav-section">SYSTEM</div>
-                <a href="#" class="nav-item" data-section="section-settings">
-                    <i class="ti ti-settings"></i>
-                    <span>Settings</span>
-                </a>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Topbar -->
-            <header class="topbar">
-                <div class="breadcrumbs">
-                    <span>ClubSync</span>
-                    <i class="ti ti-chevron-right"></i>
-                    <span>GedIT Technical Club</span>
-                    <i class="ti ti-chevron-right"></i>
-                    <span class="current" id="breadcrumb-current">Dashboard</span>
-                </div>
-                
-                <div class="topbar-actions">
-                    <button class="icon-btn tooltip" data-tip="Search (Ctrl+K)" onclick="ClubSyncShell.toggleCommandPalette()">
-                        <i class="ti ti-search"></i>
-                    </button>
-                    <div class="dropdown">
-                        <button class="icon-btn tooltip" data-tip="Notifications" onclick="ClubSyncShell.toggleNotificationPanel()">
-                            <i class="ti ti-bell"></i>
-                            <span class="badge">3</span>
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Scrollable Area -->
-            <div class="content-scroll">
-                
-                <!-- DASHBOARD SECTION -->
-                <section id="section-overview" class="section-container active">
-                    <div class="hero-section">
-                        <h1 class="hero-title"><span id="greeting">Good Morning</span>, Kuldeep 👋</h1>
-                        <p class="hero-subtitle">Here's what's happening at GedIT Technical Club today</p>
-                    </div>
-
-                    <div class="bento-grid bento-5">
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: var(--accent-color); background: rgba(239, 68, 68, 0.1)">
-                                <i class="ti ti-calendar-event"></i>
-                            </div>
-                            <div class="stat-value counter" data-target="8">0</div>
-                            <div class="stat-label">Active Events</div>
-                            <div class="stat-trend trend-up"><i class="ti ti-trending-up"></i> +3 this month</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: #3B82F6; background: rgba(59, 130, 246, 0.1)">
-                                <i class="ti ti-users"></i>
-                            </div>
-                            <div class="stat-value counter" data-target="42">0</div>
-                            <div class="stat-label">Team Members</div>
-                            <div class="stat-trend"><i class="ti ti-minus"></i> No change</div>
-                        </div>
-                        <div class="stat-card span-2">
-                            <div class="stat-header">
-                                <div class="stat-icon" style="color: #10B981; background: rgba(16, 185, 129, 0.1)">
-                                    <i class="ti ti-wallet"></i>
-                                </div>
-                                <div class="stat-label">Budget Remaining</div>
-                            </div>
-                            <div class="stat-value">₹3,15,000 <span style="font-size: 1rem; color: var(--text-muted)">of ₹8,00,000</span></div>
-                            <div class="progress-bar-container mt-3">
-                                <div class="progress-bar" style="width: 39.4%; background: #10B981"></div>
-                            </div>
-                            <div class="mt-2 text-sm text-muted">39.4% utilized</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: #F59E0B; background: rgba(245, 158, 11, 0.1)">
-                                <i class="ti ti-checkbox"></i>
-                            </div>
-                            <div class="stat-value counter" data-target="12">0</div>
-                            <div class="stat-label">Pending Tasks</div>
-                            <div class="stat-trend trend-down"><i class="ti ti-trending-down"></i> -2 (Good)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-icon" style="color: #10B981; background: rgba(16, 185, 129, 0.1)">
-                                <i class="ti ti-user-plus"></i>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                                <div class="stat-value counter" data-target="28">0</div>
-                                <span class="badge badge-success">Open</span>
-                            </div>
-                            <div class="stat-label">Applicants</div>
-                        </div>
-                    </div>
-
-                    <div class="card mt-4">
-                        <div class="card-header">
-                            <h3 class="card-title">Recent Activity</h3>
-                            <button class="btn btn-ghost btn-sm">View All</button>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="activity-list">
-                                <div class="activity-item p-3 border-bottom">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-sm bg-success-subtle text-success"><i class="ti ti-check"></i></div>
-                                        <div>
-                                            <div class="text-sm font-medium">Budget Approved for Code Sprint Weekend</div>
-                                            <div class="text-xs text-muted">2 hours ago</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="activity-item p-3 border-bottom">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-sm bg-info-subtle text-info"><i class="ti ti-user"></i></div>
-                                        <div>
-                                            <div class="text-sm font-medium">Arnav Joshi submitted Weekly Report</div>
-                                            <div class="text-xs text-muted">5 hours ago</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="activity-item p-3 border-bottom">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-sm bg-warning-subtle text-warning"><i class="ti ti-alert-circle"></i></div>
-                                        <div>
-                                            <div class="text-sm font-medium">New Event Proposal: AI/ML Bootcamp</div>
-                                            <div class="text-xs text-muted">1 day ago</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="activity-item p-3 border-bottom">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-sm bg-primary-subtle text-primary"><i class="ti ti-file-invoice"></i></div>
-                                        <div>
-                                            <div class="text-sm font-medium">Logistics invoice paid (₹15,000)</div>
-                                            <div class="text-xs text-muted">2 days ago</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="activity-item p-3">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-sm bg-accent-subtle text-accent"><i class="ti ti-users"></i></div>
-                                        <div>
-                                            <div class="text-sm font-medium">Recruitment drive opened for Core Committee</div>
-                                            <div class="text-xs text-muted">3 days ago</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- EVENTS SECTION -->
-                <section id="section-events" class="section-container" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Event Management</h2>
-                        <div class="d-flex gap-3 align-items-center">
-                            <div class="tab-btns">
-                                <button class="btn btn-ghost active" onclick="toggleView('events', 'table')"><i class="ti ti-table"></i> Table</button>
-                                <button class="btn btn-ghost" onclick="toggleView('events', 'kanban')"><i class="ti ti-layout-kanban"></i> Kanban</button>
-                            </div>
-                            <button class="btn btn-primary" onclick="openModal('create-event-modal')">
-                                <i class="ti ti-plus"></i> Create Event
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Events Table View -->
-                    <div id="events-table-view" class="card">
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Status</th>
-                                        <th>Event Name</th>
-                                        <th>Date</th>
-                                        <th>Venue</th>
-                                        <th>Attendees</th>
-                                        <th>Budget</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><span class="status-dot bg-success"></span> Approved</td>
-                                        <td class="font-medium">Pune TechFest Grand Hackathon 2026</td>
-                                        <td>28 Aug 2026</td>
-                                        <td>Auditorium</td>
-                                        <td>142</td>
-                                        <td>₹1,20,000</td>
-                                        <td>
-                                            <button class="icon-btn btn-sm"><i class="ti ti-dots-vertical"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><span class="status-dot bg-primary"></span> Live</td>
-                                        <td class="font-medium">Code Sprint Weekend</td>
-                                        <td>05 Sep 2026</td>
-                                        <td>Lab 401</td>
-                                        <td>56</td>
-                                        <td>₹15,000</td>
-                                        <td>
-                                            <button class="icon-btn btn-sm"><i class="ti ti-dots-vertical"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><span class="status-dot bg-warning"></span> Pending</td>
-                                        <td class="font-medium">Web3 Workshop Series</td>
-                                        <td>10 Sep 2026</td>
-                                        <td>Seminar Hall</td>
-                                        <td>80</td>
-                                        <td>₹25,000</td>
-                                        <td>
-                                            <button class="icon-btn btn-sm"><i class="ti ti-dots-vertical"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><span class="status-dot bg-muted"></span> Draft</td>
-                                        <td class="font-medium">Open Source Contribution Day</td>
-                                        <td>15 Sep 2026</td>
-                                        <td>Lab 302</td>
-                                        <td>35</td>
-                                        <td>₹8,000</td>
-                                        <td>
-                                            <button class="icon-btn btn-sm"><i class="ti ti-dots-vertical"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><span class="status-dot bg-success"></span> Approved</td>
-                                        <td class="font-medium">AI/ML Bootcamp</td>
-                                        <td>20 Sep 2026</td>
-                                        <td>Auditorium</td>
-                                        <td>120</td>
-                                        <td>₹45,000</td>
-                                        <td>
-                                            <button class="icon-btn btn-sm"><i class="ti ti-dots-vertical"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><span class="status-dot bg-warning"></span> Pending</td>
-                                        <td class="font-medium">Intro to Cybersecurity</td>
-                                        <td>25 Sep 2026</td>
-                                        <td>Lab 201</td>
-                                        <td>40</td>
-                                        <td>₹12,000</td>
-                                        <td>
-                                            <button class="icon-btn btn-sm"><i class="ti ti-dots-vertical"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><span class="status-dot bg-info"></span> Completed</td>
-                                        <td class="font-medium">Hackathon Winners Meetup</td>
-                                        <td>30 Aug 2026</td>
-                                        <td>Conference Room</td>
-                                        <td>25</td>
-                                        <td>₹5,000</td>
-                                        <td>
-                                            <button class="icon-btn btn-sm"><i class="ti ti-dots-vertical"></i></button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><span class="status-dot bg-muted"></span> Draft</td>
-                                        <td class="font-medium">Cloud Computing Fundamentals</td>
-                                        <td>02 Oct 2026</td>
-                                        <td>Online</td>
-                                        <td>200</td>
-                                        <td>₹0</td>
-                                        <td>
-                                            <button class="icon-btn btn-sm"><i class="ti ti-dots-vertical"></i></button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Events Kanban View -->
-                    <div id="events-kanban-view" class="kanban-board" style="display: none;">
-                        <div class="kanban-column" id="col-draft">
-                            <div class="kanban-column-header">
-                                <span>Draft</span>
-                                <span class="badge">2</span>
-                            </div>
-                            <div class="kanban-card">
-                                <div class="font-medium">Open Source Contribution Day</div>
-                                <div class="text-sm text-muted mt-1"><i class="ti ti-calendar"></i> 15 Sep 2026</div>
-                                <div class="text-sm text-muted"><i class="ti ti-users"></i> 35 expected</div>
-                            </div>
-                            <div class="kanban-card">
-                                <div class="font-medium">Cloud Computing Fundamentals</div>
-                                <div class="text-sm text-muted mt-1"><i class="ti ti-calendar"></i> 02 Oct 2026</div>
-                                <div class="text-sm text-muted"><i class="ti ti-users"></i> 200 expected</div>
-                            </div>
-                        </div>
-                        <div class="kanban-column" id="col-submitted">
-                            <div class="kanban-column-header">
-                                <span>Submitted</span>
-                                <span class="badge bg-warning">2</span>
-                            </div>
-                            <div class="kanban-card border-left-warning">
-                                <div class="font-medium">Web3 Workshop Series</div>
-                                <div class="text-sm text-muted mt-1"><i class="ti ti-calendar"></i> 10 Sep 2026</div>
-                                <div class="text-sm text-muted"><i class="ti ti-users"></i> 80 expected</div>
-                            </div>
-                            <div class="kanban-card border-left-warning">
-                                <div class="font-medium">Intro to Cybersecurity</div>
-                                <div class="text-sm text-muted mt-1"><i class="ti ti-calendar"></i> 25 Sep 2026</div>
-                                <div class="text-sm text-muted"><i class="ti ti-users"></i> 40 expected</div>
-                            </div>
-                        </div>
-                        <div class="kanban-column" id="col-approved">
-                            <div class="kanban-column-header">
-                                <span>Approved</span>
-                                <span class="badge bg-success">2</span>
-                            </div>
-                            <div class="kanban-card border-left-success">
-                                <div class="font-medium">Pune TechFest Hackathon</div>
-                                <div class="text-sm text-muted mt-1"><i class="ti ti-calendar"></i> 28 Aug 2026</div>
-                                <div class="text-sm text-muted"><i class="ti ti-users"></i> 142 registered</div>
-                            </div>
-                            <div class="kanban-card border-left-success">
-                                <div class="font-medium">AI/ML Bootcamp</div>
-                                <div class="text-sm text-muted mt-1"><i class="ti ti-calendar"></i> 20 Sep 2026</div>
-                                <div class="text-sm text-muted"><i class="ti ti-users"></i> 120 registered</div>
-                            </div>
-                        </div>
-                        <div class="kanban-column" id="col-live">
-                            <div class="kanban-column-header">
-                                <span>Live</span>
-                                <span class="badge bg-primary">1</span>
-                            </div>
-                            <div class="kanban-card border-left-primary">
-                                <div class="font-medium">Code Sprint Weekend</div>
-                                <div class="text-sm text-muted mt-1"><i class="ti ti-calendar"></i> 05 Sep 2026</div>
-                                <div class="text-sm text-muted"><i class="ti ti-users"></i> 56 joined</div>
-                            </div>
-                        </div>
-                        <div class="kanban-column" id="col-completed">
-                            <div class="kanban-column-header">
-                                <span>Completed</span>
-                                <span class="badge bg-info">1</span>
-                            </div>
-                            <div class="kanban-card border-left-info">
-                                <div class="font-medium">Hackathon Winners Meetup</div>
-                                <div class="text-sm text-muted mt-1"><i class="ti ti-calendar"></i> 30 Aug 2026</div>
-                                <div class="text-sm text-muted"><i class="ti ti-users"></i> 25 attended</div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- LEDGER SECTION -->
-                <section id="section-ledger" class="section-container" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Budget & Ledger</h2>
-                        <button class="btn btn-primary" onclick="openModal('add-transaction-modal')">
-                            <i class="ti ti-plus"></i> Add Transaction
-                        </button>
-                    </div>
-
-                    <div class="bento-grid bento-3 mb-4">
-                        <div class="stat-card">
-                            <div class="stat-label">Total Income</div>
-                            <div class="stat-value text-success">₹4,85,000</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Total Expenses</div>
-                            <div class="stat-value text-danger">₹1,70,000</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Balance</div>
-                            <div class="d-flex justify-content-between align-items-end">
-                                <div class="stat-value">₹3,15,000</div>
-                                <span class="badge badge-success">Healthy</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h3 class="card-title">Income vs Expenses (2026)</h3>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="ledgerChart" height="80"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Recent Transactions</h3>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Description</th>
-                                        <th>Category</th>
-                                        <th>Amount</th>
-                                        <th>Receipt</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>22 Aug 2026</td>
-                                        <td>TechFest Sponsorship - TCS</td>
-                                        <td><span class="badge bg-primary-subtle text-primary">Sponsorship</span></td>
-                                        <td class="text-success font-medium">+ ₹50,000</td>
-                                        <td><button class="btn btn-sm btn-ghost"><i class="ti ti-download"></i></button></td>
-                                    </tr>
-                                    <tr>
-                                        <td>20 Aug 2026</td>
-                                        <td>Auditorium Booking Advance</td>
-                                        <td><span class="badge bg-warning-subtle text-warning">Logistics</span></td>
-                                        <td class="text-danger font-medium">- ₹15,000</td>
-                                        <td><button class="btn btn-sm btn-ghost"><i class="ti ti-download"></i></button></td>
-                                    </tr>
-                                    <tr>
-                                        <td>18 Aug 2026</td>
-                                        <td>Workshop Ticket Sales</td>
-                                        <td><span class="badge bg-success-subtle text-success">Ticket Sales</span></td>
-                                        <td class="text-success font-medium">+ ₹12,500</td>
-                                        <td>-</td>
-                                    </tr>
-                                    <tr>
-                                        <td>15 Aug 2026</td>
-                                        <td>Social Media Ads</td>
-                                        <td><span class="badge bg-info-subtle text-info">Marketing</span></td>
-                                        <td class="text-danger font-medium">- ₹5,000</td>
-                                        <td><button class="btn btn-sm btn-ghost"><i class="ti ti-download"></i></button></td>
-                                    </tr>
-                                    <tr>
-                                        <td>10 Aug 2026</td>
-                                        <td>Pizza for Core Team Meeting</td>
-                                        <td><span class="badge bg-muted-subtle text-muted">Refreshments</span></td>
-                                        <td class="text-danger font-medium">- ₹2,500</td>
-                                        <td><button class="btn btn-sm btn-ghost"><i class="ti ti-download"></i></button></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- TEAM SECTION -->
-                <section id="section-team" class="section-container" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Team & Permissions</h2>
-                        <button class="btn btn-primary">
-                            <i class="ti ti-user-plus"></i> Invite Member
-                        </button>
-                    </div>
-
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h3 class="card-title">Club Hierarchy</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="org-chart">
-                                <div class="org-level">
-                                    <div class="org-node highlight">
-                                        <div class="avatar-sm bg-accent mb-2 mx-auto">KP</div>
-                                        <div class="font-medium">Kuldeep Patil</div>
-                                        <div class="text-xs text-muted">President</div>
-                                    </div>
-                                </div>
-                                <div class="org-level">
-                                    <div class="org-node">
-                                        <div class="avatar-sm bg-primary mb-2 mx-auto">AJ</div>
-                                        <div class="font-medium">Arnav Joshi</div>
-                                        <div class="text-xs text-muted">Tech Lead</div>
-                                    </div>
-                                    <div class="org-node">
-                                        <div class="avatar-sm bg-warning mb-2 mx-auto">SK</div>
-                                        <div class="font-medium">Sneha Kulkarni</div>
-                                        <div class="text-xs text-muted">Design Lead</div>
-                                    </div>
-                                    <div class="org-node">
-                                        <div class="avatar-sm bg-info mb-2 mx-auto">RM</div>
-                                        <div class="font-medium">Rohan Mehta</div>
-                                        <div class="text-xs text-muted">Marketing Lead</div>
-                                    </div>
-                                </div>
-                                <div class="org-level">
-                                    <div class="org-node" style="min-width: 120px;">
-                                        <div class="text-sm font-medium">4 Secretaries</div>
-                                    </div>
-                                    <div class="org-node" style="min-width: 120px;">
-                                        <div class="text-sm font-medium">6 Coordinators</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bento-grid bento-3">
-                        <!-- Member Cards -->
-                        <div class="card cursor-pointer" onclick="openPermissionsModal('Arnav Joshi')">
-                            <div class="card-body d-flex align-items-center gap-3">
-                                <div class="avatar bg-primary">AJ</div>
-                                <div class="flex-grow-1">
-                                    <div class="font-medium">Arnav Joshi</div>
-                                    <div class="text-sm text-muted">Tech Lead</div>
-                                </div>
-                                <span class="badge badge-success">Active</span>
-                            </div>
-                        </div>
-                        <div class="card cursor-pointer" onclick="openPermissionsModal('Sneha Kulkarni')">
-                            <div class="card-body d-flex align-items-center gap-3">
-                                <div class="avatar bg-warning">SK</div>
-                                <div class="flex-grow-1">
-                                    <div class="font-medium">Sneha Kulkarni</div>
-                                    <div class="text-sm text-muted">Design Lead</div>
-                                </div>
-                                <span class="badge badge-success">Active</span>
-                            </div>
-                        </div>
-                        <div class="card cursor-pointer" onclick="openPermissionsModal('Rohan Mehta')">
-                            <div class="card-body d-flex align-items-center gap-3">
-                                <div class="avatar bg-info">RM</div>
-                                <div class="flex-grow-1">
-                                    <div class="font-medium">Rohan Mehta</div>
-                                    <div class="text-sm text-muted">Marketing Lead</div>
-                                </div>
-                                <span class="badge badge-success">Active</span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- RECRUITMENT SECTION -->
-                <section id="section-recruitment" class="section-container" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Recruitment Pipeline</h2>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-ghost border">Start New Drive</button>
-                            <button class="btn btn-primary" onclick="finalizeRecruitment()">
-                                <i class="ti ti-check"></i> Finalize Recruitment
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="bento-grid bento-3 mb-4">
-                        <div class="stat-card p-3">
-                            <div class="stat-label">Total Applicants</div>
-                            <div class="stat-value">26</div>
-                        </div>
-                        <div class="stat-card p-3">
-                            <div class="stat-label">In Pipeline</div>
-                            <div class="stat-value text-warning">16</div>
-                        </div>
-                        <div class="stat-card p-3">
-                            <div class="stat-label">Selected</div>
-                            <div class="stat-value text-success">6</div>
-                        </div>
-                    </div>
-
-                    <div class="kanban-board" id="recruitment-board">
-                        <div class="kanban-column" id="rec-applied">
-                            <div class="kanban-column-header">Applied <span class="badge">8</span></div>
-                            <div class="kanban-card">
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <div class="avatar-sm bg-primary">JD</div>
-                                    <div class="font-medium">John Doe</div>
-                                </div>
-                                <span class="badge bg-primary-subtle text-primary mb-2">Web Dev</span>
-                                <div class="d-flex gap-1 flex-wrap">
-                                    <span class="badge bg-surface border">React</span>
-                                    <span class="badge bg-surface border">Node.js</span>
-                                    <span class="badge badge-success ml-auto">CGPA 8.5</span>
-                                </div>
-                            </div>
-                            <div class="kanban-card">
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <div class="avatar-sm bg-warning">AS</div>
-                                    <div class="font-medium">Aditi Sharma</div>
-                                </div>
-                                <span class="badge bg-warning-subtle text-warning mb-2">Design</span>
-                                <div class="d-flex gap-1 flex-wrap">
-                                    <span class="badge bg-surface border">Figma</span>
-                                    <span class="badge badge-success ml-auto">CGPA 9.1</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="kanban-column" id="rec-screening">
-                            <div class="kanban-column-header">Screening <span class="badge">5</span></div>
-                            <div class="kanban-card">
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <div class="avatar-sm bg-info">MK</div>
-                                    <div class="font-medium">Mohit Kumar</div>
-                                </div>
-                                <span class="badge bg-info-subtle text-info mb-2">Marketing</span>
-                                <div class="d-flex gap-1 flex-wrap">
-                                    <span class="badge bg-surface border">SEO</span>
-                                    <span class="badge badge-success ml-auto">CGPA 7.8</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="kanban-column" id="rec-interview">
-                            <div class="kanban-column-header">Interview <span class="badge">3</span></div>
-                            <!-- Cards omitted for brevity -->
-                        </div>
-                        <div class="kanban-column" id="rec-selected">
-                            <div class="kanban-column-header">Selected <span class="badge bg-success">6</span></div>
-                             <div class="kanban-card border-left-success">
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <div class="avatar-sm bg-success">RP</div>
-                                    <div class="font-medium">Rahul Patel</div>
-                                </div>
-                                <span class="badge bg-primary-subtle text-primary mb-2">Backend</span>
-                                <div class="d-flex gap-1 flex-wrap">
-                                    <span class="badge bg-surface border">Python</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="kanban-column" id="rec-onboarded">
-                            <div class="kanban-column-header">Onboarded <span class="badge bg-primary">4</span></div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- REPORTS SECTION -->
-                <section id="section-reports" class="section-container" style="display: none;">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>Progress Reports from Team</h2>
-                        <button class="btn btn-ghost border"><i class="ti ti-filter"></i> Filter</button>
-                    </div>
-                    
-                    <div class="bento-grid bento-2">
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar bg-primary">AJ</div>
-                                        <div>
-                                            <div class="font-medium">Arnav Joshi</div>
-                                            <div class="text-sm text-muted">Tech Lead</div>
-                                        </div>
-                                    </div>
-                                    <span class="text-xs text-muted">Today, 10:30 AM</span>
-                                </div>
-                                <p class="text-sm mb-3">Completed the frontend integration for the TechFest landing page. We are facing some issues with the payment gateway webhook, working on it with the backend team.</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="d-flex gap-2">
-                                        <span class="badge bg-success-subtle text-success">4 Tasks Done</span>
-                                        <span class="badge bg-warning-subtle text-warning">1 Task Pending</span>
-                                    </div>
-                                    <span class="text-info text-sm"><i class="ti ti-checks"></i> Viewed</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar bg-warning">SK</div>
-                                        <div>
-                                            <div class="font-medium">Sneha Kulkarni</div>
-                                            <div class="text-sm text-muted">Design Lead</div>
-                                        </div>
-                                    </div>
-                                    <span class="text-xs text-muted">Yesterday, 4:15 PM</span>
-                                </div>
-                                <p class="text-sm mb-3">Finalized the social media posters for the Web3 workshop. All assets handed over to Marketing. Initiating design for the upcoming hackathon ID cards.</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="d-flex gap-2">
-                                        <span class="badge bg-success-subtle text-success">3 Tasks Done</span>
-                                    </div>
-                                    <span class="text-info text-sm"><i class="ti ti-checks"></i> Viewed</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-        </main>
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="rail" id="rail">
+    <div class="rail-clip"></div>
+    <div class="rail-top">
+      <div class="brand">
+        <div class="brand-mark">G</div>
+        <div class="brand-name">The Desk</div>
+      </div>
+      <div class="brand-sub">GedIT Technical Club</div>
     </div>
 
-    <!-- Create Event Modal -->
-    <div class="modal-overlay" id="create-event-modal">
-        <div class="modal card" style="max-width: 600px; width: 90%;">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title">Create New Event</h3>
-                <button class="icon-btn btn-sm" onclick="closeModal('create-event-modal')"><i class="ti ti-x"></i></button>
-            </div>
-            <div class="card-body">
-                <div class="wizard-steps">
-                    <div class="step-indicator active" id="step-ind-1">1</div>
-                    <div class="step-indicator" id="step-ind-2">2</div>
-                    <div class="step-indicator" id="step-ind-3">3</div>
-                    <div class="step-indicator" id="step-ind-4">4</div>
-                    <div class="step-indicator" id="step-ind-5">5</div>
-                </div>
+    <div class="desk-tag"><span class="dot"></span> Live session · AY 2026–27</div>
 
-                <div class="wizard-content">
-                    <div id="step-1" class="active">
-                        <h4 class="mb-3">Basic Info</h4>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Event Title</label>
-                            <input type="text" class="form-control" placeholder="e.g. Code Sprint Weekend">
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Event Type</label>
-                            <select class="form-control">
-                                <option>Hackathon</option>
-                                <option>Workshop</option>
-                                <option>Seminar</option>
-                                <option>Competition</option>
-                            </select>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" rows="3" placeholder="Brief description of the event"></textarea>
-                        </div>
-                    </div>
-                    
-                    <div id="step-2">
-                        <h4 class="mb-3">Schedule & Venue</h4>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Date</label>
-                            <input type="date" class="form-control">
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Time</label>
-                            <input type="time" class="form-control">
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Venue Type</label>
-                            <select class="form-control">
-                                <option>Offline</option>
-                                <option>Online</option>
-                                <option>Hybrid</option>
-                            </select>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Location/Link</label>
-                            <input type="text" class="form-control" placeholder="Auditorium / Meet Link">
-                        </div>
-                    </div>
+    <nav class="nav">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" data-target="pane-overview"><i class="ti ti-notebook"></i> Desk Summary</div>
 
-                    <div id="step-3">
-                        <h4 class="mb-3">Branding</h4>
-                        <div class="border p-4 text-center rounded mb-3" style="border: 2px dashed var(--border-color)">
-                            <i class="ti ti-upload text-muted mb-2" style="font-size: 2rem;"></i>
-                            <p class="text-muted m-0">Drag and drop poster here or click to browse</p>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label class="form-label">Theme Color</label>
-                            <input type="color" class="form-control form-control-color" value="#EF4444">
-                        </div>
-                    </div>
+      <div class="nav-label">Operate</div>
+      <div class="nav-item" data-target="pane-events"><i class="ti ti-calendar-event"></i> Events</div>
+      <div class="nav-item" data-target="pane-ledger"><i class="ti ti-receipt-2"></i> Ledger</div>
+      <div class="nav-item" data-target="pane-recruitment"><i class="ti ti-user-plus"></i> Recruitment</div>
 
-                    <div id="step-4">
-                        <h4 class="mb-3">Budget Estimation</h4>
-                        <table class="table mb-3">
-                            <thead>
-                                <tr>
-                                    <th>Item</th>
-                                    <th>Qty</th>
-                                    <th>Cost</th>
-                                    <th>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Prizes</td>
-                                    <td>3</td>
-                                    <td>5000</td>
-                                    <td>15000</td>
-                                </tr>
-                                <tr>
-                                    <td>Refreshments</td>
-                                    <td>50</td>
-                                    <td>100</td>
-                                    <td>5000</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <button class="btn btn-ghost btn-sm w-100 border border-dashed"><i class="ti ti-plus"></i> Add Row</button>
-                    </div>
+      <div class="nav-label">People</div>
+      <div class="nav-item" data-target="pane-team"><i class="ti ti-users-group"></i> Team</div>
+      <div class="nav-item" data-target="pane-reports"><i class="ti ti-file-text"></i> Reports</div>
 
-                    <div id="step-5">
-                        <h4 class="mb-3">Review & Submit</h4>
-                        <div class="bg-surface-light p-3 rounded mb-3">
-                            <h5 class="mb-2 text-primary">Hackathon 2026</h5>
-                            <p class="text-sm text-muted mb-1"><i class="ti ti-calendar"></i> 25 Oct 2026, 10:00 AM</p>
-                            <p class="text-sm text-muted mb-1"><i class="ti ti-map-pin"></i> Auditorium</p>
-                            <p class="text-sm text-muted mb-0"><i class="ti ti-wallet"></i> Estimated Budget: ₹20,000</p>
-                        </div>
-                        <p class="text-sm text-warning"><i class="ti ti-info-circle"></i> Once submitted, the event will go to the Faculty Advisor for approval.</p>
-                    </div>
-                </div>
+      <div class="nav-label">System</div>
+      <div class="nav-item"><i class="ti ti-settings"></i> Settings</div>
+    </nav>
 
-                <div class="d-flex justify-content-between mt-4">
-                    <button class="btn btn-ghost" id="wizard-prev" disabled onclick="wizardStep(-1)">Previous</button>
-                    <button class="btn btn-primary" id="wizard-next" onclick="wizardStep(1)">Next Step</button>
-                </div>
-            </div>
+    <div class="rail-bottom">
+      <div class="who">
+        <div class="who-avatar">KP</div>
+        <div>
+          <div class="who-name">Kuldeep Patil</div>
+          <div class="who-role">President</div>
         </div>
+      </div>
     </div>
+  </aside>
 
-    <!-- Permissions Modal -->
-    <div class="modal-overlay" id="permissions-modal">
-        <div class="modal card" style="max-width: 400px; width: 90%;">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h3 class="card-title" id="perm-user-name">User Permissions</h3>
-                <button class="icon-btn btn-sm" onclick="closeModal('permissions-modal')"><i class="ti ti-x"></i></button>
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div class="crumbs">
+        <span>ClubSync</span><i class="ti ti-chevron-right"></i>
+        <span>GedIT Technical Club</span><i class="ti ti-chevron-right"></i>
+        <span class="current" id="crumb-current">Desk Summary</span>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" onclick="toggleRail()" style="display:none" id="railToggle"><i class="ti ti-menu-2"></i></button>
+        <button class="icon-btn"><i class="ti ti-search"></i></button>
+        <button class="icon-btn"><i class="ti ti-bell"></i><span class="ping"></span></button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="wrap">
+
+        <!-- ============ OVERVIEW ============ -->
+        <section class="section-panel active" id="pane-overview">
+          <div class="hero">
+            <div>
+              <div class="hero-eyebrow">Good morning, President</div>
+              <h1>Kuldeep's desk</h1>
+              <p>4 events in motion · ₹4.85L balance on hand · 12 tasks open</p>
             </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3 p-2 border-bottom">
-                    <span>Can Create Events</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-3 p-2 border-bottom">
-                    <span>Can Approve Budget</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-3 p-2 border-bottom">
-                    <span>Can Manage Team</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-3 p-2 border-bottom">
-                    <span>Can Post Announcements</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-3 p-2">
-                    <span>Can Access Analytics</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+            <div class="hero-date">
+              <strong id="today-date">Monday, 24 Aug</strong>
+              Academic Year 2026–27
             </div>
-            <div class="card-footer d-flex justify-content-end gap-2">
-                <button class="btn btn-ghost" onclick="closeModal('permissions-modal')">Cancel</button>
-                <button class="btn btn-primary" onclick="closeModal('permissions-modal'); ClubSyncShell.showToast('Permissions updated', 'success')">Save Changes</button>
+          </div>
+
+          <div class="stat-row">
+            <div class="stat-card c-red">
+              <div class="stat-icon"><i class="ti ti-calendar-event"></i></div>
+              <div class="stat-label">Active Events</div>
+              <div class="stat-value">08</div>
+              <div class="stat-foot up"><i class="ti ti-arrow-up-right"></i> +3 this month</div>
             </div>
+            <div class="stat-card c-navy">
+              <div class="stat-icon"><i class="ti ti-users"></i></div>
+              <div class="stat-label">Team Members</div>
+              <div class="stat-value">42</div>
+              <div class="stat-foot flat">No change since June</div>
+            </div>
+            <div class="stat-card c-green">
+              <div class="stat-icon"><i class="ti ti-wallet"></i></div>
+              <div class="stat-label">Budget Remaining</div>
+              <div class="stat-value">₹3.15L <small>/ ₹8.00L</small></div>
+              <div class="budget-track"><div class="budget-fill" style="width:39.4%"></div></div>
+            </div>
+            <div class="stat-card c-amber">
+              <div class="stat-icon"><i class="ti ti-checklist"></i></div>
+              <div class="stat-label">Pending Tasks</div>
+              <div class="stat-value">12</div>
+              <div class="stat-foot up"><i class="ti ti-arrow-down-right"></i> −2 this week</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:start;">
+            <div class="panel">
+              <div class="panel-head">
+                <div>
+                  <div class="panel-title">This week's docket</div>
+                  <div class="panel-sub">Events needing your sign-off or attention</div>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="switchPane('pane-events')">Open events desk</button>
+              </div>
+              <div class="panel-body" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="event-card st-pending" style="border-radius:8px;">
+                  <span class="stamp st-pending">pending</span>
+                  <div class="event-title">Web3 Workshop Series</div>
+                  <div class="event-meta"><span><i class="ti ti-calendar"></i> 10 Sep</span><span><i class="ti ti-map-pin"></i> Seminar Hall</span><span><i class="ti ti-users"></i> 80 expected</span></div>
+                </div>
+                <div class="event-card st-live" style="border-radius:8px;">
+                  <span class="stamp st-live">live</span>
+                  <div class="event-title">Code Sprint Weekend</div>
+                  <div class="event-meta"><span><i class="ti ti-calendar"></i> 05 Sep</span><span><i class="ti ti-map-pin"></i> Lab 401</span><span><i class="ti ti-users"></i> 56 joined</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <div class="panel-title">Recent activity</div>
+              </div>
+              <div class="panel-body" style="display:flex;flex-direction:column;gap:13px;">
+                <div style="display:flex;gap:10px;">
+                  <div class="txn-cat in" style="width:28px;height:28px;font-size:12px;"><i class="ti ti-check"></i></div>
+                  <div><div style="font-size:12.5px;font-weight:600;">Budget approved — Code Sprint</div><div style="font-size:11px;color:var(--ink-faint);">2 hours ago</div></div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                  <div class="txn-cat" style="background:var(--navy-soft);color:var(--navy);width:28px;height:28px;font-size:12px;"><i class="ti ti-file-text"></i></div>
+                  <div><div style="font-size:12.5px;font-weight:600;">Arnav submitted weekly report</div><div style="font-size:11px;color:var(--ink-faint);">5 hours ago</div></div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                  <div class="txn-cat out" style="width:28px;height:28px;font-size:12px;"><i class="ti ti-alert-triangle"></i></div>
+                  <div><div style="font-size:12.5px;font-weight:600;">New proposal: AI/ML Bootcamp</div><div style="font-size:11px;color:var(--ink-faint);">1 day ago</div></div>
+                </div>
+                <div style="display:flex;gap:10px;">
+                  <div class="txn-cat out" style="width:28px;height:28px;font-size:12px;"><i class="ti ti-receipt"></i></div>
+                  <div><div style="font-size:12.5px;font-weight:600;">Logistics invoice paid · ₹15,000</div><div style="font-size:11px;color:var(--ink-faint);">2 days ago</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ EVENTS ============ -->
+        <section class="section-panel" id="pane-events">
+          <div class="hero" style="border-bottom:2px solid var(--ink);">
+            <div>
+              <div class="hero-eyebrow">Operate</div>
+              <h1>Events desk</h1>
+              <p>Every proposal, live run, and archive — one paper trail.</p>
+            </div>
+            <div class="btn-row">
+              <div class="seg">
+                <button class="active" onclick="toggleEventView('cards',this)"><i class="ti ti-layout-grid"></i> Cards</button>
+                <button onclick="toggleEventView('kanban',this)"><i class="ti ti-layout-kanban"></i> Board</button>
+              </div>
+              <button class="btn btn-stamp" onclick="openModal('event-modal')"><i class="ti ti-plus"></i> New event</button>
+            </div>
+          </div>
+
+          <div id="events-cards-view">
+            <div class="event-grid">
+              <div class="event-card st-approved">
+                <span class="stamp st-approved">approved</span>
+                <div class="event-title">Pune TechFest Hackathon 2026</div>
+                <div class="event-meta"><span><i class="ti ti-calendar"></i> 28 Aug</span><span><i class="ti ti-map-pin"></i> Auditorium</span><span><i class="ti ti-users"></i> 142</span></div>
+                <div class="event-foot"><span class="event-budget">₹1,20,000</span><button class="btn btn-ghost btn-sm">Manage</button></div>
+              </div>
+              <div class="event-card st-live">
+                <span class="stamp st-live">live</span>
+                <div class="event-title">Code Sprint Weekend</div>
+                <div class="event-meta"><span><i class="ti ti-calendar"></i> 05 Sep</span><span><i class="ti ti-map-pin"></i> Lab 401</span><span><i class="ti ti-users"></i> 56</span></div>
+                <div class="event-foot"><span class="event-budget">₹15,000</span><button class="btn btn-ghost btn-sm">Manage</button></div>
+              </div>
+              <div class="event-card st-pending">
+                <span class="stamp st-pending">pending</span>
+                <div class="event-title">Web3 Workshop Series</div>
+                <div class="event-meta"><span><i class="ti ti-calendar"></i> 10 Sep</span><span><i class="ti ti-map-pin"></i> Seminar Hall</span><span><i class="ti ti-users"></i> 80</span></div>
+                <div class="event-foot"><span class="event-budget">₹25,000</span><button class="btn btn-ghost btn-sm">Manage</button></div>
+              </div>
+              <div class="event-card st-draft">
+                <span class="stamp st-draft">draft</span>
+                <div class="event-title">Open Source Contribution Day</div>
+                <div class="event-meta"><span><i class="ti ti-calendar"></i> 15 Sep</span><span><i class="ti ti-map-pin"></i> Lab 302</span><span><i class="ti ti-users"></i> 35</span></div>
+                <div class="event-foot"><span class="event-budget">₹8,000</span><button class="btn btn-ghost btn-sm">Manage</button></div>
+              </div>
+              <div class="event-card st-approved">
+                <span class="stamp st-approved">approved</span>
+                <div class="event-title">AI/ML Bootcamp</div>
+                <div class="event-meta"><span><i class="ti ti-calendar"></i> 20 Sep</span><span><i class="ti ti-map-pin"></i> Auditorium</span><span><i class="ti ti-users"></i> 120</span></div>
+                <div class="event-foot"><span class="event-budget">₹45,000</span><button class="btn btn-ghost btn-sm">Manage</button></div>
+              </div>
+              <div class="event-card st-pending">
+                <span class="stamp st-pending">pending</span>
+                <div class="event-title">Intro to Cybersecurity</div>
+                <div class="event-meta"><span><i class="ti ti-calendar"></i> 25 Sep</span><span><i class="ti ti-map-pin"></i> Lab 201</span><span><i class="ti ti-users"></i> 40</span></div>
+                <div class="event-foot"><span class="event-budget">₹12,000</span><button class="btn btn-ghost btn-sm">Manage</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="events-kanban-view" style="display:none;">
+            <div class="kanban">
+              <div class="kcol">
+                <div class="kcol-head">Draft <span class="count">2</span></div>
+                <div class="kcard"><div class="kcard-title">Open Source Day</div><div class="kcard-meta"><i class="ti ti-calendar"></i> 15 Sep</div></div>
+                <div class="kcard"><div class="kcard-title">Cloud Computing 101</div><div class="kcard-meta"><i class="ti ti-calendar"></i> 02 Oct</div></div>
+              </div>
+              <div class="kcol">
+                <div class="kcol-head">Submitted <span class="count">2</span></div>
+                <div class="kcard"><div class="kcard-title">Web3 Workshop</div><div class="kcard-meta"><i class="ti ti-calendar"></i> 10 Sep</div></div>
+                <div class="kcard"><div class="kcard-title">Cybersecurity Intro</div><div class="kcard-meta"><i class="ti ti-calendar"></i> 25 Sep</div></div>
+              </div>
+              <div class="kcol">
+                <div class="kcol-head">Approved <span class="count">2</span></div>
+                <div class="kcard"><div class="kcard-title">TechFest Hackathon</div><div class="kcard-meta"><i class="ti ti-calendar"></i> 28 Aug</div></div>
+                <div class="kcard"><div class="kcard-title">AI/ML Bootcamp</div><div class="kcard-meta"><i class="ti ti-calendar"></i> 20 Sep</div></div>
+              </div>
+              <div class="kcol">
+                <div class="kcol-head">Live <span class="count">1</span></div>
+                <div class="kcard"><div class="kcard-title">Code Sprint Weekend</div><div class="kcard-meta"><i class="ti ti-calendar"></i> 05 Sep</div></div>
+              </div>
+              <div class="kcol">
+                <div class="kcol-head">Completed <span class="count">1</span></div>
+                <div class="kcard"><div class="kcard-title">Winners Meetup</div><div class="kcard-meta"><i class="ti ti-calendar"></i> 30 Aug</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ LEDGER ============ -->
+        <section class="section-panel" id="pane-ledger">
+          <div class="hero" style="border-bottom:2px solid var(--ink);">
+            <div>
+              <div class="hero-eyebrow">Operate</div>
+              <h1>The ledger</h1>
+              <p>Every rupee, dated and accounted for.</p>
+            </div>
+            <button class="btn btn-stamp" onclick="openModal('txn-modal')"><i class="ti ti-plus"></i> Log transaction</button>
+          </div>
+
+          <div class="ledger-summary">
+            <div class="ledger-box in"><div class="lbl">Total income</div><div class="val">₹4,85,000</div></div>
+            <div class="ledger-box out"><div class="lbl">Total expenses</div><div class="val">₹1,70,000</div></div>
+            <div class="ledger-box"><div class="lbl">Balance on hand</div><div class="val" style="color:var(--navy)">₹3,15,000</div></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Income vs expenses, 2026</div></div>
+            <div class="panel-body"><canvas id="ledgerChart" height="72"></canvas></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Recent transactions</div></div>
+            <div class="panel-body">
+              <div class="txn-row">
+                <div class="txn-cat in"><i class="ti ti-arrow-down-left"></i></div>
+                <div class="txn-info"><div class="txn-desc">TechFest sponsorship — TCS</div><div class="txn-date">22 Aug 2026</div></div>
+                <div class="txn-amt in">+ ₹50,000</div>
+              </div>
+              <div class="txn-row">
+                <div class="txn-cat out"><i class="ti ti-arrow-up-right"></i></div>
+                <div class="txn-info"><div class="txn-desc">Auditorium booking advance</div><div class="txn-date">20 Aug 2026</div></div>
+                <div class="txn-amt out">− ₹15,000</div>
+              </div>
+              <div class="txn-row">
+                <div class="txn-cat in"><i class="ti ti-arrow-down-left"></i></div>
+                <div class="txn-info"><div class="txn-desc">Workshop ticket sales</div><div class="txn-date">18 Aug 2026</div></div>
+                <div class="txn-amt in">+ ₹12,500</div>
+              </div>
+              <div class="txn-row">
+                <div class="txn-cat out"><i class="ti ti-arrow-up-right"></i></div>
+                <div class="txn-info"><div class="txn-desc">Social media ads</div><div class="txn-date">15 Aug 2026</div></div>
+                <div class="txn-amt out">− ₹5,000</div>
+              </div>
+              <div class="txn-row">
+                <div class="txn-cat out"><i class="ti ti-arrow-up-right"></i></div>
+                <div class="txn-info"><div class="txn-desc">Pizza — core team meeting</div><div class="txn-date">10 Aug 2026</div></div>
+                <div class="txn-amt out">− ₹2,500</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ RECRUITMENT ============ -->
+        <section class="section-panel" id="pane-recruitment">
+          <div class="hero" style="border-bottom:2px solid var(--ink);">
+            <div>
+              <div class="hero-eyebrow">Operate</div>
+              <h1>Recruitment pipeline</h1>
+              <p>26 applicants across five stages.</p>
+            </div>
+            <button class="btn btn-stamp" onclick="finalizeRecruitment()"><i class="ti ti-check"></i> Finalize intake</button>
+          </div>
+
+          <div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+            <div class="stat-card c-navy"><div class="stat-label">Total applicants</div><div class="stat-value">26</div></div>
+            <div class="stat-card c-amber"><div class="stat-label">In pipeline</div><div class="stat-value">16</div></div>
+            <div class="stat-card c-green"><div class="stat-label">Selected</div><div class="stat-value">06</div></div>
+          </div>
+
+          <div class="kanban" id="recruitment-board">
+            <div class="kcol">
+              <div class="kcol-head">Applied <span class="count">8</span></div>
+              <div class="kcard">
+                <div class="kcard-title">John Doe</div>
+                <div class="kcard-meta"><i class="ti ti-tag"></i> Web Dev · CGPA 8.5</div>
+              </div>
+              <div class="kcard">
+                <div class="kcard-title">Aditi Sharma</div>
+                <div class="kcard-meta"><i class="ti ti-tag"></i> Design · CGPA 9.1</div>
+              </div>
+            </div>
+            <div class="kcol">
+              <div class="kcol-head">Screening <span class="count">5</span></div>
+              <div class="kcard">
+                <div class="kcard-title">Mohit Kumar</div>
+                <div class="kcard-meta"><i class="ti ti-tag"></i> Marketing · CGPA 7.8</div>
+              </div>
+            </div>
+            <div class="kcol">
+              <div class="kcol-head">Interview <span class="count">3</span></div>
+            </div>
+            <div class="kcol">
+              <div class="kcol-head">Selected <span class="count">6</span></div>
+              <div class="kcard" style="border-left:3px solid var(--green);">
+                <div class="kcard-title">Rahul Patel</div>
+                <div class="kcard-meta"><i class="ti ti-tag"></i> Backend · Python</div>
+              </div>
+            </div>
+            <div class="kcol">
+              <div class="kcol-head">Onboarded <span class="count">4</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ TEAM ============ -->
+        <section class="section-panel" id="pane-team">
+          <div class="hero" style="border-bottom:2px solid var(--ink);">
+            <div>
+              <div class="hero-eyebrow">People</div>
+              <h1>Team &amp; permissions</h1>
+              <p>Who holds what authority on the desk.</p>
+            </div>
+            <button class="btn btn-stamp"><i class="ti ti-user-plus"></i> Invite member</button>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><div class="panel-title">Club hierarchy</div></div>
+            <div class="panel-body">
+              <div class="org">
+                <div class="org-node top">
+                  <div class="avatar-sm" style="background:var(--red);">KP</div>
+                  <div class="nm">Kuldeep Patil</div><div class="rl">President</div>
+                </div>
+                <div class="org-connector"></div>
+                <div class="org-row">
+                  <div class="org-node"><div class="avatar-sm">AJ</div><div class="nm">Arnav Joshi</div><div class="rl">Tech Lead</div></div>
+                  <div class="org-node"><div class="avatar-sm">SK</div><div class="nm">Sneha Kulkarni</div><div class="rl">Design Lead</div></div>
+                  <div class="org-node"><div class="avatar-sm">RM</div><div class="nm">Rohan Mehta</div><div class="rl">Marketing Lead</div></div>
+                </div>
+                <div class="org-connector"></div>
+                <div class="org-row">
+                  <div class="org-node" style="min-width:120px;"><div class="nm">4 Secretaries</div></div>
+                  <div class="org-node" style="min-width:120px;"><div class="nm">6 Coordinators</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="team-grid">
+            <div class="team-card" onclick="openPermissions('Arnav Joshi')">
+              <div class="avatar-md" style="background:var(--navy);">AJ</div>
+              <div><div style="font-size:13px;font-weight:700;">Arnav Joshi</div><div style="font-size:11px;color:var(--ink-faint);">Tech Lead</div></div>
+              <span class="badge-active">Active</span>
+            </div>
+            <div class="team-card" onclick="openPermissions('Sneha Kulkarni')">
+              <div class="avatar-md" style="background:var(--amber);">SK</div>
+              <div><div style="font-size:13px;font-weight:700;">Sneha Kulkarni</div><div style="font-size:11px;color:var(--ink-faint);">Design Lead</div></div>
+              <span class="badge-active">Active</span>
+            </div>
+            <div class="team-card" onclick="openPermissions('Rohan Mehta')">
+              <div class="avatar-md" style="background:var(--green);">RM</div>
+              <div><div style="font-size:13px;font-weight:700;">Rohan Mehta</div><div style="font-size:11px;color:var(--ink-faint);">Marketing Lead</div></div>
+              <span class="badge-active">Active</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ REPORTS ============ -->
+        <section class="section-panel" id="pane-reports">
+          <div class="hero" style="border-bottom:2px solid var(--ink);">
+            <div>
+              <div class="hero-eyebrow">People</div>
+              <h1>Progress reports</h1>
+              <p>Weekly notes from your leads, filed for the record.</p>
+            </div>
+            <button class="btn btn-ghost"><i class="ti ti-filter"></i> Filter</button>
+          </div>
+
+          <div class="report-card">
+            <div class="report-top">
+              <div class="report-who">
+                <div class="avatar-md" style="background:var(--navy);width:34px;height:34px;font-size:12px;">AJ</div>
+                <div><div style="font-size:13px;font-weight:700;">Arnav Joshi</div><div style="font-size:11px;color:var(--ink-faint);">Tech Lead</div></div>
+              </div>
+              <span style="font-size:11px;color:var(--ink-faint);">Today, 10:30 AM</span>
+            </div>
+            <div class="report-body">Completed the frontend integration for the TechFest landing page. Facing some issues with the payment gateway webhook — working on it with the backend team.</div>
+            <div class="report-foot">
+              <div style="display:flex;gap:6px;"><span class="pill done">4 done</span><span class="pill pend">1 pending</span></div>
+              <span style="font-size:11px;color:var(--navy);font-weight:600;">Viewed ✓✓</span>
+            </div>
+          </div>
+
+          <div class="report-card">
+            <div class="report-top">
+              <div class="report-who">
+                <div class="avatar-md" style="background:var(--amber);width:34px;height:34px;font-size:12px;">SK</div>
+                <div><div style="font-size:13px;font-weight:700;">Sneha Kulkarni</div><div style="font-size:11px;color:var(--ink-faint);">Design Lead</div></div>
+              </div>
+              <span style="font-size:11px;color:var(--ink-faint);">Yesterday, 4:15 PM</span>
+            </div>
+            <div class="report-body">Finalized social media posters for the Web3 workshop. All assets handed to Marketing. Starting design for the upcoming hackathon ID cards.</div>
+            <div class="report-foot">
+              <div style="display:flex;gap:6px;"><span class="pill done">3 done</span></div>
+              <span style="font-size:11px;color:var(--navy);font-weight:600;">Viewed ✓✓</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- NEW EVENT MODAL -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Log a new event</h3>
+      <button class="modal-close" onclick="closeModal('event-modal')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="wiz-steps" id="wiz-steps"></div>
+
+      <div class="wiz-pane active" id="wiz-1">
+        <div class="form-group"><label class="form-label">Event title</label><input class="form-control" placeholder="e.g. AI Agents Bootcamp 2026"></div>
+        <div class="form-group"><label class="form-label">Event type</label>
+          <select class="form-control"><option>Hackathon</option><option>Workshop</option><option>Seminar</option><option>Competition</option></select>
         </div>
+        <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" rows="3" placeholder="Brief description"></textarea></div>
+      </div>
+
+      <div class="wiz-pane" id="wiz-2">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-control"></div>
+          <div class="form-group"><label class="form-label">Time</label><input type="time" class="form-control"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Venue type</label>
+          <div class="chip-row"><span class="chip active">Offline</span><span class="chip">Online</span><span class="chip">Hybrid</span></div>
+        </div>
+        <div class="form-group"><label class="form-label">Location</label><input class="form-control" placeholder="Auditorium / meet link"></div>
+      </div>
+
+      <div class="wiz-pane" id="wiz-3">
+        <div class="form-group"><label class="form-label">Estimated budget (₹)</label><input class="form-control" placeholder="20000"></div>
+        <div class="form-group"><label class="form-label">Expected footfall</label><input class="form-control" placeholder="200"></div>
+        <p style="font-size:12px;color:var(--ink-faint);">Once submitted, this goes to your Faculty Advisor for approval.</p>
+      </div>
     </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="wiz-prev" onclick="wizStep(-1)">Back</button>
+      <button class="btn btn-stamp" id="wiz-next" onclick="wizStep(1)">Next</button>
+    </div>
+  </div>
+</div>
 
-    <!-- ClubSync Shell Script (Mock for features) -->
-    <script src="clubsync-shell.js"></script>
+<!-- TXN MODAL -->
+<div class="modal-overlay" id="txn-modal">
+  <div class="modal-box" style="width:420px;">
+    <div class="modal-head"><h3>Log transaction</h3><button class="modal-close" onclick="closeModal('txn-modal')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="chip-row" style="margin-bottom:14px;">
+        <span class="chip active">Income</span><span class="chip">Expense</span>
+      </div>
+      <div class="form-group"><label class="form-label">Description</label><input class="form-control" placeholder="e.g. Sponsorship from XYZ"></div>
+      <div class="form-group"><label class="form-label">Amount (₹)</label><input class="form-control" placeholder="10000"></div>
+      <div class="form-group"><label class="form-label">Category</label>
+        <select class="form-control"><option>Sponsorship</option><option>Ticket sales</option><option>Logistics</option><option>Marketing</option><option>Refreshments</option></select>
+      </div>
+    </div>
+    <div class="modal-foot" style="justify-content:flex-end;">
+      <button class="btn btn-stamp" onclick="closeModal('txn-modal');toast('Transaction logged')">Save entry</button>
+    </div>
+  </div>
+</div>
 
-    <script>
-        // Provide mock for ClubSyncShell if not available
-        window.ClubSyncShell = window.ClubSyncShell || {
-            getGreeting: () => {
-                const hour = new Date().getHours();
-                if (hour < 12) return "Good Morning";
-                if (hour < 17) return "Good Afternoon";
-                return "Good Evening";
-            },
-            toggleCommandPalette: () => console.log('Toggled command palette'),
-            toggleNotificationPanel: () => console.log('Toggled notifications'),
-            showToast: (msg, type) => alert(msg)
-        };
+<!-- PERMISSIONS MODAL -->
+<div class="modal-overlay" id="perm-modal">
+  <div class="modal-box" style="width:400px;">
+    <div class="modal-head"><h3 id="perm-name">Permissions</h3><button class="modal-close" onclick="closeModal('perm-modal')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body" style="display:flex;flex-direction:column;gap:0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);">
+        <span style="font-size:13px;">Can create events</span>
+        <input type="checkbox" checked>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);">
+        <span style="font-size:13px;">Can approve budget</span>
+        <input type="checkbox">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);">
+        <span style="font-size:13px;">Can manage team</span>
+        <input type="checkbox">
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;">
+        <span style="font-size:13px;">Can post announcements</span>
+        <input type="checkbox" checked>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('perm-modal')">Cancel</button>
+      <button class="btn btn-stamp" onclick="closeModal('perm-modal');toast('Permissions updated')">Save changes</button>
+    </div>
+  </div>
+</div>
 
-        // Navigation Handling
-        document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                
-                // Update active state in nav
-                document.querySelectorAll('.sidebar-nav .nav-item').forEach(nav => nav.classList.remove('active'));
-                item.classList.add('active');
-                
-                // Update breadcrumb
-                document.getElementById('breadcrumb-current').textContent = item.querySelector('span').textContent;
-                
-                // Hide all sections, show target
-                const targetId = item.getAttribute('data-section');
-                document.querySelectorAll('.section-container').forEach(sec => sec.style.display = 'none');
-                document.getElementById(targetId).style.display = 'block';
+<div class="toast-container" id="toast-container"></div>
 
-                // Re-render chart if ledger is opened to fix sizing issues
-                if(targetId === 'section-ledger') {
-                    initLedgerChart();
-                }
-            });
-        });
+<script>
+// ===== NAV =====
+const titles = {
+  'pane-overview':'Desk Summary','pane-events':'Events','pane-ledger':'Ledger',
+  'pane-recruitment':'Recruitment','pane-team':'Team','pane-reports':'Reports'
+};
+document.querySelectorAll('.nav-item[data-target]').forEach(item=>{
+  item.addEventListener('click', ()=> switchPane(item.dataset.target, item));
+});
+function switchPane(id, el){
+  document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const navEl = el || document.querySelector(`.nav-item[data-target="${id}"]`);
+  if(navEl) navEl.classList.add('active');
+  document.getElementById('crumb-current').textContent = titles[id] || 'Desk';
+  if(id==='pane-ledger') setTimeout(renderLedgerChart, 50);
+}
 
-        // Initialize Greeting based on time
-        document.getElementById('greeting').textContent = ClubSyncShell.getGreeting();
+// ===== EVENT VIEW TOGGLE =====
+function toggleEventView(view, btn){
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('events-cards-view').style.display = view==='cards' ? 'block':'none';
+  document.getElementById('events-kanban-view').style.display = view==='kanban' ? 'block':'none';
+}
 
-        // View Toggles (Table vs Kanban)
-        function toggleView(section, viewType) {
-            if (section === 'events') {
-                const isTable = viewType === 'table';
-                document.getElementById('events-table-view').style.display = isTable ? 'block' : 'none';
-                document.getElementById('events-kanban-view').style.display = isTable ? 'none' : 'flex';
-                
-                const btns = document.querySelectorAll('#section-events .tab-btns .btn');
-                btns[0].classList.toggle('active', isTable);
-                btns[1].classList.toggle('active', !isTable);
-            }
-        }
+// ===== MODALS =====
+function openModal(id){ document.getElementById(id).classList.add('active'); if(id==='event-modal') initWizard(); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+function openPermissions(name){
+  document.getElementById('perm-name').textContent = name + ' — Permissions';
+  openModal('perm-modal');
+}
 
-        // Initialize Chart.js for Ledger
-        let chartInstance = null;
-        function initLedgerChart() {
-            const ctx = document.getElementById('ledgerChart');
-            if(!ctx) return;
-            
-            if(chartInstance) chartInstance.destroy();
-            
-            Chart.defaults.color = '#94a3b8';
-            Chart.defaults.font.family = 'Inter, sans-serif';
+// ===== WIZARD =====
+let wStep = 1;
+const wTotal = 3;
+function initWizard(){
+  wStep = 1;
+  document.querySelectorAll('.wiz-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('wiz-1').classList.add('active');
+  renderWizSteps();
+}
+function renderWizSteps(){
+  const el = document.getElementById('wiz-steps');
+  el.innerHTML='';
+  for(let i=1;i<=wTotal;i++){
+    const s = document.createElement('div');
+    s.className = 'wiz-step' + (i<wStep?' done':i===wStep?' active':'');
+    s.textContent = i<wStep ? '✓' : i;
+    el.appendChild(s);
+    if(i<wTotal){ const line=document.createElement('div'); line.className='wiz-line'; el.appendChild(line); }
+  }
+}
+function wizStep(dir){
+  if(wStep===wTotal && dir===1){
+    closeModal('event-modal');
+    toast('Event submitted for approval');
+    return;
+  }
+  document.getElementById('wiz-'+wStep).classList.remove('active');
+  wStep = Math.max(1, Math.min(wTotal, wStep+dir));
+  document.getElementById('wiz-'+wStep).classList.add('active');
+  renderWizSteps();
+  document.getElementById('wiz-prev').style.visibility = wStep===1 ? 'hidden':'visible';
+  document.getElementById('wiz-next').textContent = wStep===wTotal ? 'Submit for approval' : 'Next';
+}
 
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-                    datasets: [
-                        {
-                            label: 'Income',
-                            data: [45000, 30000, 80000, 20000, 100000, 15000, 120000, 75000],
-                            backgroundColor: '#10B981',
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Expenses',
-                            data: [20000, 15000, 40000, 10000, 30000, 5000, 45000, 5000],
-                            backgroundColor: '#EF4444',
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top', align: 'end' }
-                    },
-                    scales: {
-                        y: {
-                            grid: { color: 'rgba(255,255,255,0.05)' }
-                        },
-                        x: {
-                            grid: { display: false }
-                        }
-                    }
-                }
-            });
-        }
+// ===== TOAST =====
+function toast(msg){
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className='toast';
+  t.innerHTML = `<i class="ti ti-circle-check"></i> ${msg}`;
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2600);
+}
 
-        // Initialize Sortable for Recruitment Kanban
-        document.addEventListener('DOMContentLoaded', () => {
-            const cols = ['rec-applied', 'rec-screening', 'rec-interview', 'rec-selected', 'rec-onboarded'];
-            cols.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    new Sortable(el, {
-                        group: 'recruitment',
-                        animation: 150,
-                        ghostClass: 'bg-surface-light'
-                    });
-                }
-            });
-        });
+function finalizeRecruitment(){
+  if(typeof confetti === 'function'){
+    confetti({ particleCount:100, spread:70, origin:{y:0.6}, colors:['#C7452C','#3D6B47','#1B2A4A','#B8791A'] });
+  }
+  toast('Recruitment finalized');
+}
 
-        // Modal Functions
-        function openModal(id) {
-            document.getElementById(id).classList.add('active');
-        }
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
-        
-        function openPermissionsModal(name) {
-            document.getElementById('perm-user-name').textContent = name + " - Permissions";
-            openModal('permissions-modal');
-        }
+// chip toggles in modals
+document.addEventListener('click', e=>{
+  if(e.target.classList.contains('chip')){
+    const row = e.target.closest('.chip-row');
+    row.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    e.target.classList.add('active');
+  }
+});
 
-        // Wizard Logic
-        let currentStep = 1;
-        const totalSteps = 5;
-        function wizardStep(dir) {
-            document.getElementById(`step-${currentStep}`).classList.remove('active');
-            document.getElementById(`step-ind-${currentStep}`).classList.remove('active');
-            
-            currentStep += dir;
-            
-            document.getElementById(`step-${currentStep}`).classList.add('active');
-            for(let i=1; i<=currentStep; i++) {
-                document.getElementById(`step-ind-${i}`).classList.add('active');
-            }
+// ===== SORTABLE =====
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('.kcol').forEach(col=>{
+    new Sortable(col, { group:'kanban', animation:150, ghostClass:'sortable-ghost' });
+  });
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long', day:'numeric', month:'short'});
+});
 
-            const btnPrev = document.getElementById('wizard-prev');
-            const btnNext = document.getElementById('wizard-next');
-            
-            btnPrev.disabled = currentStep === 1;
-            
-            if (currentStep === totalSteps) {
-                btnNext.textContent = 'Submit for Approval';
-                btnNext.onclick = () => {
-                    closeModal('create-event-modal');
-                    if (window.ClubSyncShell && window.ClubSyncShell.showToast) {
-                        ClubSyncShell.showToast('Event submitted for approval', 'success');
-                    } else {
-                        alert('Event submitted for approval');
-                    }
-                    // Reset
-                    setTimeout(() => {
-                        wizardStep(1 - currentStep); 
-                        btnNext.onclick = () => wizardStep(1);
-                    }, 500);
-                };
-            } else {
-                btnNext.textContent = 'Next Step';
-                btnNext.onclick = () => wizardStep(1);
-            }
-        }
+// ===== CHART =====
+let ledgerChartInstance = null;
+function renderLedgerChart(){
+  const ctx = document.getElementById('ledgerChart');
+  if(!ctx) return;
+  if(ledgerChartInstance) ledgerChartInstance.destroy();
+  Chart.defaults.color = '#9AA1B3';
+  Chart.defaults.font.family = 'Inter, sans-serif';
+  ledgerChartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
+      datasets:[
+        { label:'Income', data:[45000,30000,80000,20000,100000,15000,120000,75000], backgroundColor:'#3D6B47', borderRadius:3 },
+        { label:'Expenses', data:[20000,15000,40000,10000,30000,5000,45000,5000], backgroundColor:'#C7452C', borderRadius:3 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', align:'end', labels:{boxWidth:10,font:{size:11}} } },
+      scales:{
+        y:{ grid:{color:'#E4DDCB'}, ticks:{font:{size:10}} },
+        x:{ grid:{display:false}, ticks:{font:{size:10}} }
+      }
+    }
+  });
+}
 
-        // Confetti
-        function finalizeRecruitment() {
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#EF4444', '#10B981', '#3B82F6']
-            });
-            if (window.ClubSyncShell && window.ClubSyncShell.showToast) {
-                ClubSyncShell.showToast('Recruitment finalized successfully!', 'success');
-            } else {
-                alert('Recruitment finalized successfully!');
-            }
-        }
-
-        // Animate Counters
-        setTimeout(() => {
-            document.querySelectorAll('.counter').forEach(el => {
-                const target = parseInt(el.getAttribute('data-target'));
-                let current = 0;
-                const inc = target / 20;
-                const timer = setInterval(() => {
-                    current += inc;
-                    if(current >= target) {
-                        el.textContent = target;
-                        clearInterval(timer);
-                    } else {
-                        el.textContent = Math.floor(current);
-                    }
-                }, 40);
-            });
-        }, 800); // after skeleton theoretically ends
-    </script>
+function toggleRail(){ document.getElementById('rail').classList.toggle('open'); }
+</script>
 </body>
 </html>

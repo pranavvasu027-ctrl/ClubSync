@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "ClubSync",
+    "owner": "adisha27",
     "slug": "clubsync",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,7 +30,8 @@
       "expo-asset",
       "expo-font",
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-image-picker"
     ],
     "extra": {
       "eas": {
