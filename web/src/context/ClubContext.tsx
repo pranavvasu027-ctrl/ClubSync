@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ClubData, initialClubData } from '../lib/secretaryData';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { initialClubData } from '../lib/secretaryData';
+import type { ClubData } from '../lib/secretaryData';
 import { supabase } from '../lib/supabase';
 
 interface ClubContextType {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ClubEvent } from '../../types/clubData';
+import type { ClubEvent } from '../../types/clubData';
 import styles from './FacultyDashboard.module.css';
 import layoutStyles from '../../layouts/FacultyLayout.module.css';
 import { IconCheck, IconX } from '@tabler/icons-react';

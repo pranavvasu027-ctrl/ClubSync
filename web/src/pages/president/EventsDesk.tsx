@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ClubEvent } from '../../types/clubData';
+import type { ClubEvent } from '../../types/clubData';
 import { ReactSortable } from 'react-sortablejs';
 import styles from './PresidentDashboard.module.css'; // Reusing hero styles
 import { IconCalendarEvent, IconMapPin, IconUsers, IconLayoutGrid, IconLayoutKanban, IconPlus } from '@tabler/icons-react';

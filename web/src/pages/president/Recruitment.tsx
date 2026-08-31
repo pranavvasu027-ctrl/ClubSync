@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ClubApplicant } from '../../types/clubData';
+import type { ClubApplicant } from '../../types/clubData';
 import { ReactSortable } from 'react-sortablejs';
 import styles from './PresidentDashboard.module.css';
 import { IconCheck, IconTag } from '@tabler/icons-react';

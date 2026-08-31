@@ -3,7 +3,7 @@ import styles from './PresidentDashboard.module.css';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { IconCalendarEvent, IconUsers, IconWallet, IconChecklist, IconMapPin } from '@tabler/icons-react';
-import { ClubEvent } from '../../types/clubData';
+import type { ClubEvent } from '../../types/clubData';
 
 const PresidentDashboard: React.FC = () => {
   const { profile } = useAuth();

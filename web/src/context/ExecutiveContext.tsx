@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ExecData, initialExecData } from '../lib/executiveData';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import { initialExecData } from '../lib/executiveData';
+import type { ExecData } from '../lib/executiveData';
 import { supabase } from '../lib/supabase';
 
 interface ExecContextType {

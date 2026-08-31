@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ClubLedgerTxn } from '../../types/clubData';
+import type { ClubLedgerTxn } from '../../types/clubData';
 import styles from './PresidentDashboard.module.css';
 import { IconPlus, IconArrowDownLeft, IconArrowUpRight } from '@tabler/icons-react';
 
