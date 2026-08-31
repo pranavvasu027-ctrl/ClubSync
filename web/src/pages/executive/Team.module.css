@@ -1,0 +1,21 @@
+.hero { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 26px; }
+.heroEyebrow { font-family: monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--exec-lime); margin-bottom: 8px; }
+.hero h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.5px; margin: 0; }
+.hero p { color: var(--exec-text-dim); font-size: 13.5px; margin-top: 6px; }
+
+.teamGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.teamCard { background: var(--exec-panel); border: 1px solid var(--exec-line); border-radius: 12px; padding: 16px; text-align: center; }
+.teamAvatar { width: 46px; height: 46px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #0B1210; position: relative; }
+.teamStatus { position: absolute; bottom: 0; right: 0; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--exec-panel); }
+.statusOn { background: var(--exec-lime); }
+.statusOff { background: var(--exec-text-faint); }
+.teamName { font-size: 12.5px; font-weight: 700; }
+.teamRole { font-size: 10.5px; color: var(--exec-text-faint); margin-bottom: 8px; }
+.teamTask { font-size: 10px; color: var(--exec-text-dim); background: var(--exec-panel-2); border-radius: 6px; padding: 5px; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.btnGhost { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 5px 10px; border-radius: 9px; font-size: 11px; font-weight: 700; border: 1px solid var(--exec-line-strong); background: transparent; color: var(--exec-text); cursor: pointer; width: 100%; }
+.btnGhost:hover { background: rgba(255,255,255,0.04); }
+
+@media (max-width: 900px) {
+  .teamGrid { grid-template-columns: repeat(2, 1fr); }
+}

@@ -1,0 +1,49 @@
+.hero {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid var(--sec-ink);
+}
+.heroEyebrow { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sec-coral); font-weight: 700; margin-bottom: 8px; }
+.hero h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 32px; letter-spacing: -0.5px; line-height: 1.05; margin: 0; }
+.hero p { color: var(--sec-ink-soft); font-size: 13.5px; margin-top: 6px; }
+
+.btnRow { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 15px; border-radius: 7px; font-size: 12.5px; font-weight: 600;
+  border: 1px solid transparent; cursor: pointer; font-family: 'Inter', sans-serif;
+}
+.btnStamp { background: var(--sec-amber-deep); color: #fff; box-shadow: 0 2px 0 #6E480C; }
+.btnStamp:hover { transform: translateY(1px); box-shadow: 0 1px 0 #6E480C; }
+.btnGhost { background: var(--sec-card); border-color: var(--sec-rule-strong); color: var(--sec-ink); }
+.btnGhost:hover { background: var(--sec-paper-deep); }
+
+.editorSplit { display: flex; gap: 20px; align-items: flex-start; }
+.editorBlocks { flex: 1.5; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.block {
+  background: var(--sec-card); border: 1px solid var(--sec-rule); border-radius: 10px;
+  padding: 14px; cursor: grab; box-shadow: var(--sec-shadow-card);
+}
+.block:active { cursor: grabbing; }
+.blockHead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.blockHeadLeft { display: flex; align-items: center; gap: 8px; }
+.blockHandle { color: var(--sec-ink-faint); cursor: grab; }
+.blockName { font-weight: 700; font-size: 13px; }
+.fieldLabel { font-size: 10.5px; font-weight: 700; color: var(--sec-ink-faint); text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 4px; }
+.fieldLabel:first-child { margin-top: 0; }
+.ta, .inp {
+  width: 100%; background: var(--sec-paper-deep); border: 1px solid var(--sec-rule-strong);
+  border-radius: 7px; padding: 9px 11px; font-size: 12.5px; font-family: 'Inter', sans-serif; color: var(--sec-ink);
+  margin-bottom: 6px;
+}
+.ta:focus, .inp:focus { outline: none; border-color: var(--sec-amber-deep); }
+.ta { resize: vertical; min-height: 80px; }
+
+.editorPreview {
+  flex: 1; position: sticky; top: 0; display: flex; flex-direction: column; gap: 16px; min-width: 320px;
+}
+
+@media (max-width: 1050px) {
+  .editorSplit { flex-direction: column; }
+  .editorPreview { position: static; width: 100%; }
+}

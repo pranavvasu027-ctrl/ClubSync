@@ -1,0 +1,172 @@
+:root {
+  --fac-bg: #0A0A0F;
+  --fac-panel: #111118;
+  --fac-panel-raised: #16161F;
+  --fac-panel-hover: #1C1C28;
+  --fac-line: rgba(255,255,255,0.08);
+  --fac-line-strong: rgba(255,255,255,0.14);
+  --fac-text: #F1F5F9;
+  --fac-text-dim: #94A3B8;
+  --fac-text-faint: rgba(255,255,255,0.32);
+  --fac-accent: #7C3AED;
+  --fac-accent-grad: linear-gradient(135deg, #7C3AED, #3B82F6);
+  --fac-green: #22C55E;
+  --fac-green-bg: rgba(34,197,94,0.10);
+  --fac-amber: #F59E0B;
+  --fac-amber-bg: rgba(245,158,11,0.10);
+  --fac-red: #EF4444;
+  --fac-red-bg: rgba(239,68,68,0.10);
+}
+
+.shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  background: var(--fac-bg);
+  color: var(--fac-text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13.5px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  border-bottom: 1px solid var(--fac-line);
+  padding: 0 20px;
+  background: rgba(10,10,15,0.92);
+  backdrop-filter: blur(12px);
+  z-index: 20;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 800;
+  font-size: 14px;
+  padding-right: 20px;
+  border-right: 1px solid var(--fac-line);
+  height: 100%;
+}
+
+.brandMark {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--fac-accent-grad);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.brandTag {
+  font-family: monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: rgba(129,140,248,0.12);
+  color: #818CF8;
+  border: 1px solid rgba(129,140,248,0.28);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
+.rightCluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.bodyGrid {
+  display: grid;
+  grid-template-columns: 228px 1fr;
+  min-height: 0;
+}
+
+.rail {
+  border-right: 1px solid var(--fac-line);
+  background: var(--fac-bg);
+  overflow-y: auto;
+  padding: 12px 10px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.railLabel {
+  font-family: monospace;
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--fac-text-faint);
+  padding: 16px 10px 5px;
+}
+
+.railItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--fac-text-dim);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+  position: relative;
+}
+
+.railItem:hover {
+  background: var(--fac-panel);
+  color: var(--fac-text);
+}
+
+.railItem.active {
+  background: var(--fac-panel-raised);
+  color: var(--fac-text);
+  border-color: var(--fac-line-strong);
+}
+
+.railItem.active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 9px;
+  bottom: 9px;
+  width: 2.5px;
+  background: var(--fac-accent-grad);
+  border-radius: 2px;
+}
+
+.main {
+  overflow-y: auto;
+  padding: 28px 34px 80px;
+  min-width: 0;
+}
+
+.viewHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.viewHeader h1 {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.viewHeader .sub {
+  color: var(--fac-text-dim);
+  font-size: 12.5px;
+}

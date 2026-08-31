@@ -1,0 +1,33 @@
+.hero { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 26px; }
+.heroEyebrow { font-family: monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--exec-lime); margin-bottom: 8px; }
+.hero h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.5px; margin: 0; }
+.hero p { color: var(--exec-text-dim); font-size: 13.5px; margin-top: 6px; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 15px; border-radius: 9px; font-size: 12.5px; font-weight: 700; border: 1px solid transparent; cursor: pointer; }
+.btnLime { background: var(--exec-lime); color: #0B1210; }
+.btnLime:hover { background: var(--exec-lime-deep); }
+
+.panel { background: var(--exec-panel); border: 1px solid var(--exec-line); border-radius: 14px; margin-bottom: 20px; }
+.panelHead { padding: 16px 20px; border-bottom: 1px solid var(--exec-line); font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15.5px; }
+.panelBody { padding: 18px 20px; }
+
+.formGroup { margin-bottom: 14px; }
+.formLabel { font-size: 11.5px; font-weight: 700; color: var(--exec-text-dim); margin-bottom: 5px; display: block; }
+.formControl { width: 100%; padding: 9px 12px; border: 1px solid var(--exec-line-strong); border-radius: 8px; font-size: 13px; background: var(--exec-panel-2); color: var(--exec-text); }
+.formControl:focus { outline: none; border-color: var(--exec-lime); }
+
+.chipRow { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 6px 12px; border-radius: 14px; font-size: 11.5px; font-weight: 600; border: 1px solid var(--exec-line-strong); background: var(--exec-panel); color: var(--exec-text-dim); cursor: pointer; }
+.chip.active { background: rgba(140,240,110,0.14); border-color: var(--exec-lime); color: var(--exec-lime); }
+
+.composer { background: var(--exec-panel-2); border: 1px solid var(--exec-line); border-radius: 12px; }
+.composerToolbar { display: flex; gap: 4px; padding: 10px; border-bottom: 1px solid var(--exec-line); flex-wrap: wrap; }
+.composerToolbar button { width: 30px; height: 30px; border-radius: 7px; border: none; background: transparent; color: var(--exec-text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.composerToolbar button:hover { background: rgba(255,255,255,0.06); color: var(--exec-text); }
+.composerBody { min-height: 150px; padding: 14px; outline: none; color: var(--exec-text); font-size: 13.5px; line-height: 1.6; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--exec-text-faint); font-weight: 700; padding: 10px 14px; border-bottom: 1px solid var(--exec-line-strong); }
+td { padding: 12px 14px; font-size: 12.5px; border-bottom: 1px solid var(--exec-line); color: var(--exec-text-dim); }
+tbody tr:hover td { background: rgba(255,255,255,0.02); }
+td strong { color: var(--exec-text); }

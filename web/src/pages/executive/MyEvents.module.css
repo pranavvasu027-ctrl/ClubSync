@@ -1,0 +1,20 @@
+.hero { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 26px; }
+.heroEyebrow { font-family: monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--exec-lime); margin-bottom: 8px; }
+.hero h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.5px; margin: 0; }
+.hero p { color: var(--exec-text-dim); font-size: 13.5px; margin-top: 6px; }
+
+.eventGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.eventCard { background: var(--exec-panel); border: 1px solid var(--exec-line); border-radius: 12px; padding: 16px; position: relative; overflow: hidden; }
+.eventAccent { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.eventTitle { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.eventMeta { font-size: 11px; color: var(--exec-text-faint); margin-bottom: 12px; display: flex; gap: 8px; align-items: center; }
+.eventProgressLabel { display: flex; justify-content: space-between; font-size: 11px; color: var(--exec-text-dim); margin-bottom: 5px; }
+.miniTrack { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.miniFill { height: 100%; border-radius: 3px; }
+.eventFoot { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--exec-line); }
+.rolePill { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 10px; background: rgba(99,180,232,0.15); color: var(--exec-sky); }
+.countdownPill { font-family: monospace; font-size: 10.5px; color: var(--exec-amber); background: rgba(240,184,76,0.12); padding: 3px 8px; border-radius: 8px; }
+
+@media (max-width: 800px) {
+  .eventGrid { grid-template-columns: 1fr; }
+}

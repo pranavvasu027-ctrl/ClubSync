@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClubSync &mdash; Owner Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CLUBSYNC DESIGN TOKENS
+============================================================ */
+:root {
+  --bg:           #0A0A0F;
+  --panel:        #111118;
+  --panel-raised: #16161F;
+  --panel-hover:  #1C1C28;
+  --line:         rgba(255,255,255,0.08);
+  --line-soft:    rgba(255,255,255,0.05);
+  --line-strong:  rgba(255,255,255,0.14);
+  --text:         #F1F5F9;
+  --text-dim:     #94A3B8;
+  --text-faint:   rgba(255,255,255,0.32);
+  --accent:       #7C3AED;
+  --accent-end:   #3B82F6;
+  --accent-grad:  linear-gradient(135deg,#7C3AED,#3B82F6);
+  --accent-dim:   rgba(124,58,237,0.18);
+  --accent-glow:  rgba(124,58,237,0.28);
+  --owner:        #818CF8;
+  --owner-bg:     rgba(129,140,248,0.12);
+  --owner-border: rgba(129,140,248,0.28);
+  --green:        #22C55E;
+  --green-bg:     rgba(34,197,94,0.10);
+  --amber:        #F59E0B;
+  --amber-bg:     rgba(245,158,11,0.10);
+  --red:          #EF4444;
+  --red-bg:       rgba(239,68,68,0.10);
+  --blue:         #3B82F6;
+  --blue-bg:      rgba(59,130,246,0.10);
+  --purple:       #A78BFA;
+  --purple-bg:    rgba(167,139,250,0.10);
+  --mono: 'IBM Plex Mono',monospace;
+  --sans: 'Inter',sans-serif;
+  --radius: 4px;
+  --radius-lg: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13.5px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow:hidden;}
+::selection{background:rgba(124,58,237,.35);color:#fff;}
+::-webkit-scrollbar{width:7px;height:7px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.18);}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+#app{display:grid;grid-template-rows:auto auto 1fr;height:100vh;}
+
+/* Impersonation banner */
+#imp-banner{
+  display:none;align-items:center;gap:10px;
+  background:repeating-linear-gradient(135deg,#2D1A00,#2D1A00 12px,#231400 12px,#231400 24px);
+  border-bottom:1px solid rgba(245,158,11,0.35);
+  color:#FCD34D;padding:8px 20px;font-size:12px;font-family:var(--mono);z-index:30;
+}
+#imp-banner.active{display:flex;}
+#imp-banner .imp-dot{width:7px;height:7px;border-radius:50%;background:#FCD34D;animation:blink 1.4s infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+#imp-banner .imp-timer{margin-left:auto;display:flex;align-items:center;gap:16px;}
+#imp-banner .exit-btn{background:#FCD34D;color:#1C1200;border:none;padding:5px 13px;font-weight:700;font-size:11.5px;border-radius:3px;}
+#imp-banner .exit-btn:hover{background:#FDE68A;}
+
+/* Topbar */
+#topbar{display:flex;align-items:center;height:52px;border-bottom:1px solid var(--line);padding:0 20px;background:rgba(10,10,15,0.92);backdrop-filter:blur(12px);z-index:20;gap:0;}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:14px;letter-spacing:-.02em;padding-right:20px;margin-right:20px;border-right:1px solid var(--line);height:100%;}
+.brand-mark{width:22px;height:22px;border-radius:5px;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;box-shadow:0 0 14px var(--accent-glow);}
+.brand-tag{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;background:var(--owner-bg);color:var(--owner);border:1px solid var(--owner-border);padding:2px 6px;border-radius:3px;margin-left:2px;}
+.pulse-strip{display:flex;align-items:center;gap:24px;flex:1;overflow:hidden;font-family:var(--mono);font-size:11px;color:var(--text-dim);}
+.pulse-item{display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.pulse-item .dot{width:6px;height:6px;border-radius:50%;}
+.pulse-item b{color:var(--text);font-weight:600;}
+.right-cluster{display:flex;align-items:center;gap:12px;margin-left:auto;}
+.tb-search{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 11px;width:230px;color:var(--text-faint);font-size:12px;cursor:text;}
+.tb-search kbd{margin-left:auto;font-family:var(--mono);font-size:9px;background:var(--panel-raised);border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--text-faint);}
+.icon-btn{width:32px;height:32px;border-radius:5px;border:1px solid transparent;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--text-dim);position:relative;}
+.icon-btn:hover{background:var(--panel);border-color:var(--line);}
+.icon-btn .badge{position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid var(--bg);}
+.owner-chip{display:flex;align-items:center;gap:8px;padding:5px 11px 5px 5px;border:1px solid var(--owner-border);border-radius:20px;background:var(--owner-bg);cursor:pointer;}
+.owner-chip:hover{border-color:var(--owner);}
+.owner-av{width:24px;height:24px;border-radius:50%;background:var(--accent-grad);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;}
+.owner-role{font-family:var(--mono);font-size:9px;color:var(--owner);letter-spacing:.04em;}
+
+/* Body grid */
+#body-grid{display:grid;grid-template-columns:228px 1fr;min-height:0;}
+
+/* Rail */
+#rail{border-right:1px solid var(--line);background:var(--bg);overflow-y:auto;padding:12px 10px 24px;display:flex;flex-direction:column;gap:1px;}
+.rail-group-label{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-faint);padding:16px 10px 5px;}
+.rail-group-label:first-child{padding-top:4px;}
+.rail-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;color:var(--text-dim);font-size:12.5px;font-weight:500;cursor:pointer;border:1px solid transparent;position:relative;transition:all .12s;}
+.rail-item:hover{background:var(--panel);color:var(--text);}
+.rail-item.active{background:var(--panel-raised);color:var(--text);border-color:var(--line-strong);}
+.rail-item.active::before{content:'';position:absolute;left:-10px;top:9px;bottom:9px;width:2.5px;background:var(--accent-grad);border-radius:2px;}
+.rail-item .ic{width:15px;height:15px;flex-shrink:0;opacity:.8;}
+.rail-item.active .ic{opacity:1;}
+.count-chip{margin-left:auto;font-family:var(--mono);font-size:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:1px 6px;color:var(--text-faint);}
+.count-chip.warn{color:var(--amber);border-color:rgba(245,158,11,.3);}
+.count-chip.crit{color:var(--red);border-color:rgba(239,68,68,.3);background:var(--red-bg);}
+
+/* Main */
+#main{overflow-y:auto;padding:28px 34px 80px;min-width:0;}
+.view-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;gap:20px;}
+.view-header h1{font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px;}
+.view-header .sub{color:var(--text-dim);font-size:12.5px;}
+.view-header .actions{display:flex;gap:8px;flex-shrink:0;}
+
+/* Buttons */
+.btn{font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:6px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);display:inline-flex;align-items:center;gap:6px;transition:all .12s;white-space:nowrap;}
+.btn:hover{background:var(--panel-raised);border-color:rgba(255,255,255,.18);}
+.btn.primary{background:var(--accent-grad);border-color:transparent;color:#fff;box-shadow:0 0 16px var(--accent-glow);}
+.btn.primary:hover{filter:brightness(1.1);}
+.btn.danger{background:var(--red-bg);border-color:rgba(239,68,68,.3);color:#FCA5A5;}
+.btn.danger:hover{background:rgba(239,68,68,.18);}
+.btn.sm{padding:5px 10px;font-size:11.5px;border-radius:4px;}
+.btn:disabled{opacity:.38;cursor:not-allowed;}
+
+/* Panels */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;}
+.panel+.panel{margin-top:14px;}
+.panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+
+/* Stat grid */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 20px;transition:border-color .15s;}
+.stat:hover{border-color:var(--line-strong);}
+.stat .label{font-size:11.5px;color:var(--text-dim);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.stat .value{font-family:var(--mono);font-size:28px;font-weight:600;letter-spacing:-.03em;line-height:1;}
+.stat .delta{font-family:var(--mono);font-size:10.5px;margin-top:8px;color:var(--text-faint);}
+.stat .delta.up{color:var(--green);}
+.stat .delta.down{color:var(--red);}
+.progress-track{height:5px;background:var(--panel-raised);border-radius:4px;overflow:hidden;margin:10px 0 6px;}
+.progress-fill{height:100%;border-radius:4px;transition:width .4s;}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{text-align:left;font-weight:600;color:var(--text-faint);font-size:10px;text-transform:uppercase;letter-spacing:.07em;padding:0 10px 10px;border-bottom:1px solid var(--line);}
+tbody td{padding:11px 10px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr{transition:background .1s;}
+tbody tr:hover{background:var(--panel-hover);}
+.mono{font-family:var(--mono);}
+.dim{color:var(--text-dim);}
+.faint{color:var(--text-faint);}
+.fw{font-weight:600;}
+
+/* Pills */
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px;font-family:var(--mono);white-space:nowrap;}
+.pill .d{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.pill.ok{color:var(--green);background:var(--green-bg);}
+.pill.ok .d{background:var(--green);}
+.pill.warn{color:var(--amber);background:var(--amber-bg);}
+.pill.warn .d{background:var(--amber);}
+.pill.crit{color:var(--red);background:var(--red-bg);}
+.pill.crit .d{background:var(--red);}
+.pill.off{color:var(--text-faint);background:rgba(255,255,255,.05);}
+.pill.off .d{background:var(--text-faint);}
+.pill.blue{color:var(--blue);background:var(--blue-bg);}
+.pill.blue .d{background:var(--blue);}
+.pill.purple{color:var(--purple);background:var(--purple-bg);}
+.pill.purple .d{background:var(--purple);}
+
+/* Toggle */
+.switch{width:36px;height:20px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid var(--line);position:relative;flex-shrink:0;cursor:pointer;transition:all .15s;}
+.switch::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:var(--text-faint);top:2px;left:2px;transition:all .15s;}
+.switch.on{background:var(--accent);border-color:var(--accent);}
+.switch.on::after{left:18px;background:#fff;}
+
+/* Modal */
+.modal-veil{display:none;position:fixed;inset:0;background:rgba(5,5,8,.75);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:100;}
+.modal-veil.active{display:flex;}
+.modal{background:var(--panel-raised);border:1px solid var(--line-strong);border-radius:10px;width:480px;max-width:92vw;padding:24px 24px 18px;box-shadow:0 24px 80px rgba(0,0,0,.65);}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:5px;}
+.modal p.desc{color:var(--text-dim);font-size:12px;margin-bottom:18px;line-height:1.6;}
+.modal .field{margin-bottom:12px;}
+.modal .field label{display:block;font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:.03em;text-transform:uppercase;margin-bottom:5px;}
+.modal .field input,.modal .field select,.modal .field textarea{width:100%;background:var(--bg);border:1px solid var(--line-strong);border-radius:5px;padding:8px 11px;color:var(--text);font-size:12.5px;}
+.modal .field input:focus,.modal .field select:focus,.modal .field textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,58,237,.18);}
+.modal .field textarea{resize:vertical;min-height:72px;}
+.modal .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);}
+.warn-box{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.28);border-radius:5px;padding:10px 14px;font-size:11.5px;color:#FCD34D;display:flex;gap:9px;align-items:flex-start;}
+.info-box{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.24);border-radius:6px;padding:12px 16px;font-size:12px;display:flex;gap:9px;align-items:flex-start;margin-bottom:14px;}
+.info-box b{color:var(--blue);}
+.upload-zone{border:1.5px dashed var(--line-strong);border-radius:8px;padding:36px;text-align:center;color:var(--text-dim);transition:all .15s;cursor:pointer;}
+.upload-zone:hover{border-color:var(--accent);background:rgba(124,58,237,.04);}
+.mini-bar-track{width:80px;height:4px;background:var(--panel-raised);border-radius:3px;overflow:hidden;}
+.mini-bar-fill{height:100%;border-radius:3px;}
+.hier-card{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;max-width:520px;transition:border-color .12s;}
+.hier-card:hover{border-color:var(--line-strong);}
+.hier-card.root{background:var(--panel-raised);border-color:var(--owner-border);}
+.hier-children{margin-left:22px;margin-top:8px;display:flex;flex-direction:column;gap:8px;position:relative;}
+.hier-children::before{content:'';position:absolute;left:-14px;top:0;bottom:16px;width:1px;background:var(--line-strong);}
+.grad-text{background:var(--accent-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.mod-item{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line-soft);}
+.mod-item:last-child{border-bottom:none;}
+.empty-note{color:var(--text-faint);font-size:12px;padding:20px 0;text-align:center;}
+svg.ic{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="imp-banner">
+    <span class="imp-dot"></span>
+    <span>VIEWING AS &nbsp;<b id="imp-role-label">FACULTY &middot; Dr. R. Menon, GEC Trivandrum</b>&nbsp; &mdash; all actions are logged</span>
+    <div class="imp-timer">
+      <span>auto-exit in <b id="imp-countdown">05:00</b></span>
+      <button class="exit-btn" id="imp-exit-btn">&times; Exit impersonation</button>
+    </div>
+  </div>
+  <div id="topbar"></div>
+  <div id="body-grid">
+    <div id="rail"></div>
+    <div id="main"></div>
+  </div>
+</div>
+<div class="modal-veil" id="modal-veil">
+  <div class="modal" id="modal-body"></div>
+</div>
+<script>
+const IC={
+  grid:`<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><rect x="14" y="14" width="7" height="7" rx="1.2"/></svg>`,
+  db:`<svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>`,
+  building:`<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="1.2"/><path d="M9 8h.01M15 8h.01M9 12h.01M15 12h.01M9 16h.01M15 16h.01"/></svg>`,
+  key:`<svg class="ic" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M10.5 12.5L20 3M17 6l3 3M14 9l2.5 2.5"/></svg>`,
+  users:`<svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6.2 6.5-6.2s6.5 2.6 6.5 6.2"/><circle cx="17.5" cy="8.5" r="2.6"/><path d="M15.5 14c2.9.2 5 2.6 5 6"/></svg>`,
+  cap:`<svg class="ic" viewBox="0 0 24 24"><path d="M2 8l10-4 10 4-10 4-10-4z"/><path d="M6 10.5v4.5c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 8v6"/></svg>`,
+  sitemap:`<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2.2"/><circle cx="5" cy="19" r="2.2"/><circle cx="12" cy="19" r="2.2"/><circle cx="19" cy="19" r="2.2"/><path d="M12 6.2V12M5 16.8V12h14v4.8M12 12v4.8"/></svg>`,
+  flag:`<svg class="ic" viewBox="0 0 24 24"><path d="M5 3v18M5 4h11l-2 3 2 3H5"/></svg>`,
+  log:`<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="4" rx="1"/><rect x="4" y="10" width="16" height="10" rx="1"/><path d="M8 15h8M8 18h5"/></svg>`,
+  eye:`<svg class="ic" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  pulse:`<svg class="ic" viewBox="0 0 24 24"><path d="M2 12h4l2-7 4 14 3-9 2 4h5"/></svg>`,
+  card:`<svg class="ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>`,
+  upload:`<svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>`,
+  flagAlert:`<svg class="ic" viewBox="0 0 24 24"><path d="M12 2l9 16H3z"/><path d="M12 9v4M12 16h.01"/></svg>`,
+  ban:`<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.5 5.5l13 13"/></svg>`,
+  copy:`<svg class="ic" viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="1.5"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></svg>`,
+  lock:`<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M7 10V7a5 5 0 0110 0v3"/></svg>`,
+  timer:`<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>`,
+  search:`<svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>`,
+  bell:`<svg class="ic" style="width:15px;height:15px" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0112 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 004 0"/></svg>`,
+  chevDown:`<svg class="ic" style="width:12px;height:12px" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>`,
+  plus:`<svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>`,
+  warn:`<svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M12 2l9 16H3z"/><path d="M12 9v4M12 16h.01"/></svg>`,
+  trash:`<svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>`,
+  check:`<svg class="ic" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>`,
+  info:`<svg class="ic" style="width:14px;height:14px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M12 12v5"/></svg>`,
+  settings:`<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>`,
+};
+
+const DATA={
+  platform:{colleges:47,collegesTrend:'+3 this month',activeUsers:18420,activeUsersTrend:'+6.2% WoW',clubs:612,clubsTrend:'+14 this month',events:289,eventsTrend:'38 upcoming'},
+  colleges:[
+    {name:'GEC Trivandrum',region:'Kerala',tier:'Premium',status:'ok',members:1240,clubs:22,health:99.8,joined:'2024-01-14'},
+    {name:'GedIT Institute of Technology',region:'Karnataka',tier:'Free',status:'ok',members:860,clubs:14,health:99.4,joined:'2024-02-02'},
+    {name:'St. Xavier College',region:'Maharashtra',tier:'Premium',status:'warn',members:2010,clubs:31,health:97.1,joined:'2023-11-20'},
+    {name:'NIT Rourkela',region:'Odisha',tier:'Premium',status:'ok',members:3120,clubs:44,health:99.9,joined:'2023-08-09'},
+    {name:'PSG College of Technology',region:'Tamil Nadu',tier:'Free',status:'crit',members:970,clubs:18,health:88.2,joined:'2024-04-27'},
+    {name:'Manipal Institute',region:'Karnataka',tier:'Premium',status:'ok',members:4210,clubs:56,health:99.6,joined:'2023-06-01'},
+    {name:'BITS Pilani (Goa)',region:'Goa',tier:'Premium',status:'ok',members:1890,clubs:27,health:99.9,joined:'2023-09-15'},
+    {name:'Jadavpur University',region:'West Bengal',tier:'Free',status:'ok',members:2400,clubs:33,health:98.8,joined:'2024-03-11'},
+  ],
+  featureFlags:[
+    {module:'Ledger (Budget & Expenses)',desc:'Club treasury, expense tracking, budget approvals',on:true},
+    {module:'NAAC Export',desc:'Accreditation report generation',on:true},
+    {module:'Event Ticketing',desc:'Paid/RSVP event registration',on:true},
+    {module:'Alumni Network',desc:'Cross-batch alumni directory & mentorship',on:false},
+    {module:'Merch Store',desc:'Club merchandise storefront',on:false},
+    {module:'AI Club Assistant',desc:'Auto-drafted announcements & event copy',on:true},
+  ],
+  flagOverrides:[
+    {college:'St. Xavier College',module:'Ledger (Budget & Expenses)',enabled:false},
+    {college:'GedIT Institute of Technology',module:'Merch Store',enabled:false},
+    {college:'GedIT Institute of Technology',module:'Alumni Network',enabled:false},
+  ],
+  auditLog:[
+    {ts:'2026-08-31 09:14',actor:'You (Owner)',action:'Permission override',target:'Faculty @ St. Xavier College',detail:'Granted temporary budget-approval rights to Dr. Iyer',tag:'override'},
+    {ts:'2026-08-31 08:02',actor:'You (Owner)',action:'Escalation resolved',target:'Ticket #4471 - PSG College',detail:'Reinstated club page after false-positive moderation flag',tag:'escalation'},
+    {ts:'2026-08-30 21:47',actor:'System',action:'College added',target:'Jadavpur University',detail:'Self-service onboarding, verified via .edu domain',tag:'college'},
+    {ts:'2026-08-30 19:20',actor:'You (Owner)',action:'Impersonation session',target:'Faculty - GEC Trivandrum',detail:'6m 42s — viewed budget queue, no mutations',tag:'impersonation'},
+    {ts:'2026-08-30 16:05',actor:'You (Owner)',action:'Account suspended',target:'club_lead_892 (Rohan K.)',detail:'Repeated spam announcements across 3 colleges',tag:'trust'},
+    {ts:'2026-08-29 11:30',actor:'You (Owner)',action:'Feature flag changed',target:'PSG College of Technology',detail:'Ledger disabled — college opted out for this term',tag:'flag'},
+    {ts:'2026-08-28 14:12',actor:'You (Owner)',action:'College removed',target:'Test Sandbox College #2',detail:'Duplicate test entry cleaned up',tag:'college'},
+    {ts:'2026-08-27 10:00',actor:'System',action:'Delegated approval set',target:'Faculty @ NIT Rourkela',detail:'Dr. Sharma delegated to Dr. Nair (leave: Sep 1-14)',tag:'delegation'},
+  ],
+  moderationQueue:[
+    {college:'PSG College of Technology',item:'Announcement: "Free crypto workshop, guaranteed returns"',club:'FinTech Club',flaggedBy:'Auto-filter',severity:'crit',age:'2h'},
+    {college:'St. Xavier College',item:'Club banner — misleading claims reported by 3 users',club:'Debate Society',flaggedBy:'3 users',severity:'warn',age:'6h'},
+    {college:'GedIT Institute of Technology',item:'Event listing with off-platform payment link',club:'Robotics Club',flaggedBy:'Faculty',severity:'warn',age:'1d'},
+    {college:'Manipal Institute',item:'Announcement — duplicate spam posting',club:'Unaffiliated',flaggedBy:'Auto-filter',severity:'crit',age:'3h'},
+  ],
+  hierarchy:{
+    name:'ClubSync Platform',role:'Owner',sub:'You (Aditi K.)',color:'owner',
+    children:[
+      {name:'GEC Trivandrum',role:'College',color:'blue',children:[
+        {name:'Dr. R. Menon',role:'Faculty Advisor',color:'amber',children:[
+          {name:'Tech Club',role:'Club Lead: A. Nair',color:'green',children:[{name:'42 members',role:'Members',color:null}]},
+          {name:'Cultural Club',role:'Club Lead: S. Pillai',color:'green',children:[{name:'67 members',role:'Members',color:null}]},
+        ]},
+      ]},
+      {name:'NIT Rourkela',role:'College',color:'blue',children:[
+        {name:'Dr. P. Sharma',role:'Faculty Advisor',color:'amber',children:[
+          {name:'Robotics Society',role:'Club Lead: V. Das',color:'green',children:[{name:'58 members',role:'Members',color:null}]},
+        ]},
+        {name:'Dr. A. Nair',role:'Faculty Advisor',color:'amber',children:[
+          {name:'Music Club',role:'Club Lead: R. Ghosh',color:'green',children:[{name:'34 members',role:'Members',color:null}]},
+        ]},
+      ]},
+      {name:'St. Xavier College',role:'College',color:'blue',children:[
+        {name:'Dr. K. Iyer',role:'Faculty Advisor',color:'amber',children:[
+          {name:'Debate Society',role:'Club Lead: M. Fernandes',color:'green',children:[{name:'29 members',role:'Members',color:null}]},
+        ]},
+      ]},
+    ]
+  },
+  members:[
+    {name:'Arjun Nair',role:'Club Lead',college:'GEC Trivandrum',club:'Tech Club',status:'active',email:'arjun.nair@gec.ac.in'},
+    {name:'Dr. Rekha Menon',role:'Faculty',college:'GEC Trivandrum',club:'—',status:'active',email:'r.menon@gec.ac.in'},
+    {name:'Priya Sharma',role:'Member',college:'NIT Rourkela',club:'Robotics Society',status:'active',email:'priya.s@nitr.ac.in'},
+    {name:'Rohan Kulkarni',role:'Club Lead',college:'PSG College of Technology',club:'FinTech Club',status:'suspended',email:'rohan.k@psg.ac.in'},
+    {name:'Dr. Anil Nair',role:'Faculty',college:'NIT Rourkela',club:'—',status:'on leave',email:'a.nair@nitr.ac.in'},
+    {name:'Sana Fernandes',role:'Club Lead',college:'St. Xavier College',club:'Debate Society',status:'active',email:'sana.f@sxc.edu.in'},
+    {name:'Vikram Das',role:'Member',college:'NIT Rourkela',club:'Robotics Society',status:'active',email:'vikram.d@nitr.ac.in'},
+  ],
+  billing:[
+    {college:'GEC Trivandrum',tier:'Premium',mrr:4200,renews:'2026-11-01',status:'ok'},
+    {college:'NIT Rourkela',tier:'Premium',mrr:6800,renews:'2026-09-18',status:'ok'},
+    {college:'Manipal Institute',tier:'Premium',mrr:7900,renews:'2026-10-05',status:'ok'},
+    {college:'St. Xavier College',tier:'Premium',mrr:5100,renews:'2026-09-02',status:'warn'},
+    {college:'GedIT Institute of Technology',tier:'Free',mrr:0,renews:'—',status:'off'},
+    {college:'PSG College of Technology',tier:'Free',mrr:0,renews:'—',status:'off'},
+  ],
+  supabase:{dbGB:41.2,dbCap:100,stGB:128.6,stCap:250,rowsM:8.4,apiToday:214000,monthlyCost:612},
+  apiHealth:[
+    {name:'auth-service',errRate:0.02,latency:88,status:'ok'},
+    {name:'clubs-api',errRate:0.01,latency:112,status:'ok'},
+    {name:'ledger-api',errRate:1.84,latency:340,status:'warn'},
+    {name:'events-api',errRate:0.04,latency:95,status:'ok'},
+    {name:'notifications-worker',errRate:6.2,latency:510,status:'crit'},
+    {name:'naac-export',errRate:0.0,latency:1200,status:'ok'},
+  ],
+  duplicates:[
+    {name:'GedIT Technical Club',college:'GedIT Institute of Technology',existing:'GedIT Tech Club (2024-02-03)',sim:94},
+    {name:'Robotics Club',college:'NIT Rourkela',existing:'Robotics Society (2023-08-12)',sim:78},
+  ],
+  delegations:[
+    {from:'Dr. Anil Nair (Faculty, NIT Rourkela)',to:'Dr. Priya Sharma',scope:'Budget approvals',window:'Sep 1 - Sep 14, 2026',status:'active'},
+    {from:'Dr. Kavya Iyer (Faculty, St. Xavier)',to:'Dr. M. Fernandes',scope:'Escalation resolution',window:'Sep 10 - Sep 20, 2026',status:'scheduled'},
+  ],
+  escalations:[
+    {id:'#4471',college:'PSG College of Technology',summary:'Moderation appeal — club page reinstated after review',priority:'crit',status:'resolved'},
+    {id:'#4472',college:'St. Xavier College',summary:'Faculty requesting temporary budget-approval override',priority:'warn',status:'open'},
+    {id:'#4473',college:'GedIT Institute of Technology',summary:'Duplicate club creation flagged, needs merge decision',priority:'warn',status:'open'},
+    {id:'#4474',college:'Manipal Institute',summary:'Account suspension appeal from club_lead_892',priority:'crit',status:'open'},
+  ],
+};
+
+const NAV=[
+  {group:'Overview',items:[{id:'overview',label:'Global Analytics',icon:'grid'},{id:'hierarchy',label:'Hierarchy View',icon:'sitemap'}]},
+  {group:'Owner Controls',items:[
+    {id:'colleges',label:'Colleges',icon:'building'},
+    {id:'members',label:'Members & Faculty',icon:'users'},
+    {id:'permissions',label:'Permissions & Escalations',icon:'key',countKey:'escOpen'},
+    {id:'database',label:'Database & Scaling',icon:'db'},
+  ]},
+  {group:'Governance',items:[
+    {id:'flags',label:'Feature Flags',icon:'flag'},
+    {id:'audit',label:'Audit Log',icon:'log'},
+    {id:'impersonation',label:'Impersonation',icon:'eye'},
+  ]},
+  {group:'Business & Ops',items:[
+    {id:'health',label:'Platform Health',icon:'pulse',countKey:'critSvc'},
+    {id:'billing',label:'Billing & Plans',icon:'card'},
+    {id:'bulkdata',label:'Bulk Import / Export',icon:'upload'},
+  ]},
+  {group:'Trust & Safety',items:[
+    {id:'moderation',label:'Moderation Queue',icon:'flagAlert',countKey:'modCrit'},
+    {id:'suspend',label:'Suspend / Reinstate',icon:'ban'},
+    {id:'duplicates',label:'Duplicate Detection',icon:'copy'},
+    {id:'security',label:'Session & Re-auth',icon:'lock'},
+    {id:'delegation',label:'Delegated Approvals',icon:'timer'},
+  ]},
+];
+
+function getCounts(){return{escOpen:DATA.escalations.filter(e=>e.status==='open').length,critSvc:DATA.apiHealth.filter(a=>a.status==='crit').length,modCrit:DATA.moderationQueue.filter(m=>m.severity==='crit').length};}
+
+let currentView='overview';
+
+function renderTopbar(){
+  document.getElementById('topbar').innerHTML=`
+    <div class="brand"><div class="brand-mark">CS</div><span>ClubSync</span><span class="brand-tag">OWNER</span></div>
+    <div class="pulse-strip">
+      <div class="pulse-item"><span class="dot" style="background:var(--green)"></span>All systems <b>nominal</b></div>
+      <div class="pulse-item"><span>Colleges</span>&nbsp;<b>${DATA.platform.colleges}</b></div>
+      <div class="pulse-item"><span>Active now</span>&nbsp;<b>${(DATA.platform.activeUsers/1000).toFixed(1)}k</b></div>
+      <div class="pulse-item"><span>API err rate</span>&nbsp;<b style="color:var(--amber)">0.9%</b></div>
+      <div class="pulse-item"><span>DB usage</span>&nbsp;<b>${DATA.supabase.dbGB}GB / ${DATA.supabase.dbCap}GB</b></div>
+    </div>
+    <div class="right-cluster">
+      <div class="tb-search">${IC.search}<span>Search colleges, users, logs&hellip;</span><kbd>&#8984;K</kbd></div>
+      <button class="icon-btn">${IC.bell}<span class="badge"></span></button>
+      <button class="icon-btn">${IC.settings}</button>
+      <div class="owner-chip">
+        <div class="owner-av">AK</div>
+        <div><div style="font-weight:700;font-size:12px;line-height:1.2;">Aditi K.</div><div class="owner-role">PLATFORM OWNER</div></div>
+        ${IC.chevDown}
+      </div>
+    </div>`;
+}
+
+function renderRail(){
+  const counts=getCounts();
+  document.getElementById('rail').innerHTML=NAV.map(g=>`
+    <div class="rail-group-label">${g.group}</div>
+    ${g.items.map(it=>{
+      const c=it.countKey?counts[it.countKey]:null;
+      const cls=(it.countKey==='critSvc'||it.countKey==='modCrit')?'crit':(it.countKey&&c?'warn':'');
+      return`<div class="rail-item ${currentView===it.id?'active':''}" data-view="${it.id}">${IC[it.icon]}<span>${it.label}</span>${c?`<span class="count-chip ${cls}">${c}</span>`:''}</div>`;
+    }).join('')}`).join('');
+  document.getElementById('rail').querySelectorAll('.rail-item').forEach(n=>n.addEventListener('click',()=>navigate(n.dataset.view)));
+}
+
+function navigate(view){currentView=view;renderRail();renderMain();document.getElementById('main').scrollTop=0;}
+
+function pill(cls,label){return`<span class="pill ${cls}"><span class="d"></span>${label}</span>`;}
+function statusPill(s){const m={ok:'Healthy',warn:'Degraded',crit:'Critical',off:'Free',blue:'Open',purple:'Info'};return pill(s,m[s]||s);}
+function tierPill(t){return t==='Premium'?pill('blue','Premium'):pill('off','Free');}
+function msPill(s){if(s==='active')return pill('ok','Active');if(s==='suspended')return pill('crit','Suspended');return pill('warn','On leave');}
+function hierColor(c){return{owner:'#818CF8',blue:'#3B82F6',amber:'#F59E0B',green:'#22C55E'}[c]||'rgba(255,255,255,0.25)';}
+
+function renderHierNode(node,depth){
+  const kids=node.children||[];
+  return`<div>
+    <div class="hier-card ${depth===0?'root':''}" ${depth===0?'style="border-color:var(--owner-border)"':''}>
+      ${depth>0?`<span class="faint" style="font-size:11px;font-family:var(--mono)">&boxdr;</span>`:''}
+      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${hierColor(node.color)};flex-shrink:0;box-shadow:0 0 6px ${hierColor(node.color)}55;"></span>
+      <div style="flex:1;min-width:0;"><div class="fw" style="font-size:12.5px;">${node.name}</div>${node.sub?`<div class="dim" style="font-size:11px;">${node.sub}</div>`:''}</div>
+      <span class="mono faint" style="font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;">${node.role}</span>
+    </div>
+    ${kids.length?`<div class="hier-children">${kids.map(k=>renderHierNode(k,depth+1)).join('')}</div>`:''}
+  </div>`;
+}
+
+function openModal(html){document.getElementById('modal-body').innerHTML=html;document.getElementById('modal-veil').classList.add('active');}
+function closeModal(){document.getElementById('modal-veil').classList.remove('active');}
+document.getElementById('modal-veil').addEventListener('click',e=>{if(e.target===document.getElementById('modal-veil'))closeModal();});
+
+function mFoot(label,cls='primary'){return`<div class="foot"><button class="btn sm" onclick="closeModal()">Cancel</button><button class="btn sm ${cls}" onclick="closeModal()">${IC.check} ${label}</button></div>`;}
+
+function mAddCollege(){return`<h3>${IC.plus} Add College</h3><p class="desc">Register a new college. An onboarding invite will be sent to the admin contact.</p><div class="field"><label>College Name</label><input type="text" placeholder="e.g. IIT Bombay"></div><div class="field"><label>Region / State</label><input type="text" placeholder="Maharashtra"></div><div class="field"><label>Admin Email</label><input type="email" placeholder="admin@college.ac.in"></div><div class="field"><label>Plan Tier</label><select><option>Free</option><option>Premium</option></select></div><div class="warn-box">${IC.warn}<div>Adding a college creates a Supabase schema partition. This action is logged to the audit trail.</div></div>${mFoot('Add College')}`;}
+function mRemoveCollege(){return`<h3 style="color:var(--red)">${IC.ban} Remove College</h3><p class="desc">Permanently removes a college and all associated data. Cannot be undone.</p><div class="field"><label>Select College</label><select>${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select></div><div class="field"><label>Reason</label><textarea placeholder="e.g. College withdrew from the platform..."></textarea></div><div class="warn-box" style="background:var(--red-bg);border-color:rgba(239,68,68,.35);color:#FCA5A5;">${IC.warn}<div><b>Irreversible.</b> All clubs, events, budgets, and member data will be purged. A re-auth challenge will be required.</div></div>${mFoot('Remove College','danger')}`;}
+function mAddMember(){return`<h3>${IC.plus} Add Member</h3><p class="desc">Manually onboard a user. They will receive an invite link.</p><div class="field"><label>Full Name</label><input type="text" placeholder="e.g. Ananya Krishnan"></div><div class="field"><label>Email</label><input type="email" placeholder="ananya@college.ac.in"></div><div class="field"><label>College</label><select>${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select></div><div class="field"><label>Role</label><select><option>Member</option><option>Club Lead</option><option>Secretary</option><option>Executive</option></select></div>${mFoot('Send Invite')}`;}
+function mAssignFaculty(){return`<h3>${IC.cap} Assign Faculty Advisor</h3><p class="desc">Link a Faculty account to a college. Future releases delegate this to the college representative.</p><div class="field"><label>Faculty Name</label><input type="text" placeholder="Dr. Full Name"></div><div class="field"><label>Institutional Email</label><input type="email" placeholder="faculty@college.ac.in"></div><div class="field"><label>Assign to College</label><select>${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select></div><div class="field"><label>Department (optional)</label><input type="text" placeholder="Computer Science & Engineering"></div><div class="warn-box">${IC.info}<div>Faculty will receive a platform invite with the Faculty role pre-assigned. Owner retains override rights.</div></div>${mFoot('Assign Faculty')}`;}
+function mNewOverride(){return`<h3>${IC.key} New Permission Override</h3><p class="desc">Grant or revoke a permission outside the standard role matrix. All overrides require re-auth and appear in the audit log.</p><div class="field"><label>College</label><select>${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select></div><div class="field"><label>Target Role</label><select><option>Faculty</option><option>College Representative</option><option>Club Lead</option><option>Executive</option></select></div><div class="field"><label>Capability</label><select><option>Approve club budgets</option><option>Suspend accounts</option><option>Create clubs</option><option>Access NAAC export</option><option>Manage feature flags</option></select></div><div class="field"><label>Override Type</label><select><option>Grant</option><option>Revoke</option></select></div><div class="field"><label>Justification</label><textarea placeholder="e.g. Faculty on leave, temporary budget approval needed..."></textarea></div><div class="warn-box">${IC.warn}<div>A re-authentication challenge will be triggered before this override is applied.</div></div>${mFoot('Apply Override')}`;}
+function mSuspend(){return`<h3 style="color:var(--red)">${IC.ban} Suspend Account</h3><p class="desc">Immediately revoke platform access. User will be notified with the suspension reason.</p><div class="field"><label>User Email or Username</label><input type="text" placeholder="user@college.ac.in or @username"></div><div class="field"><label>College</label><select><option>Platform-wide</option>${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select></div><div class="field"><label>Suspension Reason</label><select><option>Spam / repeat violations</option><option>Harassment</option><option>False information</option><option>Off-platform payment solicitation</option><option>Other</option></select></div><div class="field"><label>Internal Notes</label><textarea placeholder="Additional context for the audit trail..."></textarea></div>${mFoot('Suspend Account','danger')}`;}
+function mNewDelegation(){return`<h3>${IC.timer} New Delegated Approval Window</h3><p class="desc">Allow a role to nominate a temporary backup approver. Audit trail shows who actually signed off.</p><div class="field"><label>Delegating from</label><input type="text" placeholder="Dr. Full Name (Faculty, College Name)"></div><div class="field"><label>Delegating to</label><input type="text" placeholder="Dr. Backup Name"></div><div class="field"><label>Scope</label><select><option>Budget approvals</option><option>Escalation resolution</option><option>Event approvals</option><option>All approvals</option></select></div><div class="field"><label>Start Date</label><input type="date"></div><div class="field"><label>End Date</label><input type="date"></div><div class="warn-box">${IC.info}<div>Every action during the window is attributed to the delegate in the audit log, with a reference back to the original approver.</div></div>${mFoot('Create Delegation')}`;}
+function mFlagOverride(){return`<h3>${IC.flag} Add Per-College Flag Override</h3><p class="desc">Override a global feature flag for a specific college without affecting the rest of the platform.</p><div class="field"><label>College</label><select>${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select></div><div class="field"><label>Module</label><select>${DATA.featureFlags.map(f=>`<option>${f.module}</option>`).join('')}</select></div><div class="field"><label>Override State</label><select><option>Enabled (override global OFF)</option><option>Disabled (override global ON)</option></select></div><div class="field"><label>Reason</label><textarea placeholder="e.g. College opted out for this term..."></textarea></div>${mFoot('Save Override')}`;}
+
+const VIEWS={
+overview:()=>`
+  <div class="view-header">
+    <div><h1><span class="grad-text">Global Analytics</span></h1><div class="sub">Platform-wide oversight across all ${DATA.platform.colleges} colleges</div></div>
+    <div class="actions"><button class="btn">${IC.log} Export report</button><button class="btn primary" id="btn-add-college-ov">${IC.plus} Add college</button></div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat"><div class="label">${IC.building} Colleges onboarded</div><div class="value">${DATA.platform.colleges}</div><div class="delta up">${DATA.platform.collegesTrend}</div></div>
+    <div class="stat"><div class="label">${IC.users} Active users</div><div class="value">${DATA.platform.activeUsers.toLocaleString()}</div><div class="delta up">${DATA.platform.activeUsersTrend}</div></div>
+    <div class="stat"><div class="label">${IC.grid} Clubs live</div><div class="value">${DATA.platform.clubs}</div><div class="delta up">${DATA.platform.clubsTrend}</div></div>
+    <div class="stat"><div class="label">${IC.flag} Events tracked</div><div class="value">${DATA.platform.events}</div><div class="delta">${DATA.platform.eventsTrend}</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start;">
+    <div class="panel">
+      <div class="panel-title"><span>College leaderboard — active members</span><span class="dim" style="font-weight:500;text-transform:none;font-size:11px;">Last 30 days</span></div>
+      <table>
+        <thead><tr><th>College</th><th>Tier</th><th>Members</th><th>Health</th><th>Status</th></tr></thead>
+        <tbody>${DATA.colleges.slice().sort((a,b)=>b.members-a.members).map(c=>`
+          <tr><td class="fw">${c.name}<div class="dim" style="font-size:10.5px">${c.region}</div></td><td>${tierPill(c.tier)}</td><td class="mono">${c.members.toLocaleString()}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${c.health}%;background:${c.health<90?'var(--red)':c.health<97?'var(--amber)':'var(--green)'}"></div></div>
+              <span class="mono faint" style="font-size:10px">${c.health}%</span>
+            </div>
+          </td>
+          <td>${statusPill(c.status)}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="panel">
+        <div class="panel-title">Open escalations</div>
+        ${DATA.escalations.filter(e=>e.status==='open').map(e=>`
+          <div style="padding:10px 0;border-bottom:1px solid var(--line-soft);display:flex;gap:10px;align-items:flex-start;">
+            ${pill(e.priority,e.id)}
+            <div style="font-size:12px;"><div class="fw" style="margin-bottom:2px;">${e.college}</div><div class="dim">${e.summary}</div></div>
+          </div>`).join('')}
+        <button class="btn sm" style="margin-top:12px;width:100%;justify-content:center;" data-nav="permissions">Go to Permissions &amp; Escalations &rarr;</button>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Moderation queue</div>
+        ${DATA.moderationQueue.slice(0,3).map(m=>`
+          <div style="padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:12px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span class="fw">${m.club}</span>${pill(m.severity,m.age+' ago')}</div>
+            <div class="dim">${m.item}</div>
+          </div>`).join('')}
+        <button class="btn sm" style="margin-top:12px;width:100%;justify-content:center;" data-nav="moderation">Review full queue &rarr;</button>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Platform health</div>
+        ${DATA.apiHealth.map(a=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line-soft);">
+            <span class="mono dim" style="font-size:11px;min-width:150px;">${a.name}</span>
+            <div class="mini-bar-track" style="flex:1"><div class="mini-bar-fill" style="width:${Math.min(a.errRate/7*100,100)}%;background:${a.status==='crit'?'var(--red)':a.status==='warn'?'var(--amber)':'var(--green)'}"></div></div>
+            ${statusPill(a.status)}
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>`,
+
+hierarchy:()=>`
+  <div class="view-header">
+    <div><h1>Hierarchy View</h1><div class="sub">Owner &rarr; College &rarr; Faculty &rarr; Club Lead &rarr; Members, across the platform</div></div>
+    <div class="actions"><button class="btn">Expand all</button><button class="btn">Filter by college</button></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">
+      <span>Reporting structure <span class="faint">(3 of ${DATA.platform.colleges} colleges shown)</span></span>
+      <div style="display:flex;gap:14px;font-size:11px;font-family:var(--mono);">
+        ${['owner:#818CF8:Owner','blue:#3B82F6:College','amber:#F59E0B:Faculty','green:#22C55E:Club Lead'].map(s=>{const[c,col,l]=s.split(':');return`<span style="display:flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:${col};display:inline-block;"></span>${l}</span>`;}).join('')}
+      </div>
+    </div>
+    ${renderHierNode(DATA.hierarchy,0)}
+  </div>`,
+
+colleges:()=>`
+  <div class="view-header">
+    <div><h1>Colleges</h1><div class="sub">Add, remove, and manage every college in the ClubSync ecosystem</div></div>
+    <div class="actions"><button class="btn danger" id="btn-remove-college">${IC.trash} Remove college</button><button class="btn primary" id="btn-add-college">${IC.plus} Add college</button></div>
+  </div>
+  <div class="panel">
+    <table>
+      <thead><tr><th>College</th><th>Region</th><th>Tier</th><th>Members</th><th>Clubs</th><th>Onboarded</th><th>Health</th><th>Status</th><th></th></tr></thead>
+      <tbody>${DATA.colleges.map(c=>`
+        <tr><td class="fw">${c.name}</td><td class="dim">${c.region}</td><td>${tierPill(c.tier)}</td><td class="mono">${c.members.toLocaleString()}</td><td class="mono">${c.clubs}</td><td class="mono dim">${c.joined}</td>
+        <td><div style="display:flex;align-items:center;gap:7px;"><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${c.health}%;background:${c.health<90?'var(--red)':c.health<97?'var(--amber)':'var(--green)'}"></div></div><span class="mono faint" style="font-size:10px">${c.health}%</span></div></td>
+        <td>${statusPill(c.status)}</td><td style="text-align:right"><button class="btn sm">Manage</button></td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`,
+
+members:()=>`
+  <div class="view-header">
+    <div><h1>Members &amp; Faculty</h1><div class="sub">Add or remove any member, and assign faculty to a college</div></div>
+    <div class="actions"><button class="btn" id="btn-assign-faculty">${IC.cap} Assign faculty</button><button class="btn primary" id="btn-add-member">${IC.plus} Add member</button></div>
+  </div>
+  <div class="info-box">${IC.info}<div><b>Faculty assignment</b> is currently performed by the Owner. Once college representatives are onboarded, this will delegate to each college's representative. Owner retains override rights.</div></div>
+  <div class="panel">
+    <table>
+      <thead><tr><th>Name</th><th>Role</th><th>College</th><th>Club</th><th>Email</th><th>Status</th><th></th></tr></thead>
+      <tbody>${DATA.members.map(m=>`
+        <tr><td class="fw">${m.name}</td><td class="dim">${m.role}</td><td>${m.college}</td><td class="dim">${m.club}</td><td class="mono dim" style="font-size:11px;">${m.email}</td><td>${msPill(m.status)}</td>
+        <td style="text-align:right;white-space:nowrap;"><button class="btn sm">Edit</button>&nbsp;<button class="btn sm danger">Remove</button></td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`,
+
+permissions:()=>`
+  <div class="view-header">
+    <div><h1>Permissions &amp; Escalations</h1><div class="sub">Override system permissions and resolve escalated tickets — Owner has access to every capability</div></div>
+    <div class="actions"><button class="btn primary" id="btn-new-override">${IC.key} New override</button></div>
+  </div>
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">Role capability matrix</div>
+    <table>
+      <thead><tr><th>Capability</th><th>Owner</th><th>College Rep</th><th>Faculty</th><th>Club Lead</th><th>Member</th></tr></thead>
+      <tbody>${[
+        ['Approve club budgets',true,true,true,false,false],
+        ['Suspend accounts (own college)',true,true,true,false,false],
+        ['Suspend accounts (platform-wide)',true,false,false,false,false],
+        ['Create / remove colleges',true,false,false,false,false],
+        ['Assign faculty',true,false,false,false,false],
+        ['Override any permission',true,false,false,false,false],
+        ['Enable/disable feature flags',true,false,false,false,false],
+        ['Impersonate any role',true,false,false,false,false],
+        ['View platform-wide audit log',true,false,false,false,false],
+      ].map(r=>`<tr><td class="fw">${r[0]}</td>${r.slice(1).map(v=>`<td>${v?'<span style="color:var(--green);font-weight:700;">&#x2713;</span>':'<span class="faint">—</span>'}</td>`).join('')}</tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Escalation queue</div>
+    <table>
+      <thead><tr><th>Ticket</th><th>College</th><th>Summary</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+      <tbody>${DATA.escalations.map(e=>`
+        <tr><td class="mono">${e.id}</td><td class="fw">${e.college}</td><td class="dim">${e.summary}</td>
+        <td>${pill(e.priority,e.priority==='crit'?'Critical':'Needs review')}</td>
+        <td>${e.status==='open'?pill('blue','Open'):pill('ok','Resolved')}</td>
+        <td style="text-align:right;">${e.status==='open'?`<button class="btn sm primary">Resolve</button>`:`<button class="btn sm" disabled>Closed</button>`}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`,
+
+database:()=>{const s=DATA.supabase,dbP=Math.round(s.dbGB/s.dbCap*100),stP=Math.round(s.stGB/s.stCap*100);return`
+  <div class="view-header">
+    <div><h1>Database &amp; Scaling</h1><div class="sub">Global Supabase instance — usage, capacity, and scaling controls</div></div>
+    <div class="actions"><button class="btn">View schema</button><button class="btn primary">${IC.db} Request scale-up</button></div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat"><div class="label">${IC.db} Database size</div><div class="value">${s.dbGB}<small style="font-size:14px;color:var(--text-faint)"> GB</small></div><div class="progress-track"><div class="progress-fill" style="width:${dbP}%;background:${dbP>80?'var(--amber)':'var(--accent)'}"></div></div><div class="delta">${dbP}% of ${s.dbCap}GB cap</div></div>
+    <div class="stat"><div class="label">${IC.upload} Storage (media)</div><div class="value">${s.stGB}<small style="font-size:14px;color:var(--text-faint)"> GB</small></div><div class="progress-track"><div class="progress-fill" style="width:${stP}%;background:${stP>80?'var(--amber)':'var(--accent)'}"></div></div><div class="delta">${stP}% of ${s.stCap}GB cap</div></div>
+    <div class="stat"><div class="label">${IC.grid} Total rows</div><div class="value">${s.rowsM}M</div><div class="delta up">+210k this week</div></div>
+    <div class="stat"><div class="label">${IC.pulse} API calls today</div><div class="value">${(s.apiToday/1000).toFixed(0)}k</div><div class="delta">Est. cost: \$${s.monthlyCost}/mo</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">Storage by college</div>
+    <table><thead><tr><th>College</th><th>DB rows</th><th>Media storage</th><th>Monthly egress</th></tr></thead>
+    <tbody>${DATA.colleges.slice(0,6).map((c,i)=>`<tr><td class="fw">${c.name}</td><td class="mono">${(180+i*63).toLocaleString()}k</td><td class="mono">${(4.2+i*1.8).toFixed(1)} GB</td><td class="mono">${(0.8+i*0.4).toFixed(1)} GB</td></tr>`).join('')}</tbody></table>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Scaling controls</div>
+    ${[['Auto-scale compute','Scale Supabase compute at 80% CPU sustained',true],['Read replicas','Route analytics to a read replica',true],['Point-in-time recovery','7-day PITR window across global database',true],['Connection pooling (PgBouncer)','Pool connections per college to reduce concurrency limits',true]].map((r,i,a)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;${i<a.length-1?'border-bottom:1px solid var(--line-soft);':''}">
+      <div><div class="fw" style="font-size:12.5px;">${r[0]}</div><div class="dim" style="font-size:11.5px;">${r[1]}</div></div>
+      <div class="switch ${r[2]?'on':''}" data-toggle></div>
+    </div>`).join('')}
+  </div>`;},
+
+flags:()=>`
+  <div class="view-header">
+    <div><h1>Global Feature Flags</h1><div class="sub">Enable or disable modules platform-wide, or per college</div></div>
+    <div class="actions"><button class="btn primary" id="btn-flag-override">${IC.plus} Add per-college override</button></div>
+  </div>
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">Global defaults — applies to all colleges unless overridden</div>
+    ${DATA.featureFlags.map((f,i,a)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;${i<a.length-1?'border-bottom:1px solid var(--line-soft);':''}">
+      <div><div class="fw" style="font-size:12.5px;">${f.module}</div><div class="dim" style="font-size:11.5px;">${f.desc}</div></div>
+      <div class="switch ${f.on?'on':''}" data-toggle data-flag="${i}"></div>
+    </div>`).join('')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Per-college overrides</div>
+    <table><thead><tr><th>College</th><th>Module</th><th>Override</th><th></th></tr></thead>
+    <tbody>${DATA.flagOverrides.map(o=>`<tr><td class="fw">${o.college}</td><td>${o.module}</td><td>${o.enabled?pill('ok','Enabled'):pill('crit','Disabled')}</td><td style="text-align:right"><button class="btn sm">Edit</button></td></tr>`).join('')}</tbody></table>
+  </div>`,
+
+audit:()=>{const tc={override:'purple',escalation:'blue',college:'ok',impersonation:'warn',trust:'crit',flag:'off',delegation:'blue'};return`
+  <div class="view-header">
+    <div><h1>Audit Log</h1><div class="sub">Searchable, immutable history of every platform action</div></div>
+    <div class="actions"><button class="btn">${IC.upload} Export CSV</button></div>
+  </div>
+  <div class="panel" style="padding:12px 20px;margin-bottom:0;border-radius:var(--radius-lg) var(--radius-lg) 0 0;border-bottom:none;">
+    <div style="display:flex;gap:8px;">
+      <div class="tb-search" style="width:300px;">${IC.search}<span>Search actor, target, action&hellip;</span></div>
+      <select style="background:var(--bg);border:1px solid var(--line-strong);border-radius:5px;color:var(--text);font-size:12px;padding:0 11px;"><option>All action types</option><option>Overrides</option><option>Escalations</option><option>Colleges</option><option>Trust &amp; safety</option><option>Impersonation</option><option>Delegations</option></select>
+      <select style="background:var(--bg);border:1px solid var(--line-strong);border-radius:5px;color:var(--text);font-size:12px;padding:0 11px;"><option>All colleges</option>${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select>
+    </div>
+  </div>
+  <div class="panel" style="border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+    <table><thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+    <tbody>${DATA.auditLog.map(l=>`<tr><td class="mono dim" style="white-space:nowrap;font-size:11px;">${l.ts}</td><td class="fw" style="font-size:12px;">${l.actor}</td><td>${pill(tc[l.tag]||'blue',l.action)}</td><td style="font-size:12px;">${l.target}</td><td class="dim" style="font-size:11.5px;">${l.detail}</td></tr>`).join('')}</tbody></table>
+  </div>`;},
+
+impersonation:()=>`
+  <div class="view-header">
+    <div><h1>Impersonation Mode</h1><div class="sub">Temporarily view the platform as any role for debugging and support</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">Start a session</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 160px auto;gap:10px;align-items:end;">
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);font-weight:600;text-transform:uppercase;margin-bottom:5px;">College</label><select id="imp-college" style="width:100%;background:var(--bg);border:1px solid var(--line-strong);border-radius:5px;padding:8px 10px;color:var(--text);font-size:12.5px;">${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select></div>
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);font-weight:600;text-transform:uppercase;margin-bottom:5px;">Role to view as</label><select id="imp-role" style="width:100%;background:var(--bg);border:1px solid var(--line-strong);border-radius:5px;padding:8px 10px;color:var(--text);font-size:12.5px;"><option>College Representative</option><option>Faculty</option><option>Club Lead</option><option>Member</option></select></div>
+      <div><label style="display:block;font-size:11px;color:var(--text-dim);font-weight:600;text-transform:uppercase;margin-bottom:5px;">Session length</label><select id="imp-length" style="width:100%;background:var(--bg);border:1px solid var(--line-strong);border-radius:5px;padding:8px 10px;color:var(--text);font-size:12.5px;"><option value="300">5 minutes</option><option value="900">15 minutes</option><option value="1800">30 minutes</option></select></div>
+      <button class="btn primary" id="btn-start-imp">${IC.eye} Start session</button>
+    </div>
+    <div class="warn-box" style="margin-top:16px;margin-bottom:0;">${IC.warn}<div>A visible "VIEWING AS" banner shows for the entire session. All actions are logged to the audit trail. Session auto-exits when the timer expires.</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Recent sessions</div>
+    <table><thead><tr><th>When</th><th>Viewed as</th><th>College</th><th>Duration</th><th>Mutations</th></tr></thead>
+    <tbody>
+      <tr><td class="mono dim">2026-08-30 19:20</td><td>Faculty</td><td>GEC Trivandrum</td><td class="mono">6m 42s</td><td>${pill('ok','None')}</td></tr>
+      <tr><td class="mono dim">2026-08-28 12:05</td><td>Club Lead</td><td>PSG College of Technology</td><td class="mono">3m 10s</td><td>${pill('warn','1 edit')}</td></tr>
+      <tr><td class="mono dim">2026-08-25 09:44</td><td>College Representative</td><td>Manipal Institute</td><td class="mono">11m 02s</td><td>${pill('ok','None')}</td></tr>
+    </tbody></table>
+  </div>`,
+
+health:()=>`
+  <div class="view-header">
+    <div><h1>Platform Health</h1><div class="sub">API error rates, Supabase usage/cost tracking, storage consumption</div></div>
+    <div class="actions"><button class="btn">Open incident log</button></div>
+  </div>
+  <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+    <div class="stat"><div class="label">${IC.db} Supabase cost (this month)</div><div class="value">\$${DATA.supabase.monthlyCost}</div><div class="delta up">+8% vs last month</div></div>
+    <div class="stat"><div class="label">${IC.pulse} Platform uptime (30d)</div><div class="value">99.94%</div><div class="delta">2 minor incidents</div></div>
+    <div class="stat"><div class="label">${IC.flagAlert} Open incidents</div><div class="value" style="color:var(--amber);">1</div><div class="delta">notifications-worker error spike</div></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Service status</div>
+    <table><thead><tr><th>Service</th><th>Error rate (24h)</th><th>p95 latency</th><th>Status</th></tr></thead>
+    <tbody>${DATA.apiHealth.map(a=>`<tr><td class="fw mono">${a.name}</td><td class="mono" style="color:${a.errRate>3?'var(--red)':a.errRate>1?'var(--amber)':'var(--text-faint)'}">${a.errRate}%</td><td class="mono dim">${a.latency} ms</td><td>${statusPill(a.status)}</td></tr>`).join('')}</tbody></table>
+  </div>`,
+
+billing:()=>{const total=DATA.billing.reduce((s,b)=>s+b.mrr,0),prem=DATA.billing.filter(b=>b.tier==='Premium').length;return`
+  <div class="view-header">
+    <div><h1>Billing &amp; Plan Tiers</h1><div class="sub">Free tier vs. Premium (NAAC exports, ticketing, alumni network, priority support)</div></div>
+    <div class="actions"><button class="btn primary">${IC.plus} Change plan</button></div>
+  </div>
+  <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+    <div class="stat"><div class="label">${IC.card} Monthly recurring revenue</div><div class="value">\$${total.toLocaleString()}</div><div class="delta up">+4.1% MoM</div></div>
+    <div class="stat"><div class="label">${IC.building} Premium colleges</div><div class="value">${prem}</div><div class="delta">of ${DATA.billing.length} shown</div></div>
+    <div class="stat"><div class="label">${IC.timer} Renewals in 30 days</div><div class="value" style="color:var(--amber);">2</div><div class="delta">St. Xavier, NIT Rourkela</div></div>
+  </div>
+  <div class="panel">
+    <table><thead><tr><th>College</th><th>Plan</th><th>MRR</th><th>Renews</th><th>Status</th><th></th></tr></thead>
+    <tbody>${DATA.billing.map(b=>`<tr><td class="fw">${b.college}</td><td>${tierPill(b.tier)}</td><td class="mono">${b.mrr?'\$'+b.mrr.toLocaleString():'—'}</td><td class="mono dim">${b.renews}</td><td>${statusPill(b.status)}</td><td style="text-align:right"><button class="btn sm">Manage</button></td></tr>`).join('')}</tbody></table>
+  </div>`;},
+
+bulkdata:()=>`
+  <div class="view-header">
+    <div><h1>Bulk Import / Export</h1><div class="sub">Seed a new college's clubs, events, and rosters from CSV</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">Import CSV</div>
+    <div class="upload-zone">${IC.upload}<div style="margin-top:12px;font-size:13px;font-weight:700;color:var(--text);">Drop a CSV file here, or click to browse</div><div style="font-size:11.5px;margin-top:5px;">Supports club rosters, event calendars, and faculty assignments — <a href="#" style="color:var(--accent);">download template</a></div><div style="display:flex;gap:8px;justify-content:center;margin-top:14px;"><button class="btn sm">Choose file</button><select style="background:var(--panel);border:1px solid var(--line-strong);border-radius:5px;color:var(--text);font-size:12px;padding:4px 10px;"><option>Select target college&hellip;</option>${DATA.colleges.map(c=>`<option>${c.name}</option>`).join('')}</select></div></div>
+  </div>
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">Recent imports</div>
+    <table><thead><tr><th>File</th><th>College</th><th>Rows</th><th>When</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">jadavpur_clubs_seed.csv</td><td>Jadavpur University</td><td class="mono">33</td><td class="mono dim">2026-08-30</td><td>${pill('ok','Imported')}</td></tr>
+      <tr><td class="mono">psg_events_q3.csv</td><td>PSG College of Technology</td><td class="mono">18</td><td class="mono dim">2026-08-22</td><td>${pill('warn','2 rows failed')}</td></tr>
+    </tbody></table>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Export</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn sm">${IC.upload} All colleges (CSV)</button><button class="btn sm">${IC.upload} All clubs (CSV)</button><button class="btn sm">${IC.upload} Audit log (CSV)</button><button class="btn sm">${IC.upload} NAAC-ready report</button><button class="btn sm">${IC.upload} Billing summary (CSV)</button></div>
+  </div>`,
+
+moderation:()=>`
+  <div class="view-header">
+    <div><h1>Global Moderation Queue</h1><div class="sub">Flagged announcements and club pages across all colleges, before Faculty escalation</div></div>
+  </div>
+  <div class="panel">${DATA.moderationQueue.map(m=>`
+    <div class="mod-item">${pill(m.severity,m.severity==='crit'?'Critical':'Review')}
+      <div style="flex:1;"><div class="fw" style="font-size:13px;margin-bottom:3px;">${m.item}</div><div class="dim" style="font-size:11.5px;">${m.college} &middot; ${m.club} &middot; flagged by ${m.flaggedBy} &middot; ${m.age} ago</div></div>
+      <div style="display:flex;gap:6px;flex-shrink:0;"><button class="btn sm">Dismiss</button><button class="btn sm danger">Take down</button><button class="btn sm primary">Escalate to Faculty</button></div>
+    </div>`).join('')}
+  </div>`,
+
+suspend:()=>`
+  <div class="view-header">
+    <div><h1>Suspend / Reinstate Accounts</h1><div class="sub">Platform-wide account actions, beyond any single college's scope</div></div>
+    <div class="actions"><button class="btn danger" id="btn-suspend-account">${IC.ban} Suspend account</button></div>
+  </div>
+  <div class="panel">
+    <table><thead><tr><th>Account</th><th>Role</th><th>College</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      <tr><td class="fw">Rohan Kulkarni (club_lead_892)</td><td class="dim">Club Lead</td><td>PSG College of Technology</td><td class="dim">Spam across 3 colleges</td><td>${pill('crit','Suspended')}</td><td style="text-align:right"><button class="btn sm">Reinstate</button></td></tr>
+      <tr><td class="fw">unaffiliated_user_2213</td><td class="dim">Member</td><td>Manipal Institute</td><td class="dim">Duplicate spam, auto-flagged</td><td>${pill('crit','Suspended')}</td><td style="text-align:right"><button class="btn sm">Reinstate</button></td></tr>
+      <tr><td class="fw">Meera Joshi</td><td class="dim">Faculty</td><td>St. Xavier College</td><td class="dim">Under review — pending investigation</td><td>${pill('warn','Under review')}</td><td style="text-align:right"><button class="btn sm danger">Suspend</button></td></tr>
+    </tbody></table>
+  </div>`,
+
+duplicates:()=>`
+  <div class="view-header">
+    <div><h1>Duplicate Detection</h1><div class="sub">Blocks near-duplicate college or club creation on self-onboarding</div></div>
+  </div>
+  <div class="panel">${DATA.duplicates.map((d,i,a)=>`
+    <div style="display:flex;gap:14px;align-items:center;padding:14px 0;${i<a.length-1?'border-bottom:1px solid var(--line-soft);':''}">
+      ${pill('warn',d.sim+'% match')}
+      <div style="flex:1;"><div class="fw" style="font-size:13px;">"${d.name}" &mdash; ${d.college}</div><div class="dim" style="font-size:11.5px;">Possible duplicate of: ${d.existing}</div></div>
+      <div style="display:flex;gap:6px;flex-shrink:0;"><button class="btn sm">Allow anyway</button><button class="btn sm primary">Merge</button><button class="btn sm danger">Block creation</button></div>
+    </div>`).join('')}
+    <div class="empty-note" style="text-align:left;padding-top:14px;font-size:11.5px;">Duplicate checks run on every new college and club creation using name similarity + department matching. Threshold: &gt;75% match triggers a flag.</div>
+  </div>`,
+
+security:()=>`
+  <div class="view-header">
+    <div><h1>Session Timeout &amp; Forced Re-auth</h1><div class="sub">Sensitive actions require a fresh authentication challenge before proceeding</div></div>
+  </div>
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="panel-title">Policy configuration</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft);">
+      <div><div class="fw" style="font-size:12.5px;">Idle session timeout</div><div class="dim" style="font-size:11.5px;">Auto-lock the Owner Console after inactivity</div></div>
+      <select style="background:var(--bg);border:1px solid var(--line-strong);border-radius:5px;color:var(--text);font-size:12px;padding:6px 11px;"><option>15 minutes</option><option selected>30 minutes</option><option>60 minutes</option></select>
+    </div>
+    ${[['Force re-auth on budget approval','Require password + MFA before approving any club budget'],['Force re-auth on permission override','Require password + MFA before overriding any role permission'],['Force re-auth on college removal','Require password + MFA before removing a college from the platform'],['Force re-auth on account suspension','Require password + MFA before issuing a platform-wide suspension']].map((r,i,a)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;${i<a.length-1?'border-bottom:1px solid var(--line-soft);':''}">
+      <div><div class="fw" style="font-size:12.5px;">${r[0]}</div><div class="dim" style="font-size:11.5px;">${r[1]}</div></div>
+      <div class="switch on" data-toggle></div>
+    </div>`).join('')}
+  </div>
+  <div class="panel">
+    <div class="panel-title">Recent re-auth challenges</div>
+    <table><thead><tr><th>When</th><th>Action</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td class="mono dim">2026-08-31 09:13</td><td>Permission override — St. Xavier College</td><td>${pill('ok','Verified')}</td></tr>
+      <tr><td class="mono dim">2026-08-30 16:04</td><td>Account suspension — club_lead_892</td><td>${pill('ok','Verified')}</td></tr>
+      <tr><td class="mono dim">2026-08-29 11:29</td><td>Feature flag change — PSG College</td><td>${pill('ok','Verified')}</td></tr>
+    </tbody></table>
+  </div>`,
+
+delegation:()=>`
+  <div class="view-header">
+    <div><h1>Delegated Approval Windows</h1><div class="sub">Any role can nominate a temporary backup approver — audit trail always shows who actually signed off</div></div>
+    <div class="actions"><button class="btn primary" id="btn-new-delegation">${IC.plus} New delegation</button></div>
+  </div>
+  <div class="panel">
+    <table><thead><tr><th>From</th><th>Delegated to</th><th>Scope</th><th>Window</th><th>Status</th><th></th></tr></thead>
+    <tbody>${DATA.delegations.map(d=>`<tr><td class="fw">${d.from}</td><td>${d.to}</td><td class="dim">${d.scope}</td><td class="mono dim">${d.window}</td><td>${d.status==='active'?pill('ok','Active'):pill('blue','Scheduled')}</td><td style="text-align:right"><button class="btn sm danger">Revoke</button></td></tr>`).join('')}</tbody></table>
+    <div class="empty-note" style="text-align:left;padding-top:14px;font-size:11.5px;">Every action during a delegation window is attributed to the delegate in the audit log, with a reference back to the original approver and the delegation record.</div>
+  </div>`,
+};
+
+function renderMain(){
+  document.getElementById('main').innerHTML=(VIEWS[currentView]||VIEWS.overview)();
+  wireView();
+}
+
+function wireView(){
+  document.querySelectorAll('[data-toggle]').forEach(sw=>sw.addEventListener('click',()=>sw.classList.toggle('on')));
+  document.querySelectorAll('[data-flag]').forEach(sw=>sw.addEventListener('click',()=>{const i=parseInt(sw.dataset.flag);DATA.featureFlags[i].on=!DATA.featureFlags[i].on;}));
+  document.querySelectorAll('[data-nav]').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.nav)));
+  const wire=(id,fn)=>{const el=document.getElementById(id);if(el)el.addEventListener('click',()=>openModal(fn()));};
+  wire('btn-add-college',mAddCollege);
+  wire('btn-add-college-ov',mAddCollege);
+  wire('btn-remove-college',mRemoveCollege);
+  wire('btn-add-member',mAddMember);
+  wire('btn-assign-faculty',mAssignFaculty);
+  wire('btn-new-override',mNewOverride);
+  wire('btn-suspend-account',mSuspend);
+  wire('btn-new-delegation',mNewDelegation);
+  wire('btn-flag-override',mFlagOverride);
+  const impBtn=document.getElementById('btn-start-imp');
+  if(impBtn)impBtn.addEventListener('click',()=>{const col=document.getElementById('imp-college').value,rol=document.getElementById('imp-role').value,secs=parseInt(document.getElementById('imp-length').value);startImp(rol,col,secs);});
+}
+
+let impTimer=null,impSecsLeft=0;
+function startImp(role,college,secs){
+  const banner=document.getElementById('imp-banner'),label=document.getElementById('imp-role-label'),cd=document.getElementById('imp-countdown');
+  label.textContent=`${role.toUpperCase()} \u00B7 ${college}`;impSecsLeft=secs;banner.classList.add('active');tick(cd);
+  clearInterval(impTimer);impTimer=setInterval(()=>{impSecsLeft--;tick(cd);if(impSecsLeft<=0)exitImp();},1000);
+}
+function tick(el){const m=String(Math.floor(impSecsLeft/60)).padStart(2,'0'),s=String(impSecsLeft%60).padStart(2,'0');el.textContent=`${m}:${s}`;}
+function exitImp(){clearInterval(impTimer);document.getElementById('imp-banner').classList.remove('active');}
+document.getElementById('imp-exit-btn').addEventListener('click',exitImp);
+
+renderTopbar();renderRail();renderMain();
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+.hero { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 26px; }
+.heroEyebrow { font-family: monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--exec-lime); margin-bottom: 8px; }
+.hero h1 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -0.5px; margin: 0; }
+.hero p { color: var(--exec-text-dim); font-size: 13.5px; margin-top: 6px; }
+
+.kanban { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+.kcol { flex: 0 0 250px; background: var(--exec-panel-2); border: 1px solid var(--exec-line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; min-height: 400px; }
+.kcolHead { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; margin-bottom: 10px; padding: 0 2px; }
+.kcolHead .count { background: var(--exec-panel); border: 1px solid var(--exec-line-strong); border-radius: 8px; padding: 1px 7px; font-size: 10.5px; color: var(--exec-text-dim); }
+
+.kcard {
+  background: var(--exec-panel); border: 1px solid var(--exec-line); border-left: 3px solid var(--exec-text-faint);
+  border-radius: 9px; padding: 11px 12px; margin-bottom: 9px; cursor: grab; font-size: 12.5px;
+}
+.kcard:active { cursor: grabbing; }
+.kcard.pHigh { border-left-color: var(--exec-coral); }
+.kcard.pMid { border-left-color: var(--exec-amber); }
+.kcard.pLow { border-left-color: var(--exec-lime); }
+.kcardTitle { font-weight: 600; margin-bottom: 6px; }
+.kcardFoot { display: flex; justify-content: space-between; align-items: center; }
+.kcardTag { font-size: 9.5px; font-family: monospace; color: var(--exec-text-faint); background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 5px; }
+.kcardAvatar { width: 20px; height: 20px; border-radius: 50%; background: var(--exec-sky); color: #08120E; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+
+.sortableGhost { opacity: 0.35; }
