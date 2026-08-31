@@ -34,3 +34,18 @@ npx expo start
 The app is scoped for an exclusive launch at Vishwakarma Institute of Technology (VIT), Pune. Multi-college features are hidden behind feature flags for future expansion.
 
 See [project_progress.md](project_progress.md) for the full changelog.
+
+## 🤝 Collaborator Setup
+
+If you are joining this project to collaborate, follow these steps:
+
+1. **Clone the repository:**
+   `ash
+   git clone https://github.com/pranavvasu027-ctrl/ClubSync.git
+   cd ClubSync
+   `
+2. **Install dependencies:**
+   Double-click the setup.bat file in the root directory (or run it in the terminal) to install all dependencies for both the web and mobile apps.
+3. **Environment Variables:**
+   Ask the repository owner for the .env file contents for both the mobile and web directories.
+
