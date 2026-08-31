@@ -1,0 +1,216 @@
+.hero {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--stu-line);
+}
+
+.hero h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  color: #fff;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--stu-text-dim);
+  font-size: 15px;
+}
+
+.heroEyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--stu-accent);
+  margin-bottom: 8px;
+}
+
+.interviewCard {
+  background: var(--stu-green-bg);
+  border: 1px solid rgba(74,222,128,0.2);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.intIcon {
+  width: 48px;
+  height: 48px;
+  background: rgba(74,222,128,0.15);
+  color: var(--stu-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.intContent h3 {
+  margin: 0 0 4px 0;
+  color: #fff;
+  font-size: 16px;
+}
+
+.intContent p {
+  margin: 0 0 12px 0;
+  color: var(--stu-text-dim);
+  font-size: 14px;
+}
+
+.meetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--stu-green);
+  color: #000;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.statCard {
+  background: var(--stu-card);
+  border: 1px solid var(--stu-line);
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 3px solid var(--stu-accent);
+}
+
+.statLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--stu-text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sectionHeader h2 {
+  font-size: 18px;
+  margin: 0;
+  color: #fff;
+}
+
+.textBtn {
+  background: none;
+  border: none;
+  color: var(--stu-accent);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.cycleList, .appList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emptyState {
+  padding: 30px;
+  text-align: center;
+  color: var(--stu-text-faint);
+  font-size: 14px;
+  background: var(--stu-card);
+  border: 1px dashed var(--stu-line);
+  border-radius: 12px;
+}
+
+.cycleCard {
+  background: var(--stu-card);
+  border: 1px solid var(--stu-line);
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cycleHeader h4 {
+  margin: 0 0 4px 0;
+  color: #fff;
+  font-size: 15px;
+}
+
+.clubName {
+  font-size: 12.5px;
+  color: var(--stu-text-dim);
+  font-weight: 500;
+}
+
+.cycleMeta {
+  font-size: 12px;
+  color: var(--stu-text-faint);
+}
+
+.applyBtn {
+  background: var(--stu-accent-soft);
+  color: var(--stu-accent);
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.applyBtn:hover {
+  background: rgba(79,142,247,0.2);
+}
+
+.appCard {
+  background: var(--stu-card);
+  border: 1px solid var(--stu-line);
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.appTitle {
+  font-weight: 600;
+  color: #fff;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.appClub {
+  font-size: 12.5px;
+  color: var(--stu-text-dim);
+}

@@ -1,0 +1,138 @@
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--rec-line);
+}
+
+.hero h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  color: #fff;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--rec-text-dim);
+  font-size: 15px;
+}
+
+.heroEyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--rec-accent);
+  margin-bottom: 8px;
+}
+
+.primaryBtn {
+  background: var(--rec-accent-grad);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--rec-shadow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s;
+}
+
+.primaryBtn:hover {
+  transform: translateY(-1px);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.statCard {
+  background: var(--rec-card);
+  border: 1px solid var(--rec-line);
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 3px solid var(--rec-accent);
+}
+
+.statLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--rec-text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sectionHeader h2 {
+  font-size: 18px;
+  margin: 0;
+  color: #fff;
+}
+
+.textBtn {
+  background: none;
+  border: none;
+  color: var(--rec-accent);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tableCard {
+  background: var(--rec-card);
+  border: 1px solid var(--rec-line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th, .table td {
+  padding: 14px 20px;
+  text-align: left;
+  border-bottom: 1px solid var(--rec-line);
+  font-size: 14px;
+}
+
+.table th {
+  color: var(--rec-text-dim);
+  font-weight: 600;
+  font-size: 13px;
+  background: rgba(255,255,255,0.02);
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.emptyState {
+  padding: 40px;
+  text-align: center;
+  color: var(--rec-text-faint);
+  font-size: 14px;
+}

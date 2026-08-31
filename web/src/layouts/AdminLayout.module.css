@@ -1,0 +1,204 @@
+.shell {
+  --adm-bg: #0E0C09;
+  --adm-rail: #141109;
+  --adm-surface: #1C1A10;
+  --adm-card: #222014;
+  --adm-line: rgba(255,255,255,0.07);
+  --adm-line-strong: rgba(255,255,255,0.13);
+  --adm-accent: #F59E0B;
+  --adm-accent-soft: rgba(245,158,11,0.15);
+  --adm-accent-grad: linear-gradient(135deg, #F59E0B, #EF4444);
+  --adm-text: #F0EDE8;
+  --adm-text-dim: #A09880;
+  --adm-text-faint: #66604A;
+  --adm-green: #4ADE80;
+  --adm-green-bg: rgba(74,222,128,0.1);
+  --adm-amber: #FBBF24;
+  --adm-amber-bg: rgba(251,191,36,0.12);
+  --adm-red: #F87171;
+  --adm-red-bg: rgba(248,113,113,0.1);
+  --adm-blue: #60A5FA;
+  --adm-shadow: 0 1px 3px rgba(0,0,0,0.5);
+
+  display: flex;
+  height: 100vh;
+  background: var(--adm-bg);
+  color: var(--adm-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.rail {
+  width: 240px;
+  background: var(--adm-rail);
+  border-right: 1px solid var(--adm-line);
+  display: flex;
+  flex-direction: column;
+}
+
+.brand {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandMark {
+  width: 32px;
+  height: 32px;
+  background: var(--adm-accent-grad);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+}
+
+.brandName {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.nav {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: var(--adm-text-dim);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.navItem:hover {
+  background: rgba(255,255,255,0.03);
+  color: var(--adm-text);
+}
+
+.navItem.active {
+  background: var(--adm-accent-soft);
+  color: var(--adm-accent);
+  font-weight: 600;
+}
+
+.railBottom {
+  padding: 16px;
+  border-top: 1px solid var(--adm-line);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.whoAvatar {
+  width: 36px;
+  height: 36px;
+  background: var(--adm-surface);
+  border: 1px solid var(--adm-line-strong);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--adm-text-dim);
+}
+
+.whoName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--adm-text);
+  margin-bottom: 2px;
+}
+
+.whoRole {
+  font-size: 11px;
+  color: var(--adm-text-dim);
+}
+
+.logoutBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--adm-line-strong);
+  border-radius: 6px;
+  color: var(--adm-text-dim);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutBtn:hover {
+  background: var(--adm-surface);
+  color: var(--adm-text);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  height: 60px;
+  border-bottom: 1px solid var(--adm-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--adm-text-dim);
+}
+
+.crumbSep {
+  color: var(--adm-text-faint);
+}
+
+.current {
+  color: var(--adm-text);
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px;
+}

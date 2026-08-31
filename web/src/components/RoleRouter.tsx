@@ -30,10 +30,15 @@ const RoleRouter: React.FC = () => {
     case 'president':
       return <Navigate to="/president" replace />;
     case 'owner':
-    case 'admin':
       return <Navigate to="/owner" replace />;
     case 'faculty':
       return <Navigate to="/faculty" replace />;
+    case 'admin':
+      return <Navigate to="/admin" replace />;
+    case 'recruiter':
+      return <Navigate to="/recruiter" replace />;
+    case 'student':
+      return <Navigate to="/student" replace />;
     default:
       // Fallback dashboard if role is unknown
       return <Navigate to="/dashboard" replace />;

@@ -74,4 +74,6 @@ declare module '@tabler/icons-react' {
   export const IconLayoutKanban: TablerIcon;
   export const IconTag: TablerIcon;
   export const IconLayoutGrid: TablerIcon;
+  export const IconBriefcase: TablerIcon;
+  export const IconVideo: TablerIcon;
 }

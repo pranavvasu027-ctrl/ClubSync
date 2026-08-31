@@ -130,3 +130,205 @@ INSERT INTO public.club_profiles (college_id, page_data) VALUES (
       }
     }'::jsonb
 );
+
+-- =================================================================================
+-- RECRUITMENT CYCLE SYSTEM — NEW TABLES
+-- Run after the initial setup above
+-- =================================================================================
+
+-- 8. Users (auth bridge — links Supabase auth to custom profile)
+CREATE TABLE IF NOT EXISTS public.users (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    auth_user_id UUID UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    email TEXT,
+    user_type TEXT NOT NULL DEFAULT 'student',
+    -- user_type values: student, recruiter, admin, president, executive, secretary, faculty, owner
+    college_name TEXT,
+    cgpa DECIMAL(3,2),
+    branch TEXT,
+    year INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view all profiles" ON public.users FOR SELECT USING (true);
+CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT WITH CHECK (auth.uid() = auth_user_id);
+CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (auth.uid() = auth_user_id);
+
+-- 9. Recruitment Cycles
+CREATE TABLE IF NOT EXISTS public.recruitment_cycles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    club_name TEXT NOT NULL,
+    description TEXT,
+    eligibility_cgpa DECIMAL(3,2) DEFAULT 0.00,
+    eligibility_year TEXT DEFAULT 'any',  -- 'any', '1', '2', '3', '4'
+    eligibility_branch TEXT DEFAULT 'any',
+    application_deadline TIMESTAMP WITH TIME ZONE NOT NULL,
+    status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'open', 'closed', 'complete')),
+    created_by UUID REFERENCES public.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.recruitment_cycles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view open cycles" ON public.recruitment_cycles FOR SELECT USING (true);
+CREATE POLICY "Admins can insert cycles" ON public.recruitment_cycles FOR INSERT WITH CHECK (true);
+CREATE POLICY "Admins can update cycles" ON public.recruitment_cycles FOR UPDATE USING (true);
+CREATE POLICY "Admins can delete cycles" ON public.recruitment_cycles FOR DELETE USING (true);
+
+-- 10. Recruitment Roles (roles within a cycle)
+CREATE TABLE IF NOT EXISTS public.recruitment_roles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    cycle_id UUID REFERENCES public.recruitment_cycles(id) ON DELETE CASCADE,
+    role_name TEXT NOT NULL,
+    department TEXT NOT NULL,
+    vacancies INTEGER DEFAULT 1,
+    description TEXT
+);
+
+ALTER TABLE public.recruitment_roles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view roles" ON public.recruitment_roles FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert roles" ON public.recruitment_roles FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update roles" ON public.recruitment_roles FOR UPDATE USING (true);
+CREATE POLICY "Anyone can delete roles" ON public.recruitment_roles FOR DELETE USING (true);
+
+-- 11. Applications
+CREATE TABLE IF NOT EXISTS public.applications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    cycle_id UUID REFERENCES public.recruitment_cycles(id) ON DELETE CASCADE,
+    role_id UUID REFERENCES public.recruitment_roles(id),
+    student_id UUID REFERENCES public.users(id),
+    student_name TEXT NOT NULL,
+    student_email TEXT,
+    cgpa DECIMAL(3,2),
+    branch TEXT,
+    year INTEGER,
+    skills TEXT,
+    portfolio_url TEXT,
+    why_join TEXT,
+    status TEXT DEFAULT 'applied' CHECK (status IN (
+        'applied', 'shortlisted', 'interview_scheduled',
+        'selected', 'waitlisted', 'rejected', 'onboarded'
+    )),
+    applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view applications" ON public.applications FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert applications" ON public.applications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update applications" ON public.applications FOR UPDATE USING (true);
+CREATE POLICY "Anyone can delete applications" ON public.applications FOR DELETE USING (true);
+
+-- 12. Interviews
+CREATE TABLE IF NOT EXISTS public.interviews (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    application_id UUID REFERENCES public.applications(id) ON DELETE CASCADE,
+    interviewer_id UUID REFERENCES public.users(id),
+    interview_date DATE NOT NULL,
+    interview_time TIME NOT NULL,
+    meet_link TEXT,
+    instructions TEXT,
+    status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'cancelled')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.interviews ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view interviews" ON public.interviews FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert interviews" ON public.interviews FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update interviews" ON public.interviews FOR UPDATE USING (true);
+CREATE POLICY "Anyone can delete interviews" ON public.interviews FOR DELETE USING (true);
+
+-- 13. Evaluations
+CREATE TABLE IF NOT EXISTS public.evaluations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    interview_id UUID REFERENCES public.interviews(id) ON DELETE CASCADE,
+    application_id UUID REFERENCES public.applications(id),
+    communication INTEGER CHECK (communication BETWEEN 1 AND 10),
+    technical INTEGER CHECK (technical BETWEEN 1 AND 10),
+    creativity INTEGER CHECK (creativity BETWEEN 1 AND 10),
+    teamwork INTEGER CHECK (teamwork BETWEEN 1 AND 10),
+    commitment INTEGER CHECK (commitment BETWEEN 1 AND 10),
+    overall INTEGER CHECK (overall BETWEEN 1 AND 10),
+    remarks TEXT,
+    verdict TEXT CHECK (verdict IN ('selected', 'waitlisted', 'rejected')),
+    evaluated_by UUID REFERENCES public.users(id),
+    evaluated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view evaluations" ON public.evaluations FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert evaluations" ON public.evaluations FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update evaluations" ON public.evaluations FOR UPDATE USING (true);
+
+-- 14. In-App Notifications
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    type TEXT DEFAULT 'info' CHECK (type IN ('info', 'success', 'warning')),
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own notifications" ON public.notifications FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert notifications" ON public.notifications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can update own notifications" ON public.notifications FOR UPDATE USING (true);
+
+-- 15. Club Members (onboarded students)
+CREATE TABLE IF NOT EXISTS public.club_members (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id),
+    application_id UUID REFERENCES public.applications(id),
+    club_name TEXT NOT NULL,
+    department TEXT NOT NULL,
+    role TEXT NOT NULL,
+    joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.club_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can view members" ON public.club_members FOR SELECT USING (true);
+CREATE POLICY "Anyone can insert members" ON public.club_members FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can update members" ON public.club_members FOR UPDATE USING (true);
+CREATE POLICY "Anyone can delete members" ON public.club_members FOR DELETE USING (true);
+
+-- =================================================================================
+-- RECRUITMENT SEED DATA
+-- =================================================================================
+
+-- Note: Seed users must match real Supabase auth UIDs in production.
+-- Below are example placeholder UUIDs for local testing only.
+-- Replace with real auth_user_ids after signing up via the app.
+
+-- Sample Recruitment Cycle (open)
+INSERT INTO public.recruitment_cycles (title, club_name, description, eligibility_cgpa, eligibility_year, eligibility_branch, application_deadline, status)
+VALUES (
+    'GedIT Technical Club — Recruitment 2026-27',
+    'GedIT Technical Club',
+    'Join the most active technical club on campus! We are looking for passionate students in development, design, and management.',
+    6.50,
+    'any',
+    'any',
+    NOW() + INTERVAL '30 days',
+    'open'
+);
+
+-- Sample Roles for that cycle
+INSERT INTO public.recruitment_roles (cycle_id, role_name, department, vacancies, description)
+SELECT id, 'Frontend Developer', 'Engineering', 3, 'Build beautiful web interfaces using React and modern CSS.'
+FROM public.recruitment_cycles WHERE title LIKE 'GedIT%' LIMIT 1;
+
+INSERT INTO public.recruitment_roles (cycle_id, role_name, department, vacancies, description)
+SELECT id, 'UI/UX Designer', 'Design', 2, 'Create stunning user experiences and design systems.'
+FROM public.recruitment_cycles WHERE title LIKE 'GedIT%' LIMIT 1;
+
+INSERT INTO public.recruitment_roles (cycle_id, role_name, department, vacancies, description)
+SELECT id, 'Social Media Manager', 'Marketing', 2, 'Manage our Instagram, LinkedIn, and other social platforms.'
+FROM public.recruitment_cycles WHERE title LIKE 'GedIT%' LIMIT 1;
+
+INSERT INTO public.recruitment_roles (cycle_id, role_name, department, vacancies, description)
+SELECT id, 'Backend Developer', 'Engineering', 2, 'Build scalable APIs and manage our cloud infrastructure.'
+FROM public.recruitment_cycles WHERE title LIKE 'GedIT%' LIMIT 1;
