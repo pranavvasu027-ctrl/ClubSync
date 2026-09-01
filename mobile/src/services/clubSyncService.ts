@@ -79,7 +79,7 @@ export async function getUserProfile(email: string): Promise<User> {
       name: data.name,
       prn: data.prn_or_roll || CURRENT_USER.prn,
       collegeId: data.college_id || CURRENT_USER.collegeId,
-      collegeName: data.college_name || CURRENT_USER.collegeName,
+      collegeName: CURRENT_USER.collegeName,
       branch: data.branch || CURRENT_USER.branch,
       year: data.year_of_study || CURRENT_USER.year,
       cgpa: Number(data.cgpa) || CURRENT_USER.cgpa,
@@ -90,6 +90,10 @@ export async function getUserProfile(email: string): Promise<User> {
       githubHandle: data.github_handle || CURRENT_USER.githubHandle,
       linkedinHandle: data.linkedin_handle || CURRENT_USER.linkedinHandle,
       avatarUrl: data.avatar_url,
+      // Map user_type to role: Faculty/Owner see observer dashboard, everyone else sees student view
+      role: ['faculty', 'owner'].includes((data.user_type || '').toLowerCase()) ? 'observer' : 'student',
+      // All hierarchy members (Co-ordinator and above) can scan gatepasses
+      canScanQR: ['owner', 'faculty', 'president', 'executive', 'secretary', 'co-ordinator'].includes((data.user_type || '').toLowerCase()),
     };
 
     setCurrentUser(fetchedUser);
@@ -114,7 +118,6 @@ export async function updateUserProfile(updated: Partial<User>): Promise<{ succe
       name: mergedUser.name,
       prn_or_roll: mergedUser.prn,
       college_id: mergedUser.collegeId,
-      college_name: mergedUser.collegeName,
       branch: mergedUser.branch,
       year_of_study: mergedUser.year,
       cgpa: mergedUser.cgpa,

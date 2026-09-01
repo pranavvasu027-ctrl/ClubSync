@@ -33,11 +33,14 @@ const RoleRouter: React.FC = () => {
       return <Navigate to="/owner" replace />;
     case 'faculty':
       return <Navigate to="/faculty" replace />;
+    case 'co-ordinator':
+      return <Navigate to="/coordinator" replace />;
     case 'admin':
       return <Navigate to="/admin" replace />;
     case 'recruiter':
       return <Navigate to="/recruiter" replace />;
     case 'student':
+    case 'user':
       return <Navigate to="/student" replace />;
     default:
       // Fallback dashboard if role is unknown

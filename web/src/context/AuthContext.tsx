@@ -5,7 +5,7 @@ import type { User } from '@supabase/supabase-js';
 type CustomProfile = {
   user_type: string;
   name: string;
-  college_name: string;
+  college_id: string;
 };
 
 type AuthContextType = {
@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchProfile = async (authId: string) => {
     const { data, error } = await supabase
       .from('users')
-      .select('user_type, name, college_name')
+      .select('user_type, name, college_id')
       .eq('auth_user_id', authId)
       .single();
       

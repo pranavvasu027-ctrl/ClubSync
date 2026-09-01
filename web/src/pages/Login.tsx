@@ -49,7 +49,7 @@ export default function Login() {
           name: name,
           email: email,
           user_type: role,
-          college_name: 'Default College'
+          college_id: 'VIT_PUNE'
         });
 
         if (profileError) {
