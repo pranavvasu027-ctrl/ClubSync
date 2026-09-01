@@ -7,7 +7,9 @@ import {
   IconLayoutGrid, 
   IconUsersGroup, 
   IconUsers,
-  IconLogout 
+  IconLogout,
+  IconChecklist,
+  IconBriefcase
 } from '@tabler/icons-react';
 import styles from './AdminLayout.module.css';
 import NotificationBell from '../components/NotificationBell';
@@ -35,6 +37,12 @@ const AdminLayout: React.FC = () => {
         <nav className={styles.nav}>
           <NavLink to="/admin" end className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
             <IconHome size={18} /> Dashboard
+          </NavLink>
+          <NavLink to="/admin/approvals" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
+            <IconChecklist size={18} /> Event Approvals
+          </NavLink>
+          <NavLink to="/admin/finance" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
+            <IconBriefcase size={18} /> Finance Audits
           </NavLink>
           <NavLink to="/admin/create-cycle" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
             <IconPlus size={18} /> Create Cycle

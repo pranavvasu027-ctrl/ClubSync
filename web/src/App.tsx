@@ -16,6 +16,9 @@ import Announcements from './pages/executive/Announcements';
 import TaskBoard from './pages/executive/TaskBoard';
 import MyEvents from './pages/executive/MyEvents';
 import Team from './pages/executive/Team';
+import EventBudget from './pages/executive/EventBudget';
+import EventFeedback from './pages/executive/EventFeedback';
+import LiveOps from './pages/executive/LiveOps';
 import PresidentLayout from './layouts/PresidentLayout';
 import PresidentDashboard from './pages/president/PresidentDashboard';
 import EventsDesk from './pages/president/EventsDesk';
@@ -55,6 +58,8 @@ import CreateCycle from './pages/admin/CreateCycle';
 import ManageCycles from './pages/admin/ManageCycles';
 import TeamFormation from './pages/admin/TeamFormation';
 import MembersDirectory from './pages/admin/MembersDirectory';
+import AdminApprovalsQueue from './pages/admin/AdminApprovalsQueue';
+import FinanceVerification from './pages/admin/FinanceVerification';
 
 import './index.css';
 
@@ -96,9 +101,10 @@ function AppRoutes() {
         <Route path="evaluations" element={<EvaluationForm />} />
         <Route path="results" element={<Results />} />
       </Route>
-
       <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
         <Route index element={<AdminDashboard />} />
+        <Route path="approvals" element={<AdminApprovalsQueue />} />
+        <Route path="finance" element={<FinanceVerification />} />
         <Route path="create-cycle" element={<CreateCycle />} />
         <Route path="cycles" element={<ManageCycles />} />
         <Route path="team-formation" element={<TeamFormation />} />
@@ -117,6 +123,9 @@ function AppRoutes() {
         <Route path="announcements" element={<Announcements />} />
         <Route path="tasks" element={<TaskBoard />} />
         <Route path="events" element={<MyEvents />} />
+        <Route path="live" element={<LiveOps />} />
+        <Route path="budget" element={<EventBudget />} />
+        <Route path="feedback" element={<EventFeedback />} />
         <Route path="team" element={<Team />} />
       </Route>
       <Route path="/president" element={<ProtectedRoute><PresidentLayout /></ProtectedRoute>}>

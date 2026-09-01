@@ -14,11 +14,12 @@ import HomeScreen from './src/screens/HomeScreen';
 import EventsScreen from './src/screens/EventsScreen';
 import ClubsScreen from './src/screens/ClubsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import TasksScreen from './src/screens/TasksScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ActivityIndicator } from 'react-native';
 
-type TabType = 'home' | 'events' | 'clubs' | 'profile';
+type TabType = 'home' | 'events' | 'clubs' | 'tasks' | 'profile';
 
 import { getEvents } from './src/services/clubSyncService';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
@@ -112,6 +113,8 @@ function MainApp() {
 
         {activeTab === 'clubs' && <ClubsScreen initialSortHiring={sortHiringFirst} />}
 
+        {activeTab === 'tasks' && <TasksScreen />}
+
         {activeTab === 'profile' && <ProfileScreen />}
       </View>
 
@@ -137,7 +140,17 @@ function MainApp() {
           <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'events' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Events</Text>
         </TouchableOpacity>
 
-        {/* 3. Clubs Tab */}
+        {/* 3. Tasks Tab */}
+        <TouchableOpacity style={styles.navItem} onPress={() => switchTab('tasks')}>
+          <Ionicons
+            name={activeTab === 'tasks' ? 'checkbox' : 'checkbox-outline'}
+            size={24}
+            color={activeTab === 'tasks' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
+          />
+          <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'tasks' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Tasks</Text>
+        </TouchableOpacity>
+
+        {/* 4. Clubs Tab */}
         <TouchableOpacity style={styles.navItem} onPress={() => switchTab('clubs')}>
           <MaterialCommunityIcons
             name={activeTab === 'clubs' ? 'account-group' : 'account-group-outline'}
@@ -147,7 +160,7 @@ function MainApp() {
           <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'clubs' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Clubs</Text>
         </TouchableOpacity>
 
-        {/* 4. Profile Tab */}
+        {/* 5. Profile Tab */}
         <TouchableOpacity style={styles.navItem} onPress={() => switchTab('profile')}>
           <Ionicons
             name={activeTab === 'profile' ? 'person' : 'person-outline'}

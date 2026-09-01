@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { IconRadar2, IconBroadcast, IconChecklist, IconCalendarBolt, IconUsersGroup, IconSettings, IconSearch, IconBell, IconSlash } from '@tabler/icons-react';
+import { IconRadar2, IconBroadcast, IconChecklist, IconCalendarBolt, IconUsersGroup, IconSettings, IconSearch, IconBell, IconSlash, IconStar, IconActivity } from '@tabler/icons-react';
 import styles from './ExecutiveLayout.module.css';
 import { ExecProvider } from '../context/ExecutiveContext';
 
@@ -43,6 +43,15 @@ const ExecutiveLayout: React.FC = () => {
             </NavLink>
             <NavLink to="/executive/events" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
               <IconCalendarBolt size={16} /> My Events
+            </NavLink>
+            <NavLink to="/executive/live" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`} style={{ color: '#EF4444' }}>
+              <IconActivity size={16} /> Mission Control
+            </NavLink>
+            <NavLink to="/executive/budget" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
+              <IconSlash size={16} /> Budget Planner
+            </NavLink>
+            <NavLink to="/executive/feedback" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
+              <IconStar size={16} /> Post-Event Feedback
             </NavLink>
 
             <div className={styles.navLabel}>People</div>

@@ -70,6 +70,13 @@ export default function ProfileScreen() {
   const [showCertificate, setShowCertificate] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<DigitalTicket | null>(null);
+  
+  // FEEDBACK STATE
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackTicket, setFeedbackTicket] = useState<DigitalTicket | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comments, setComments] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   // EDIT PROFILE STATE
   const [showEditModal, setShowEditModal] = useState(false);
@@ -158,6 +165,40 @@ export default function ProfileScreen() {
     })));
 
     Alert.alert('Profile Updated 🎉', 'Your Student Passport and Database records have been updated successfully.');
+  };
+
+  const handleOpenFeedback = (ticket: DigitalTicket) => {
+    setFeedbackTicket(ticket);
+    setRating(5);
+    setComments('');
+    setShowFeedbackModal(true);
+  };
+
+  const submitFeedback = async () => {
+    if (!feedbackTicket) return;
+    // Get the authenticated Supabase user's auth_user_id
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) {
+      Alert.alert('Not logged in', 'Please sign in to submit feedback.');
+      return;
+    }
+    setIsSubmittingFeedback(true);
+    try {
+      // Lookup our user_id from users table using the auth id
+      const { data: userRow } = await supabase.from('users').select('user_id').eq('auth_user_id', authUser.id).single();
+      await supabase.from('event_feedback').insert([{
+        event_id: feedbackTicket.id,
+        user_id: userRow?.user_id ?? null,
+        rating: rating,
+        comments: comments
+      }]);
+      Alert.alert('Thank you!', 'Your feedback helps us improve future events.');
+      setShowFeedbackModal(false);
+    } catch (e) {
+      console.warn('Feedback error:', e);
+      Alert.alert('Error', 'Could not submit feedback. You may have already rated this event.');
+    }
+    setIsSubmittingFeedback(false);
   };
 
   const handleDownload = (type: string) => {
@@ -339,9 +380,18 @@ export default function ProfileScreen() {
                     </View>
                   </View>
 
-                  <View style={[styles.viewPassBtn, { backgroundColor: isDarkMode ? theme.primary : '#0C447C' }]}>
-                    <Text style={[styles.viewPassText, { color: isDarkMode ? '#0F172A' : '#fff' }]}>Show Pass ➔</Text>
-                  </View>
+                  {ticket.checkInStatus === 'ATTENDED' ? (
+                    <TouchableOpacity 
+                      style={[styles.viewPassBtn, { backgroundColor: theme.primary, borderColor: theme.primary, borderWidth: 1 }]}
+                      onPress={(e) => { e.stopPropagation(); handleOpenFeedback(ticket); }}
+                    >
+                      <Text style={[styles.viewPassText, { color: '#fff' }]}>Rate Event ★</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={[styles.viewPassBtn, { backgroundColor: isDarkMode ? theme.primary : '#0C447C' }]}>
+                      <Text style={[styles.viewPassText, { color: isDarkMode ? '#0F172A' : '#fff' }]}>Show Pass ➔</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
               ))}
             </View>
@@ -634,6 +684,55 @@ export default function ProfileScreen() {
                 <Ionicons name="download-outline" size={16} color="#fff" />
                 <Text style={styles.certDownloadText}>Export Verified Transcript PDF</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* FEEDBACK MODAL */}
+      {showFeedbackModal && feedbackTicket && (
+        <Modal visible={true} transparent={true} animationType="slide" onRequestClose={() => setShowFeedbackModal(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.editProfileCard}>
+              <View style={styles.editProfileHeader}>
+                <Text style={styles.editProfileTitle}>Event Feedback</Text>
+                <TouchableOpacity onPress={() => setShowFeedbackModal(false)}>
+                  <Ionicons name="close" size={22} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={[styles.editLabel, { textAlign: 'center', marginBottom: 10 }]}>{feedbackTicket.eventTitle}</Text>
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 20 }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity key={star} onPress={() => setRating(star)} style={{ padding: 5 }}>
+                    <Ionicons name={star <= rating ? "star" : "star-outline"} size={36} color="#F59E0B" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.editLabel}>Additional Comments</Text>
+              <TextInput 
+                style={[styles.editInput, { height: 100, textAlignVertical: 'top' }]} 
+                value={comments} 
+                onChangeText={setComments} 
+                multiline 
+                placeholder="What did you like? How can we improve?"
+                placeholderTextColor={theme.textMuted}
+              />
+
+              <View style={[styles.editActionRow, { marginTop: 20 }]}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowFeedbackModal(false)}>
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={submitFeedback} disabled={isSubmittingFeedback}>
+                  {isSubmittingFeedback ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.saveBtnText}>Submit Feedback</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>

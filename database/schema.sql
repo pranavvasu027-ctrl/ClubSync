@@ -309,6 +309,54 @@ CREATE TABLE IF NOT EXISTS interview_evaluations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 -- ==============================================================================
+-- 7B. EVENT PLANNING & EXECUTION (PHASE B)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS event_teams (
+    team_member_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    role VARCHAR(100) NOT NULL CHECK (role IN ('Event Head', 'Technical Team', 'Design Team', 'Marketing Team', 'Logistics Team', 'Volunteer')),
+    assigned_by UUID REFERENCES users(user_id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS event_tasks (
+    task_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    assigned_to UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    priority VARCHAR(20) DEFAULT 'MEDIUM' CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+    status VARCHAR(20) DEFAULT 'NOT_STARTED' CHECK (status IN ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED')),
+    deadline TIMESTAMP WITH TIME ZONE,
+    created_by UUID REFERENCES users(user_id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS event_budgets (
+    budget_item_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    category VARCHAR(100) NOT NULL CHECK (category IN ('Equipment', 'Venue', 'Materials', 'Prizes', 'Refreshments', 'Marketing', 'Other')),
+    description TEXT NOT NULL,
+    estimated_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    actual_amount NUMERIC(10, 2) DEFAULT 0.00,
+    is_approved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS event_feedback (
+    feedback_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    rating INT CHECK (rating >= 1 AND rating <= 5),
+    comments TEXT,
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(event_id, user_id)
+);
+
+-- ==============================================================================
 -- 8. USER NOTIFICATIONS
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS notifications (
@@ -406,6 +454,10 @@ ALTER TABLE winners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE finance_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE event_feedback ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if any to avoid collision
 DO $$
@@ -485,6 +537,10 @@ CREATE POLICY "Events can be created and managed" ON events FOR ALL USING (true)
 CREATE POLICY "Competitions can be created and managed" ON competitions FOR ALL USING (true);
 CREATE POLICY "Team members can be managed" ON team_members FOR ALL USING (true);
 CREATE POLICY "Finance can be managed" ON finance_transactions FOR ALL USING (true);
+CREATE POLICY "Event Teams can be managed" ON event_teams FOR ALL USING (true);
+CREATE POLICY "Event Tasks can be managed" ON event_tasks FOR ALL USING (true);
+CREATE POLICY "Event Budgets can be managed" ON event_budgets FOR ALL USING (true);
+CREATE POLICY "Event Feedback can be managed" ON event_feedback FOR ALL USING (true);
 
 -- ==============================================================================
 -- 12. INITIAL PRODUCTION SEED DATA (NATIONWIDE COLLEGES & VIT CLUBS)
