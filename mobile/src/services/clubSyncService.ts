@@ -138,6 +138,37 @@ export async function updateUserProfile(updated: Partial<User>): Promise<{ succe
 }
 
 // ============================================================================
+// RECRUITMENT MOCK API (Admin Dashboard)
+// ============================================================================
+export interface ApplicationItem {
+  id: string;
+  applicantName: string;
+  appliedRole: string;
+  prn: string;
+  status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED' | 'ACCEPTED';
+}
+
+let mockApplications: ApplicationItem[] = [
+  { id: 'APP_1', applicantName: 'Rohan Sharma', appliedRole: 'Tech Core', prn: '12210001', status: 'APPLIED' },
+  { id: 'APP_2', applicantName: 'Ananya Gupta', appliedRole: 'Design Co-ordinator', prn: '12210045', status: 'APPLIED' },
+  { id: 'APP_3', applicantName: 'Karan Patel', appliedRole: 'Social Media Manager', prn: '12310123', status: 'SHORTLISTED' },
+];
+
+export async function getPendingApplications(): Promise<ApplicationItem[]> {
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return mockApplications.filter(app => app.status === 'APPLIED' || app.status === 'SHORTLISTED');
+}
+
+export async function updateApplicationStatus(appId: string, newStatus: 'ACCEPTED' | 'REJECTED' | 'SHORTLISTED'): Promise<{success: boolean}> {
+  await new Promise(resolve => setTimeout(resolve, 400));
+  mockApplications = mockApplications.map(app => 
+    app.id === appId ? { ...app, status: newStatus } : app
+  );
+  return { success: true };
+}
+
+// ============================================================================
 // 2. CLUBS API (READ, FOLLOW, UPDATE CMS)
 // ============================================================================
 

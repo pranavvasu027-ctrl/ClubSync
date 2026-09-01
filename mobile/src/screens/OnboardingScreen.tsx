@@ -31,6 +31,17 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
   const [year, setYear] = useState('Third Year (TY)');
   const [cgpa, setCgpa] = useState('8.85');
 
+  const [selectedRole, setSelectedRole] = useState('User');
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+
+  const ROLES = [
+    { id: 'User', icon: '👨‍🎓', label: 'User (Student)' },
+    { id: 'President', icon: '🎓', label: 'President' },
+    { id: 'Executive', icon: '📋', label: 'Executive' },
+    { id: 'Secretary', icon: '📝', label: 'Secretary' },
+    { id: 'Owner', icon: '👑', label: 'Owner / Faculty' }
+  ];
+
   // ... (keep interests state and handle methods unchanged, we'll insert a handleEmailSignIn method)
 
   const handleEmailSignIn = async () => {
@@ -40,14 +51,15 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
     }
     
     setIsAuthenticating(true);
-    const res = await signInWithEmail(authEmail, authPassword);
+    // Pass selectedRole to the modified sign in method (we will update authService in the next step)
+    const res = await signInWithEmail(authEmail, authPassword, selectedRole);
     setIsAuthenticating(false);
 
     if (res.success) {
       Alert.alert('Login Successful', 'Welcome back to ClubSync!');
       onComplete();
     } else {
-      Alert.alert('Login Failed', res.error || 'Invalid credentials. If you are new, please sign up instead.');
+      Alert.alert('Login Failed', res.error || 'Invalid credentials or unauthorized role. If you are new, please sign up instead.');
     }
   };
 
@@ -74,7 +86,8 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
 
   const handleGoogleSignIn = async () => {
     setIsAuthenticating(true);
-    const res = await signInWithGoogle();
+    // Pass selectedRole to google sign in as well
+    const res = await signInWithGoogle(selectedRole);
     setIsAuthenticating(false);
 
     if (!res.success) {
@@ -210,6 +223,43 @@ export default function OnboardingScreen({ onComplete }: OnboardingProps) {
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>{MULTI_COLLEGE_ENABLED ? 'Find your college' : 'Welcome to ClubSync'}</Text>
             <Text style={styles.stepSub}>{MULTI_COLLEGE_ENABLED ? 'Join 45,000+ students & clubs across India.' : 'Your VIT Pune campus companion.'}</Text>
+
+            {/* ROLE SELECTOR UI */}
+            <View style={{ marginBottom: 16, zIndex: 10 }}>
+              <Text style={styles.label}>Login As</Text>
+              <TouchableOpacity 
+                style={[styles.input, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderColor: '#0C447C', borderWidth: 1.5 }]}
+                onPress={() => setShowRoleDropdown(!showRoleDropdown)}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 16, color: '#0F172A', fontWeight: '500' }}>
+                  {ROLES.find(r => r.id === selectedRole)?.icon}  {ROLES.find(r => r.id === selectedRole)?.label}
+                </Text>
+                <Ionicons name={showRoleDropdown ? "chevron-up" : "chevron-down"} size={20} color="#0C447C" />
+              </TouchableOpacity>
+              
+              {showRoleDropdown && (
+                <View style={styles.dropdownMenu}>
+                  {ROLES.map((role) => (
+                    <TouchableOpacity 
+                      key={role.id}
+                      style={[styles.dropdownItem, selectedRole === role.id && styles.dropdownItemActive]}
+                      onPress={() => {
+                        setSelectedRole(role.id);
+                        setShowRoleDropdown(false);
+                      }}
+                    >
+                      <Text style={[styles.dropdownItemText, selectedRole === role.id && styles.dropdownItemTextActive]}>
+                        {role.icon}  {role.label}
+                      </Text>
+                      {selectedRole === role.id && (
+                        <Ionicons name="checkmark-circle" size={18} color="#0C447C" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
 
             {/* Google OAuth Quick Action */}
             <TouchableOpacity 
@@ -649,5 +699,37 @@ const styles = StyleSheet.create({
   },
   interestTextActive: {
     color: '#0C447C',
+  },
+  dropdownMenu: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    marginTop: 6,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  dropdownItemActive: {
+    backgroundColor: '#F8FAFC',
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    color: '#475569',
+  },
+  dropdownItemTextActive: {
+    color: '#0F172A',
+    fontWeight: '600',
   },
 });

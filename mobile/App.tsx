@@ -16,10 +16,15 @@ import ClubsScreen from './src/screens/ClubsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import TasksScreen from './src/screens/TasksScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ActivityIndicator } from 'react-native';
 
-type TabType = 'home' | 'events' | 'clubs' | 'tasks' | 'profile';
+
+
+
+type TabType = 'home' | 'events' | 'clubs' | 'tasks' | 'profile' | 'dashboard';
+
 
 import { getEvents } from './src/services/clubSyncService';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
@@ -32,6 +37,9 @@ function MainApp() {
   const [selectedCollege, setSelectedCollege] = useState('VIT Pune');
   const [events, setEvents] = useState<EventItem[]>(EVENTS);
   const [sortHiringFirst, setSortHiringFirst] = useState(false);
+  const { getCurrentUser } = require('./src/services/clubSyncService');
+  const user = getCurrentUser();
+  const isCommitteeMember = user?.canScanQR === true;
 
   React.useEffect(() => {
     if (!isAuthenticated) return;
@@ -116,6 +124,8 @@ function MainApp() {
         {activeTab === 'tasks' && <TasksScreen />}
 
         {activeTab === 'profile' && <ProfileScreen />}
+
+        {activeTab === 'dashboard' && <DashboardScreen />}
       </View>
 
       {/* BOTTOM NAVIGATION */}
@@ -169,6 +179,18 @@ function MainApp() {
           />
           <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'profile' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Profile</Text>
         </TouchableOpacity>
+
+        {/* 5. Dashboard Tab (Only for Committee) */}
+        {isCommitteeMember && (
+          <TouchableOpacity style={styles.navItem} onPress={() => switchTab('dashboard')}>
+            <Ionicons
+              name={activeTab === 'dashboard' ? 'grid' : 'grid-outline'}
+              size={22}
+              color={activeTab === 'dashboard' ? (isDarkMode ? theme.primary : '#0C447C') : theme.textMuted}
+            />
+            <Text style={[styles.navText, { color: theme.textMuted }, activeTab === 'dashboard' && [styles.navTextActive, { color: isDarkMode ? theme.primary : '#0C447C' }]]}>Admin</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

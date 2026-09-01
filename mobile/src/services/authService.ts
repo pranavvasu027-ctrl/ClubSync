@@ -5,11 +5,24 @@ import { makeRedirectUri } from 'expo-auth-session';
 
 WebBrowser.maybeCompleteAuthSession();
 
+// Helper function to validate if a user's database role matches their selected UI role
+const isValidRole = (selectedRole: string, userTypeStr: string | null): boolean => {
+  if (!selectedRole || selectedRole === 'User') return true; // Anyone can login as User
+  const userType = (userTypeStr || '').toLowerCase();
+  
+  if (selectedRole === 'President') return ['president', 'club_lead'].includes(userType);
+  if (selectedRole === 'Executive') return ['executive', 'vertical_coordinator', 'co-ordinator'].includes(userType);
+  if (selectedRole === 'Secretary') return ['secretary'].includes(userType);
+  if (selectedRole === 'Owner') return ['owner', 'faculty', 'faculty_mentor', 'dean_admin', 'super_admin'].includes(userType);
+  
+  return false;
+};
+
 /**
  * Sign in using Google OAuth via Supabase
  * Opens a browser window for Google login, then exchanges the session
  */
-export async function signInWithGoogle(): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> {
+export async function signInWithGoogle(selectedRole: string = 'User'): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> {
   try {
     const redirectTo = makeRedirectUri({ scheme: 'clubsync', path: 'auth/callback' });
 
@@ -70,10 +83,17 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
       return { success: false, error: 'Auth failed. Raw URL: ' + result.url };
     }
 
-    // Check if this is a brand new user (profile might be empty)
+    // Check if this is a brand new user and validate their role
     const userId = sessionData.user?.id;
     if (userId) {
-      const { data: profile } = await supabase.from('users').select('prn').eq('id', userId).single();
+      const { data: profile } = await supabase.from('users').select('prn, user_type').eq('id', userId).single();
+      
+      // Role validation
+      if (!isValidRole(selectedRole, profile?.user_type)) {
+        await supabase.auth.signOut();
+        return { success: false, error: `Unauthorized: You do not have permission to access the ${selectedRole} role.` };
+      }
+
       const isNewUser = !profile?.prn; // If no PRN set, they haven't completed onboarding
       return { success: true, isNewUser };
     }
@@ -88,7 +108,7 @@ export async function signInWithGoogle(): Promise<{ success: boolean; error?: st
 /**
  * Sign in with College Email and Password
  */
-export async function signInWithEmail(email: string, password: string): Promise<{ success: boolean; error?: string; user?: User }> {
+export async function signInWithEmail(email: string, password: string, selectedRole: string = 'User'): Promise<{ success: boolean; error?: string; user?: User }> {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -101,6 +121,14 @@ export async function signInWithEmail(email: string, password: string): Promise<
     }
 
     if (data?.user) {
+      // Fetch user profile to validate role
+      const { data: profile } = await supabase.from('users').select('user_type').eq('id', data.user.id).single();
+      
+      if (!isValidRole(selectedRole, profile?.user_type)) {
+        await supabase.auth.signOut();
+        return { success: false, error: `Unauthorized: You do not have permission to access the ${selectedRole} role.` };
+      }
+
       // Sync user profile
       const userProfile: Partial<User> = {
         email: data.user.email || email,
