@@ -14,30 +14,30 @@ const EventsDesk: React.FC = () => {
   }, []);
 
   const fetchEvents = async () => {
-    const { data } = await supabase.from('club_events').select('*').order('event_date', { ascending: true });
-    if (data) setEvents(data);
+    const { data } = await supabase.from('events').select('*').order('event_date', { ascending: true });
+    if (data) setEvents(data as any[]); // Temporary type cast if types don't align yet
   };
 
-  const updateEventStatus = async (newColEvents: ClubEvent[], status: string) => {
+  const updateEventStatus = async (newColEvents: any[], status: string) => {
     setEvents(prev => {
       const otherEvents = prev.filter(e => e.status !== status);
-      const updatedEvents = newColEvents.map(e => ({ ...e, status: status as ClubEvent['status'] }));
+      const updatedEvents = newColEvents.map(e => ({ ...e, status }));
       return [...otherEvents, ...updatedEvents];
     });
 
-    // Update in database (optimistic UI update above)
+    // Update in database
     for (const ev of newColEvents) {
       if (ev.status !== status) {
-        await supabase.from('club_events').update({ status }).eq('id', ev.id);
+        await supabase.from('events').update({ status }).eq('event_id', ev.event_id || ev.id);
       }
     }
   };
 
   const columns = [
     { id: 'draft', title: 'Draft' },
-    { id: 'pending', title: 'Submitted' },
+    { id: 'proposed', title: 'Submitted / Pending' },
     { id: 'approved', title: 'Approved' },
-    { id: 'live', title: 'Live' },
+    { id: 'live', title: 'Published / Live' },
     { id: 'completed', title: 'Completed' },
   ];
 
@@ -57,14 +57,11 @@ const EventsDesk: React.FC = () => {
             >
               <IconLayoutGrid size={14}/> Cards
             </button>
-            <button 
-              onClick={() => setView('kanban')}
-              style={{ border: 'none', background: view === 'kanban' ? 'var(--pres-card)' : 'none', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, color: view === 'kanban' ? 'var(--pres-ink)' : 'var(--pres-ink-soft)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: view === 'kanban' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
-            >
+            <button onClick={() => setView('kanban')} style={{ border: 'none', background: view === 'kanban' ? 'var(--pres-card)' : 'none', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, color: view === 'kanban' ? 'var(--pres-ink)' : 'var(--pres-ink-soft)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: view === 'kanban' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
               <IconLayoutKanban size={14}/> Board
             </button>
           </div>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 15px', borderRadius: 7, fontSize: 12.5, fontWeight: 600, border: '1px solid transparent', cursor: 'pointer', background: 'var(--pres-red)', color: '#fff', boxShadow: '0 2px 0 #9C3620' }}>
+          <button onClick={() => window.location.href = '/president/events/new'} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 15px', borderRadius: 7, fontSize: 12.5, fontWeight: 600, border: '1px solid transparent', cursor: 'pointer', background: 'var(--pres-red)', color: '#fff', boxShadow: '0 2px 0 #9C3620' }}>
             <IconPlus size={16}/> New event
           </button>
         </div>
@@ -87,8 +84,8 @@ const EventsDesk: React.FC = () => {
                   animation={150}
                   style={{ flex: 1, minHeight: 50 }}
                 >
-                  {colEvents.map(ev => (
-                    <div key={ev.id} style={{ background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 7, padding: '11px 12px', marginBottom: 9, cursor: 'grab', fontSize: 12.5, boxShadow: 'var(--pres-shadow-card)' }}>
+                  {colEvents.map((ev: any) => (
+                    <div key={ev.event_id || ev.id} style={{ background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 7, padding: '11px 12px', marginBottom: 9, cursor: 'grab', fontSize: 12.5, boxShadow: 'var(--pres-shadow-card)' }}>
                       <div style={{ fontWeight: 600, marginBottom: 4 }}>{ev.title}</div>
                       <div style={{ fontSize: 10.5, color: 'var(--pres-ink-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <IconCalendarEvent size={12}/> {new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}

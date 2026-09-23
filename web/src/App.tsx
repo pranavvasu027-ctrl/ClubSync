@@ -22,6 +22,7 @@ import LiveOps from './pages/executive/LiveOps';
 import PresidentLayout from './layouts/PresidentLayout';
 import PresidentDashboard from './pages/president/PresidentDashboard';
 import EventsDesk from './pages/president/EventsDesk';
+import NewEventProposal from './pages/president/NewEventProposal';
 import Ledger from './pages/president/Ledger';
 import Recruitment from './pages/president/Recruitment';
 import TeamDirectory from './pages/president/TeamDirectory';
@@ -131,6 +132,7 @@ function AppRoutes() {
       <Route path="/president" element={<ProtectedRoute><PresidentLayout /></ProtectedRoute>}>
         <Route index element={<PresidentDashboard />} />
         <Route path="events" element={<EventsDesk />} />
+        <Route path="events/new" element={<NewEventProposal />} />
         <Route path="ledger" element={<Ledger />} />
         <Route path="recruitment" element={<Recruitment />} />
         <Route path="team" element={<TeamDirectory />} />

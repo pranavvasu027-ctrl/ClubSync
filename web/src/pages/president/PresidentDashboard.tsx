@@ -3,7 +3,7 @@ import styles from './PresidentDashboard.module.css';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { IconCalendarEvent, IconUsers, IconWallet, IconChecklist, IconMapPin, IconCheck, IconFileText, IconAlertTriangle, IconReceipt } from '@tabler/icons-react';
+import { IconCalendarEvent, IconUsers, IconWallet, IconChecklist, IconMapPin, IconCheck, IconFileText, IconAlertTriangle, IconReceipt2 } from '@tabler/icons-react';
 import type { ClubEvent } from '../../types/clubData';
 
 const PresidentDashboard: React.FC = () => {
@@ -16,8 +16,8 @@ const PresidentDashboard: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       // Fetch events
-      const { data: evData } = await supabase.from('club_events').select('*').order('event_date', { ascending: true }).limit(5);
-      if (evData) setEvents(evData);
+      const { data: evData } = await supabase.from('events').select('*').order('event_date', { ascending: true }).limit(5);
+      if (evData) setEvents(evData as any[]);
 
       // Fetch pending tasks count
       const { count } = await supabase.from('club_tasks').select('*', { count: 'exact' }).neq('status', 'done');
@@ -89,14 +89,14 @@ const PresidentDashboard: React.FC = () => {
             <Link to="/president/events" className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}>Open events desk</Link>
           </div>
           <div className={styles.panelBody}>
-            {events.slice(0,2).map(ev => (
-              <div key={ev.id} className={`${styles.eventCard} ${ev.status === 'live' ? styles.stLive : styles.stPending}`}>
+            {events.slice(0,2).map((ev: any) => (
+              <div key={ev.event_id || ev.id} className={`${styles.eventCard} ${ev.status === 'live' ? styles.stLive : styles.stPending}`}>
                 <span className={`${styles.stamp} ${ev.status === 'live' ? styles.stLive : styles.stPending}`}>{ev.status}</span>
                 <div className={styles.eventTitle}>{ev.title}</div>
                 <div className={styles.eventMeta}>
                   <span><IconCalendarEvent size={14}/> {formatDate(ev.event_date)}</span>
-                  <span><IconMapPin size={14}/> {ev.location}</span>
-                  <span><IconUsers size={14}/> {ev.expected_users} expected</span>
+                  <span><IconMapPin size={14}/> {ev.venue_name || ev.location}</span>
+                  <span><IconUsers size={14}/> {ev.expected_count || ev.expected_users} expected</span>
                 </div>
               </div>
             ))}
