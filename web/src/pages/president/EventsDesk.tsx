@@ -101,6 +101,34 @@ const EventsDesk: React.FC = () => {
           })}
         </div>
       )}
+
+      {view === 'cards' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+          {events.map(ev => {
+            let statusClass = '';
+            if (ev.status === 'live') statusClass = styles.stLive;
+            if (ev.status === 'pending') statusClass = styles.stPending;
+            if (ev.status === 'approved') statusClass = styles.stApproved;
+            if (ev.status === 'draft') statusClass = styles.stDraft;
+
+            return (
+              <div key={ev.id} className={`${styles.eventCard} ${statusClass}`}>
+                <span className={`${styles.stamp} ${statusClass}`}>{ev.status}</span>
+                <div className={styles.eventTitle}>{ev.title}</div>
+                <div className={styles.eventMeta}>
+                  <span><IconCalendarEvent size={14}/> {new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                  <span><IconMapPin size={14}/> {ev.location || 'TBD'}</span>
+                  <span><IconUsers size={14}/> {ev.expected_users || 0}</span>
+                </div>
+                <div className={styles.eventFoot}>
+                  <span className={styles.eventBudget}>₹{ev.budget_allocated?.toLocaleString() || '0'}</span>
+                  <button className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}>Manage</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 };

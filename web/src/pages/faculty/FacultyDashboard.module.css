@@ -1,15 +1,41 @@
-.statGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-.stat { background: var(--fac-panel); border: 1px solid var(--fac-line); border-radius: 8px; padding: 18px 20px; transition: border-color 0.15s; }
-.stat:hover { border-color: var(--fac-line-strong); }
-.statLabel { font-size: 11.5px; color: var(--fac-text-dim); margin-bottom: 10px; display: flex; align-items: center; gap: 7px; }
-.statValue { font-family: monospace; font-size: 28px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+.hero { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 26px; padding-bottom: 18px; border-bottom: 1px solid var(--fac-rule); }
+.heroEyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fac-sapphire); font-weight: 700; margin-bottom: 7px; }
+.hero h1 { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 30px; letter-spacing: -0.4px; line-height: 1.08; color: var(--fac-navy); margin: 0; }
+.hero p { color: var(--fac-ink-soft); font-size: 13.5px; margin-top: 6px; max-width: 520px; }
 
-.panel { background: var(--fac-panel); border: 1px solid var(--fac-line); border-radius: 8px; padding: 18px 20px; margin-bottom: 14px; }
-.panelTitle { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--fac-text-dim); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.statRow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 26px; }
+.statCard { background: var(--fac-card); border: 1px solid var(--fac-rule); border-radius: var(--fac-radius); padding: 17px 17px 15px; position: relative; box-shadow: var(--fac-shadow-card); }
+.statCard::before { content: ''; position: absolute; top: 0; left: 16px; right: 16px; height: 3px; border-radius: 0 0 3px 3px; }
+.statCard.cSapphire::before { background: var(--fac-sapphire); }
+.statCard.cGold::before { background: var(--fac-gold); }
+.statCard.cGreen::before { background: var(--fac-green); }
+.statCard.cRed::before { background: var(--fac-red); }
+.statIcon { font-size: 18px; color: var(--fac-ink-faint); margin-bottom: 9px; }
+.statLabel { font-size: 10.5px; color: var(--fac-ink-faint); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 5px; }
+.statValue { font-family: 'IBM Plex Mono', monospace; font-size: 25px; font-weight: 600; color: var(--fac-navy); }
+.statFoot { font-size: 11px; margin-top: 6px; font-weight: 600; }
+.statFoot.up { color: var(--fac-green); }
+.statFoot.warn { color: var(--fac-amber); }
+.statFoot.flat { color: var(--fac-ink-faint); }
 
-.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 20px; font-family: monospace; }
-.pill .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-.pillOk { color: var(--fac-green); background: var(--fac-green-bg); }
-.pillOk .dot { background: var(--fac-green); }
-.pillWarn { color: var(--fac-amber); background: var(--fac-amber-bg); }
-.pillWarn .dot { background: var(--fac-amber); }
+.panel { background: var(--fac-card); border: 1px solid var(--fac-rule); border-radius: var(--fac-radius); box-shadow: var(--fac-shadow-card); margin-bottom: 22px; }
+.panelHead { display: flex; align-items: center; justify-content: space-between; padding: 17px 20px; border-bottom: 1px solid var(--fac-rule); gap: 12px; flex-wrap: wrap; }
+.panelTitle { font-family: 'Source Serif 4', serif; font-weight: 600; font-size: 16.5px; color: var(--fac-navy); }
+.panelSub { font-size: 11.3px; color: var(--fac-ink-faint); margin-top: 2px; }
+.panelBody { padding: 19px 20px; }
+
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 7px; font-size: 12.3px; font-weight: 600; border: 1px solid transparent; cursor: pointer; text-decoration: none; }
+.btnGhost { background: var(--fac-card); border-color: var(--fac-rule); color: var(--fac-ink); }
+.btnGhost:hover { background: var(--fac-parchment-deep); }
+.btnSm { padding: 5px 10px; font-size: 11px; }
+
+.approvalCard { display: flex; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--fac-rule); transition: background .1s; }
+.approvalCard:last-child { border-bottom: none; }
+.approvalThumb { width: 38px; height: 38px; border-radius: 8px; background: var(--fac-parchment-deep); color: var(--fac-ink-soft); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.approvalMain { flex: 1; min-width: 0; }
+.approvalTop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+.approvalTitle { font-weight: 700; color: var(--fac-navy); font-size: 13.5px; }
+.approvalMeta { display: flex; gap: 12px; font-size: 11px; color: var(--fac-ink-soft); flex-wrap: wrap; }
+.approvalMeta span { display: flex; align-items: center; gap: 4px; }
+
+.slaFlag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; background: var(--fac-red-soft); color: var(--fac-red); padding: 2px 7px; border-radius: 8px; }

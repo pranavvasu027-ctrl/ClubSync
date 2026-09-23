@@ -68,7 +68,7 @@ export default function Login() {
       <div style={styles.card}>
         <div style={styles.header}>
           <div style={styles.logo}>
-            <Shield size={24} color="#fff" />
+            <img src="/clubsync-logo.jpg" alt="ClubSync" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 12 }} />
           </div>
           <h2 style={styles.title}>ClubSync Access</h2>
           <p style={styles.subtitle}>Sign in or create an account</p>
@@ -177,14 +177,14 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 20,
   },
   logo: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#0C447C',
+    width: 64,
+    height: 64,
     borderRadius: 12,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     margin: '0 auto 16px',
+    overflow: 'hidden',
   },
   title: {
     fontSize: 24,

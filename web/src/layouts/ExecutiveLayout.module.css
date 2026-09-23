@@ -35,9 +35,7 @@
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .brandMark {
   width: 34px; height: 34px; border-radius: 9px;
-  background: var(--exec-lime); color: #0B1210;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px;
+  object-fit: contain;
 }
 .brandName { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: -0.2px; }
 .brandSub { font-size: 10px; color: var(--exec-text-faint); letter-spacing: 0.08em; text-transform: uppercase; margin-left: 44px; }

@@ -21,7 +21,7 @@ export default function Sidebar({ activeTab, setActiveTab }: { activeTab: string
   return (
     <div className="sidebar">
       <div className="brand">
-        <div className="brand-logo">CS</div>
+        <img src="/clubsync-logo.jpg" alt="ClubSync" className="brand-logo" />
         <div className="brand-text">
           <h2>ClubSync</h2>
           <span>Committee & Admin Portal</span>

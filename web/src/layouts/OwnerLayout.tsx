@@ -14,7 +14,7 @@ const OwnerLayout: React.FC = () => {
       {/* Topbar */}
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <div className={styles.brandMark}>CS</div>
+          <img src="/clubsync-logo.jpg" alt="ClubSync" className={styles.brandMark} />
           <span>ClubSync</span>
           <span className={styles.brandTag}>OWNER</span>
         </div>

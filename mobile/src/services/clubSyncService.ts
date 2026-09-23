@@ -160,13 +160,7 @@ export async function getPendingApplications(): Promise<ApplicationItem[]> {
   return mockApplications.filter(app => app.status === 'APPLIED' || app.status === 'SHORTLISTED');
 }
 
-export async function updateApplicationStatus(appId: string, newStatus: 'ACCEPTED' | 'REJECTED' | 'SHORTLISTED'): Promise<{success: boolean}> {
-  await new Promise(resolve => setTimeout(resolve, 400));
-  mockApplications = mockApplications.map(app => 
-    app.id === appId ? { ...app, status: newStatus } : app
-  );
-  return { success: true };
-}
+
 
 // ============================================================================
 // 2. CLUBS API (READ, FOLLOW, UPDATE CMS)
@@ -739,7 +733,7 @@ export async function markAttendance(token: string): Promise<{ success: boolean;
       success: true,
       studentName: data.attendee_name,
       prn: data.attendee_prn,
-      eventTitle: data.events?.title || 'Event',
+      eventTitle: (data as any).events?.title || 'Event',
       message: 'Attendance Marked'
     };
   } catch (err) {

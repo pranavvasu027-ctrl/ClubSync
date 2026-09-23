@@ -36,8 +36,8 @@ const TeamDirectory: React.FC = () => {
           
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 26 }}>
             {/* President Node */}
-            <div style={{ background: 'var(--pres-red-soft)', border: '1.5px solid var(--pres-red)', borderRadius: 9, padding: '12px 18px', textAlign: 'center', minWidth: 150, boxShadow: 'var(--pres-shadow-card)' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--pres-navy)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, margin: '0 auto 6px', fontFamily: 'Fraunces, serif' }}>
+            <div className={`${styles.orgNode} ${styles.top}`}>
+              <div className={styles.avatarSm}>
                 KP
               </div>
               <div style={{ fontSize: 12.5, fontWeight: 700 }}>Kuldeep Patil</div>
@@ -49,8 +49,8 @@ const TeamDirectory: React.FC = () => {
             {/* Sub Nodes */}
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
               {users.filter(u => u.user_type !== 'president').map(u => (
-                <div key={u.id} style={{ background: 'var(--pres-card)', border: '1.5px solid var(--pres-rule-strong)', borderRadius: 9, padding: '12px 18px', textAlign: 'center', minWidth: 150, boxShadow: 'var(--pres-shadow-card)' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--pres-navy)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, margin: '0 auto 6px', fontFamily: 'Fraunces, serif' }}>
+                <div key={u.id} className={styles.orgNode}>
+                  <div className={styles.avatarSm}>
                     {getInitials(u.name || 'User')}
                   </div>
                   <div style={{ fontSize: 12.5, fontWeight: 700 }}>{u.name || 'Unknown'}</div>
@@ -61,6 +61,23 @@ const TeamDirectory: React.FC = () => {
           </div>
           
         </div>
+      </div>
+
+      <div className={styles.teamGrid}>
+        {users.filter(u => u.user_type !== 'president').map((u, i) => {
+          const colors = ['var(--pres-navy)', 'var(--pres-amber)', 'var(--pres-green)', 'var(--pres-red)'];
+          const color = colors[i % colors.length];
+          return (
+            <div key={u.id} className={styles.teamCard}>
+              <div className={styles.avatarMd} style={{ background: color }}>{getInitials(u.name || 'U')}</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>{u.name || 'Unknown'}</div>
+                <div style={{ fontSize: 11, color: 'var(--pres-ink-faint)' }}>{u.user_type}</div>
+              </div>
+              <span className={styles.badgeActive}>Active</span>
+            </div>
+          );
+        })}
       </div>
     </>
   );

@@ -13,7 +13,7 @@ const FacultyLayout: React.FC = () => {
     <div className={styles.shell}>
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <div className={styles.brandMark}>CS</div>
+          <img src="/clubsync-logo.jpg" alt="ClubSync" className={styles.brandMark} />
           <span>ClubSync</span>
           <span className={styles.brandTag}>FACULTY</span>
         </div>

@@ -21,7 +21,7 @@ const ExecutiveLayout: React.FC = () => {
         <aside className={styles.rail}>
           <div className={styles.railTop}>
             <div className={styles.brand}>
-              <div className={styles.brandMark}>G</div>
+              <img src="/clubsync-logo.jpg" alt="ClubSync" className={styles.brandMark} />
               <div className={styles.brandName}>Ops Desk</div>
             </div>
             <div className={styles.brandSub}>GedIT Technical Club</div>

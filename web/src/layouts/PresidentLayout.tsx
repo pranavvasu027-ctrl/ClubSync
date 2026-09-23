@@ -25,7 +25,7 @@ const PresidentLayout: React.FC = () => {
         <div className={styles.railClip}></div>
         <div className={styles.railTop}>
           <div className={styles.brand}>
-            <div className={styles.brandMark}>G</div>
+            <img src="/clubsync-logo.jpg" alt="ClubSync" className={styles.brandMark} />
             <div className={styles.brandName}>The Desk</div>
           </div>
           <div className={styles.brandSub}>ClubSync Operations</div>
@@ -80,7 +80,7 @@ const PresidentLayout: React.FC = () => {
           </div>
           <div className={styles.topbarRight}>
             <button className={styles.iconBtn}><IconSearch size={16} /></button>
-            <button className={styles.iconBtn}><IconBell size={16} /></button>
+            <button className={styles.iconBtn}><IconBell size={16} /><span className={styles.ping}></span></button>
           </div>
         </header>
 

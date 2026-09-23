@@ -22,7 +22,7 @@ const SecretaryLayout: React.FC = () => {
           <div className={styles.railClip}></div>
           <div className={styles.railTop}>
             <div className={styles.brand}>
-              <div className={styles.brandMark}>G</div>
+              <img src="/clubsync-logo.jpg" alt="ClubSync" className={styles.brandMark} />
               <div className={styles.brandName}>The Desk</div>
             </div>
             <div className={styles.brandSub}>GedIT Technical Club</div>

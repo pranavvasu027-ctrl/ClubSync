@@ -41,7 +41,7 @@ export async function pickAndUploadImage(
     let base64 = asset.base64;
     if (!base64 && asset.uri) {
       base64 = await FileSystem.readAsStringAsync(asset.uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64' as any,
       });
     }
 

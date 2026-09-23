@@ -54,14 +54,7 @@
   width: 22px;
   height: 22px;
   border-radius: 5px;
-  background: var(--fac-accent-grad);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: monospace;
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
+  object-fit: contain;
 }
 
 .brandTag {

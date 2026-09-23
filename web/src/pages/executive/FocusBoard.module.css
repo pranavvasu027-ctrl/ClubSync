@@ -1,0 +1,37 @@
+.hero { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 26px; }
+.heroEyebrow { font-family: var(--exec-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--exec-lime); margin-bottom: 8px; }
+.hero h1 { font-family: var(--exec-disp); font-weight: 700; font-size: 30px; letter-spacing: -0.5px; margin: 0; }
+.hero p { color: var(--exec-text-dim); font-size: 13.5px; margin-top: 6px; }
+
+.panel { background: var(--exec-panel); border: 1px solid var(--exec-line); border-radius: var(--exec-radius); margin-bottom: 20px; }
+.panelHead { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--exec-line); }
+.panelTitle { font-family: var(--exec-disp); font-weight: 700; font-size: 15.5px; }
+.panelSub { font-size: 11px; color: var(--exec-text-faint); margin-top: 2px; }
+.panelBody { padding: 18px 20px; }
+
+.statRow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+.statCard { background: var(--exec-panel); border: 1px solid var(--exec-line); border-radius: var(--exec-radius); padding: 18px; position: relative; overflow: hidden; }
+.statCard::after { content: ''; position: absolute; top: -30%; right: -20%; width: 120px; height: 120px; border-radius: 50%; filter: blur(30px); opacity: 0.25; }
+.statCard.c1::after { background: var(--exec-lime); }
+.statCard.c2::after { background: var(--exec-sky); }
+.statCard.c3::after { background: var(--exec-amber); }
+.statIcon { font-size: 18px; color: var(--exec-text-dim); margin-bottom: 12px; }
+.statLabel { font-size: 11px; color: var(--exec-text-faint); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 6px; }
+.statValue { font-family: var(--exec-mono); font-size: 26px; font-weight: 700; }
+.statFoot { font-size: 11px; margin-top: 8px; font-weight: 600; color: var(--exec-lime); }
+.miniTrack { height: 5px; background: rgba(255, 255, 255, 0.06); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+.miniFill { height: 100%; background: var(--exec-lime); border-radius: 3px; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 15px; border-radius: 9px; font-size: 12.5px; font-weight: 700; border: 1px solid transparent; cursor: pointer; text-decoration: none; }
+.btnGhost { background: transparent; border-color: var(--exec-line-strong); color: var(--exec-text); }
+.btnGhost:hover { background: rgba(255, 255, 255, 0.04); }
+.btnSm { padding: 5px 10px; font-size: 11px; }
+
+.kcard { background: var(--exec-panel); border: 1px solid var(--exec-line); border-left: 3px solid var(--exec-text-faint); border-radius: 9px; padding: 11px 12px; margin-bottom: 9px; font-size: 12.5px; }
+.kcard.pHigh { border-left-color: var(--exec-coral); }
+.kcard.pMid { border-left-color: var(--exec-amber); }
+.kcard.pLow { border-left-color: var(--exec-lime); }
+.kcardTitle { font-weight: 600; margin-bottom: 6px; }
+.kcardFoot { display: flex; justify-content: space-between; align-items: center; }
+.kcardTag { font-size: 9.5px; font-family: var(--exec-mono); color: var(--exec-text-faint); background: rgba(255, 255, 255, 0.04); padding: 2px 6px; border-radius: 5px; }
+.kcardAvatar { width: 20px; height: 20px; border-radius: 50%; background: var(--exec-sky); color: #08120E; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; }

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import styles from './PresidentDashboard.module.css';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { IconCalendarEvent, IconUsers, IconWallet, IconChecklist, IconMapPin } from '@tabler/icons-react';
+import { Link } from 'react-router-dom';
+import { IconCalendarEvent, IconUsers, IconWallet, IconChecklist, IconMapPin, IconCheck, IconFileText, IconAlertTriangle, IconReceipt } from '@tabler/icons-react';
 import type { ClubEvent } from '../../types/clubData';
 
 const PresidentDashboard: React.FC = () => {
@@ -85,6 +86,7 @@ const PresidentDashboard: React.FC = () => {
               <div className={styles.panelTitle}>This week's docket</div>
               <div className={styles.panelSub}>Events needing your sign-off or attention</div>
             </div>
+            <Link to="/president/events" className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}>Open events desk</Link>
           </div>
           <div className={styles.panelBody}>
             {events.slice(0,2).map(ev => (
@@ -98,6 +100,42 @@ const PresidentDashboard: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHead}>
+            <div className={styles.panelTitle}>Recent activity</div>
+          </div>
+          <div className={styles.panelBody} style={{ gap: '13px' }}>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div className={`${styles.txnCat} ${styles.in}`}><IconCheck size={16}/></div>
+              <div className={styles.txnInfo}>
+                <div className={styles.txnDesc}>Budget approved — Code Sprint</div>
+                <div className={styles.txnTime}>2 hours ago</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div className={`${styles.txnCat} ${styles.neutral}`}><IconFileText size={16}/></div>
+              <div className={styles.txnInfo}>
+                <div className={styles.txnDesc}>Arnav submitted weekly report</div>
+                <div className={styles.txnTime}>5 hours ago</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div className={`${styles.txnCat} ${styles.out}`}><IconAlertTriangle size={16}/></div>
+              <div className={styles.txnInfo}>
+                <div className={styles.txnDesc}>New proposal: AI/ML Bootcamp</div>
+                <div className={styles.txnTime}>1 day ago</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div className={`${styles.txnCat} ${styles.out}`}><IconReceipt size={16}/></div>
+              <div className={styles.txnInfo}>
+                <div className={styles.txnDesc}>Logistics invoice paid · ₹15,000</div>
+                <div className={styles.txnTime}>2 days ago</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

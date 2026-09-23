@@ -96,9 +96,12 @@ export default function DashboardScreen() {
     }
 
     setIsSubmitting(true);
+    const dateParts = eventDate.split(' ');
     const newEvent = {
       title: eventTitle,
       date: eventDate,
+      month: dateParts.length >= 1 ? dateParts[0].substring(0, 3) : 'Jan',
+      day: dateParts.length >= 2 ? dateParts[1].replace(',', '') : '01',
       time: eventTime,
       venue: eventVenue,
       description: eventDescription || 'Join us for this amazing event!',
@@ -106,11 +109,12 @@ export default function DashboardScreen() {
       clubName: user?.collegeName ? `Club at ${user.collegeName}` : 'ClubSync Org',
       collegeName: user?.collegeName || 'VIT Pune',
       vertical: eventVertical || 'General',
-      scope: 'intra',
+      scope: 'Intra-Collegiate' as const,
       isHackathon: false,
-      status: 'UPCOMING' as const,
+      status: 'upcoming' as const,
       registeredCount: 0,
-      bannerUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop', // Default placeholder banner
+      maxCapacity: 200,
+      bannerUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&auto=format&fit=crop',
     };
 
     const result = await createEvent(newEvent);

@@ -26,7 +26,7 @@ const StudentLayout: React.FC = () => {
     <div className={styles.shell}>
       <aside className={styles.rail}>
         <div className={styles.brand}>
-          <div className={styles.brandMark}>CS</div>
+          <img src="/clubsync-logo.jpg" alt="ClubSync" className={styles.brandMark} />
           <div className={styles.brandName}>ClubSync</div>
         </div>
 

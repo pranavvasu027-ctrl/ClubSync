@@ -3,6 +3,10 @@ import { supabase } from '../../lib/supabase';
 import type { ClubLedgerTxn } from '../../types/clubData';
 import styles from './PresidentDashboard.module.css';
 import { IconPlus, IconArrowDownLeft, IconArrowUpRight } from '@tabler/icons-react';
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const Ledger: React.FC = () => {
   const [transactions, setTransactions] = useState<ClubLedgerTxn[]>([]);
@@ -49,6 +53,22 @@ const Ledger: React.FC = () => {
         <div style={{ border: '1px solid var(--pres-rule)', borderRadius: 9, padding: 16, background: 'var(--pres-card)' }}>
           <div style={{ fontSize: 11, color: 'var(--pres-ink-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginBottom: 6 }}>Balance on hand</div>
           <div style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 700, color: 'var(--pres-navy)' }}>₹{balance.toLocaleString()}</div>
+        </div>
+      </div>
+
+      <div className={styles.panel}>
+        <div className={styles.panelHead}><div className={styles.panelTitle}>Income vs expenses, 2026</div></div>
+        <div className={styles.panelBody} style={{ height: 200 }}>
+          <Bar 
+            data={{
+              labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+              datasets: [
+                { label: 'Income', data: [50000, 30000, 60000, 45000, 80000, 20000, 150000, 50000], backgroundColor: '#3D6B47' },
+                { label: 'Expenses', data: [20000, 25000, 15000, 35000, 20000, 10000, 40000, 5000], backgroundColor: '#C7452C' }
+              ]
+            }} 
+            options={{ maintainAspectRatio: false }} 
+          />
         </div>
       </div>
 
