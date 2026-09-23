@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import styles from './PresidentDashboard.module.css';
 
 const NewEventProposal: React.FC = () => {
-  const { profile, user } = useAuth();
+  const { profile, club } = useAuth();
   const navigate = useNavigate();
 
   // Basic Details
@@ -99,15 +99,14 @@ const NewEventProposal: React.FC = () => {
         target_audience: targetAudience,
         expected_count: expectedCount,
         status: status, // 'draft' or 'proposed'
-        club_id: profile?.college_id || 'VIT_GEDIT', // Ideally mapped from user
-        club_name: profile?.name || 'Club Name',
-        // Assuming we add these to DB or store as JSON if schema altered
-        // For now, mapping to existing or new proposed columns
+        club_id: club?.club_id || null,
+        club_name: club?.name || 'Unknown Club',
         objectives,
         expected_outcomes: outcomes,
         guest_details: guests,
         resource_requirements: resources,
-        compliance_verified: compliance1 && compliance2 && compliance3
+        compliance_verified: compliance1 && compliance2 && compliance3,
+        created_by: profile?.user_id || null,
       }).select().single();
 
       if (eventError) throw eventError;
@@ -132,11 +131,11 @@ const NewEventProposal: React.FC = () => {
         });
       }
 
-      // 3. Insert into event_approvals if submitted
+      // 3. If submitting, create a PENDING approval for faculty mentor
       if (status === 'proposed') {
         await supabase.from('event_approvals').insert({
           event_id: eventId,
-          approver_id: user?.id, // Mocking approver ID assignment
+          approver_id: null, // Faculty mentor will claim this
           approver_level: 'FACULTY_MENTOR',
           decision: 'PENDING'
         });
@@ -169,7 +168,7 @@ const NewEventProposal: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Club Name</label>
-              <input type="text" value={profile?.name || 'Club Name'} disabled style={{ width: '100%', padding: '8px 12px', background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', borderRadius: 6, opacity: 0.7 }} />
+              <input type="text" value={club?.name || 'Loading...'} disabled style={{ width: '100%', padding: '8px 12px', background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', borderRadius: 6, opacity: 0.7 }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Event Title <span style={{color: 'red'}}>*</span></label>

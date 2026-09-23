@@ -130,7 +130,7 @@ const PresidentDashboard: React.FC = () => {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <div className={`${styles.txnCat} ${styles.out}`}><IconReceipt size={16}/></div>
+              <div className={`${styles.txnCat} ${styles.out}`}><IconReceipt2 size={16}/></div>
               <div className={styles.txnInfo}>
                 <div className={styles.txnDesc}>Logistics invoice paid · ₹15,000</div>
                 <div className={styles.txnTime}>2 days ago</div>
