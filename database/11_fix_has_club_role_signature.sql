@@ -10,10 +10,12 @@ LANGUAGE sql SECURITY DEFINER STABLE
 SET search_path = public
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM public.club_members
-    WHERE club_id = target_club_id
-      AND user_id = auth.uid()
-      AND role = ANY(allowed_roles)
+    SELECT 1 
+    FROM public.memberships m
+    JOIN public.users u ON m.user_id = u.user_id
+    WHERE u.auth_user_id = auth.uid()
+      AND m.club_id = target_club_id
+      AND m.role = ANY(allowed_roles)
   );
 $$;
 
@@ -28,7 +30,7 @@ SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.users
-    WHERE user_id = auth.uid()
+    WHERE auth_user_id = auth.uid()
       AND global_role = ANY(allowed_roles)
   );
 $$;
