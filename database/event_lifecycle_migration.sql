@@ -31,7 +31,7 @@ $$;
 -- 4. ADD new status values to events table
 ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_status_check;
 ALTER TABLE public.events ADD CONSTRAINT events_status_check 
-  CHECK (status IN ('draft', 'proposed', 'upcoming', 'live', 'past', 'cancelled', 'approved', 'rejected', 'published', 'completed', 'settled'));
+  CHECK (status IN ('draft', 'under_review', 'upcoming', 'live', 'past', 'cancelled', 'approved', 'rejected', 'published', 'completed', 'settled'));
 
 -- 5. ADD version column to events if not exists
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS current_version INT DEFAULT 1;
@@ -171,11 +171,11 @@ BEGIN
   INSERT INTO public.event_approvals (event_id, approver_level, decision)
   VALUES (p_event_id, 'FACULTY_MENTOR', 'PENDING');
 
-  UPDATE public.events SET status = 'proposed', current_version = current_version + 1, updated_at = NOW()
+  UPDATE public.events SET status = 'under_review', current_version = current_version + 1, updated_at = NOW()
   WHERE event_id = p_event_id;
 
   INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, performer_role)
-  VALUES (p_event_id, v_event.current_version, 'SUBMITTED', v_event.status, 'proposed', v_user_id, v_role);
+  VALUES (p_event_id, v_event.current_version, 'SUBMITTED', v_event.status, 'under_review', v_user_id, v_role);
 
   RETURN jsonb_build_object('success', true, 'message', 'Event submitted successfully');
 END;
@@ -209,7 +209,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'message', 'Event not found');
   END IF;
 
-  IF v_event.status != 'proposed' THEN
+  IF v_event.status != 'under_review' THEN
     RETURN jsonb_build_object('success', false, 'message', 'Event is not in proposed status');
   END IF;
 
@@ -224,7 +224,7 @@ BEGIN
   UPDATE public.events SET status = 'live', updated_at = NOW() WHERE event_id = p_event_id;
 
   INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, performer_role, reason)
-  VALUES (p_event_id, v_event.current_version, 'APPROVED', 'proposed', 'live', v_user_id, v_role, p_remarks);
+  VALUES (p_event_id, v_event.current_version, 'APPROVED', 'under_review', 'live', v_user_id, v_role, p_remarks);
 
   RETURN jsonb_build_object('success', true, 'message', 'Event approved successfully');
 END;
@@ -262,7 +262,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'message', 'Event not found');
   END IF;
 
-  IF v_event.status != 'proposed' THEN
+  IF v_event.status != 'under_review' THEN
     RETURN jsonb_build_object('success', false, 'message', 'Event is not in proposed status');
   END IF;
 
@@ -277,7 +277,7 @@ BEGIN
   UPDATE public.events SET status = 'rejected', updated_at = NOW() WHERE event_id = p_event_id;
 
   INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, performer_role, reason)
-  VALUES (p_event_id, v_event.current_version, 'REJECTED', 'proposed', 'rejected', v_user_id, v_role, p_reason);
+  VALUES (p_event_id, v_event.current_version, 'REJECTED', 'under_review', 'rejected', v_user_id, v_role, p_reason);
 
   RETURN jsonb_build_object('success', true, 'message', 'Event rejected successfully');
 END;

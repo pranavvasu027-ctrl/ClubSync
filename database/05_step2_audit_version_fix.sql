@@ -56,7 +56,7 @@ BEGIN
 
   -- 3. Update Event Status & Increment Version
   UPDATE public.events 
-  SET status = 'proposed', 
+  SET status = 'under_review', 
       current_version = COALESCE(current_version, 1) + 1,
       updated_at = CURRENT_TIMESTAMP
   WHERE event_id = p_event_id;
@@ -75,7 +75,7 @@ BEGIN
   INSERT INTO public.event_audit_log (
     event_id, version_number, action, previous_status, new_status, performed_by
   ) VALUES (
-    p_event_id, COALESCE(v_event_data.current_version, 1), 'SUBMITTED', v_status, 'proposed', v_user_id
+    p_event_id, COALESCE(v_event_data.current_version, 1), 'SUBMITTED', v_status, 'under_review', v_user_id
   );
 
 END;

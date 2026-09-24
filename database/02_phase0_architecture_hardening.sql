@@ -206,7 +206,7 @@ BEGIN
 
   -- Update event
   UPDATE public.events 
-  SET status = 'proposed', 
+  SET status = 'under_review', 
       updated_at = CURRENT_TIMESTAMP
   WHERE event_id = p_event_id;
 END;
@@ -232,8 +232,8 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: Only faculty can approve events';
   END IF;
 
-  IF v_status != 'proposed' THEN
-    RAISE EXCEPTION 'Invalid state transition: Event must be in proposed state';
+  IF v_status != 'under_review' THEN
+    RAISE EXCEPTION 'Invalid state transition: Event must be in under_review state';
   END IF;
 
   UPDATE public.events SET status = 'live', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;
@@ -263,8 +263,8 @@ BEGIN
     RAISE EXCEPTION 'Unauthorized: Only faculty can reject events';
   END IF;
 
-  IF v_status != 'proposed' THEN
-    RAISE EXCEPTION 'Invalid state transition: Event must be in proposed state';
+  IF v_status != 'under_review' THEN
+    RAISE EXCEPTION 'Invalid state transition: Event must be in under_review state';
   END IF;
 
   UPDATE public.events SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;

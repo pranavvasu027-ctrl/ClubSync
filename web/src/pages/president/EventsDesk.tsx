@@ -28,14 +28,39 @@ const EventsDesk: React.FC = () => {
   }, [club]);
 
   const fetchEvents = async () => {
+    if (!club?.club_id) return;
     const { data } = await supabase.from('events')
       .select('*')
-      .eq('club_id', club?.club_id)
+      .eq('club_id', club.club_id)
       .eq('is_deleted', false)
       .order('event_date', { ascending: true });
       
     if (data) {
-      setEvents(data);
+      // Fetch latest remarks for changes_requested or rejected events
+      const targetIds = data.filter(e => e.status === 'changes_requested' || e.status === 'rejected').map(e => e.event_id);
+      
+      let remarksMap: Record<string, string> = {};
+      if (targetIds.length > 0) {
+        const { data: auditData } = await supabase.from('event_audit_log')
+          .select('event_id, reason, created_at')
+          .in('event_id', targetIds)
+          .in('new_status', ['changes_requested', 'rejected'])
+          .order('created_at', { ascending: false });
+          
+        if (auditData) {
+          auditData.forEach(log => {
+            if (!remarksMap[log.event_id] && log.reason) {
+              remarksMap[log.event_id] = log.reason;
+            }
+          });
+        }
+      }
+
+      const enriched = data.map(e => ({
+        ...e,
+        remarks: remarksMap[e.event_id] || ''
+      }));
+      setEvents(enriched);
     }
   };
 
@@ -72,7 +97,7 @@ const EventsDesk: React.FC = () => {
   const columns = [
     { id: 'draft', title: 'Draft' },
     { id: 'changes_requested', title: 'Changes Requested' },
-    { id: 'proposed', title: 'In Approval Queue' },
+    { id: 'under_review', title: 'In Approval Queue' },
     { id: 'approved', title: 'Approved (Setup)' },
     { id: 'published', title: 'Published / Open' },
     { id: 'live', title: 'Live Event Day' },
@@ -91,17 +116,27 @@ const EventsDesk: React.FC = () => {
         );
       case 'changes_requested':
         return (
-          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-            <button onClick={() => navigate(`/president/events/new?edit=${ev.event_id}`)} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-rule)', background: 'var(--pres-paper)' }}>Edit & Resubmit</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+            {ev.remarks && (
+              <div style={{ fontSize: 11, background: '#fef9c3', color: '#854d0e', padding: '6px 8px', borderRadius: 4, border: '1px solid #fde047' }}>
+                <strong>Faculty Remarks:</strong> {ev.remarks}
+              </div>
+            )}
+            <button onClick={() => navigate(`/president/events/new?edit=${ev.event_id}`)} style={{ padding: '6px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-rule)', background: 'var(--pres-paper)' }}>Edit & Resubmit</button>
           </div>
         );
       case 'rejected':
         return (
-          <div style={{ marginTop: 10 }}>
-            <span style={{ fontSize: 11, padding: '4px 8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 4, display: 'inline-block' }}>Rejected</span>
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 11, padding: '4px 8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 4, display: 'inline-block', width: 'fit-content' }}>Rejected</span>
+            {ev.remarks && (
+              <div style={{ fontSize: 11, color: '#7f1d1d' }}>
+                <strong>Reason:</strong> {ev.remarks}
+              </div>
+            )}
           </div>
         );
-      case 'proposed':
+      case 'under_review':
         return (
           <div style={{ marginTop: 10 }}>
             <span style={{ fontSize: 11, padding: '4px 8px', background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 4, display: 'inline-block' }}>In Multi-tier Review</span>
@@ -212,7 +247,7 @@ const EventsDesk: React.FC = () => {
           {events.map(ev => {
             let statusClass = '';
             if (ev.status === 'live') statusClass = styles.stLive;
-            if (ev.status === 'proposed') statusClass = styles.stPending;
+            if (ev.status === 'under_review') statusClass = styles.stPending;
             if (ev.status === 'draft') statusClass = styles.stDraft;
             if (ev.status === 'changes_requested') statusClass = styles.stDraft;
 

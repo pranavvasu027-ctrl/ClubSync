@@ -26,8 +26,8 @@ BEGIN
   
   IF NOT FOUND THEN RAISE EXCEPTION 'Event not found'; END IF;
   
-  IF v_status != 'proposed' THEN
-    RAISE EXCEPTION 'Event must be in proposed state for approvals';
+  IF v_status != 'under_review' THEN
+    RAISE EXCEPTION 'Event must be in under_review state for approvals';
   END IF;
 
   -- Validate sequential approval
@@ -70,18 +70,18 @@ BEGIN
     UPDATE public.events SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;
     
     INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, reason)
-    VALUES (p_event_id, COALESCE(v_version, 1), p_decision, 'proposed', 'rejected', public.get_my_user_id(), p_remarks);
+    VALUES (p_event_id, COALESCE(v_version, 1), p_decision, 'under_review', 'rejected', public.get_my_user_id(), p_remarks);
     
   ELSIF p_decision = 'APPROVED' THEN
     IF p_level = 'DEAN_ADMIN' THEN
       UPDATE public.events SET status = 'approved', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;
       
       INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, reason)
-      VALUES (p_event_id, COALESCE(v_version, 1), 'APPROVED', 'proposed', 'approved', public.get_my_user_id(), p_remarks);
+      VALUES (p_event_id, COALESCE(v_version, 1), 'APPROVED', 'under_review', 'approved', public.get_my_user_id(), p_remarks);
     ELSE
       -- Log interim approval
       INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, reason)
-      VALUES (p_event_id, COALESCE(v_version, 1), 'APPROVED_' || p_level, 'proposed', 'proposed', public.get_my_user_id(), p_remarks);
+      VALUES (p_event_id, COALESCE(v_version, 1), 'APPROVED_' || p_level, 'under_review', 'under_review', public.get_my_user_id(), p_remarks);
 
       -- Insert pending for next level
       v_next_stage := CASE p_level

@@ -51,14 +51,14 @@ export default function Proposals() {
       setFormData(prev => ({ ...prev, club_id: clubs[0].id }));
     }
 
-    // 2. Fetch proposals (Events in 'proposed' or 'draft' status for these clubs)
+    // 2. Fetch proposals (Events in 'under_review' or 'draft' status for these clubs)
     if (clubs.length > 0) {
       const clubIds = clubs.map(c => c.id);
       const { data: eventsData } = await supabase
         .from('events')
         .select('*')
         .in('club_id', clubIds)
-        .in('status', ['proposed', 'draft'])
+        .in('status', ['under_review', 'draft'])
         .order('created_at', { ascending: false });
         
       setProposals(eventsData || []);
@@ -95,7 +95,7 @@ export default function Proposals() {
       ticket_price: parseFloat(formData.ticket_price) || 0,
       description: formData.description,
       event_type: formData.event_type,
-      status: 'proposed'
+      status: 'under_review'
     };
 
     const { error } = await supabase
@@ -171,8 +171,8 @@ export default function Proposals() {
                     </div>
                   </td>
                   <td>
-                    <span className={`badge ${prop.status === 'proposed' ? 'badge-pending' : 'badge-tech'}`}>
-                      {prop.status === 'proposed' ? 'Faculty Review' : 'Draft'}
+                    <span className={`badge ${prop.status === 'under_review' ? 'badge-pending' : 'badge-tech'}`}>
+                      {prop.status === 'under_review' ? 'Faculty Review' : 'Draft'}
                     </span>
                   </td>
                 </tr>

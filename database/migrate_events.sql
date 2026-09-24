@@ -28,7 +28,7 @@ CREATE TABLE public.events (
     end_time TIMESTAMP WITH TIME ZONE,
     ticket_price NUMERIC(10, 2) DEFAULT 0.00,
     banner_image_url TEXT,
-    status VARCHAR(30) DEFAULT 'draft' CHECK (status IN ('draft', 'proposed', 'approved', 'rejected', 'published', 'live', 'past', 'cancelled')),
+    status VARCHAR(30) DEFAULT 'draft' CHECK (status IN ('draft', 'under_review', 'approved', 'rejected', 'published', 'live', 'past', 'cancelled')),
     objectives TEXT,
     expected_outcomes TEXT,
     guest_details JSONB,

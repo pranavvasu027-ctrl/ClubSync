@@ -29,7 +29,7 @@ BEGIN
 
   -- Update event
   UPDATE public.events 
-  SET status = 'proposed', 
+  SET status = 'under_review', 
       updated_at = CURRENT_TIMESTAMP
   WHERE event_id = p_event_id;
 
@@ -63,8 +63,8 @@ BEGIN
   
   IF NOT FOUND THEN RAISE EXCEPTION 'Event not found'; END IF;
   
-  IF v_status != 'proposed' THEN
-    RAISE EXCEPTION 'Event must be in proposed state for approvals';
+  IF v_status != 'under_review' THEN
+    RAISE EXCEPTION 'Event must be in under_review state for approvals';
   END IF;
 
   -- Validate sequential approval

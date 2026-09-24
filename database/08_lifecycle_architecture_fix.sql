@@ -5,7 +5,7 @@
 -- 1. Drop old constraint and add new constraint with changes_requested
 ALTER TABLE public.events DROP CONSTRAINT IF EXISTS events_status_check;
 ALTER TABLE public.events ADD CONSTRAINT events_status_check CHECK (
-  status IN ('draft', 'proposed', 'approved', 'changes_requested', 'rejected', 'published', 'upcoming', 'live', 'completed', 'past', 'cancelled', 'settled')
+  status IN ('draft', 'under_review', 'approved', 'changes_requested', 'rejected', 'published', 'upcoming', 'live', 'completed', 'past', 'cancelled', 'settled')
 );
 
 -- 2. Drop old dangerous mock RPCs from Phase 0 to ensure they are never accidentally called
@@ -43,8 +43,8 @@ BEGIN
   END IF;
 
   -- ENHANCED: Allow resubmission from changes_requested
-  IF v_status NOT IN ('draft', 'changes_requested', 'rejected') THEN
-    RAISE EXCEPTION 'Invalid state transition: Only draft, changes_requested, or rejected events can be submitted';
+  IF v_status NOT IN ('draft', 'changes_requested') THEN
+    RAISE EXCEPTION 'Invalid state transition: Only draft or changes_requested events can be submitted';
   END IF;
 
   SELECT jsonb_agg(row_to_json(b)) INTO v_budget_json FROM public.event_budgets b WHERE event_id = p_event_id;
@@ -61,7 +61,7 @@ BEGIN
   );
 
   UPDATE public.events 
-  SET status = 'proposed', 
+  SET status = 'under_review', 
       current_version = COALESCE(current_version, 1) + 1,
       updated_at = CURRENT_TIMESTAMP
   WHERE event_id = p_event_id;
@@ -77,7 +77,7 @@ BEGIN
   INSERT INTO public.event_audit_log (
     event_id, version_number, action, previous_status, new_status, performed_by
   ) VALUES (
-    p_event_id, COALESCE(v_event_data.current_version, 1), 'SUBMITTED', v_status, 'proposed', v_user_id
+    p_event_id, COALESCE(v_event_data.current_version, 1), 'SUBMITTED', v_status, 'under_review', v_user_id
   );
 END;
 $$;
@@ -106,8 +106,8 @@ BEGIN
   
   IF NOT FOUND THEN RAISE EXCEPTION 'Event not found'; END IF;
   
-  IF v_status != 'proposed' THEN
-    RAISE EXCEPTION 'Event must be in proposed state for approvals';
+  IF v_status != 'under_review' THEN
+    RAISE EXCEPTION 'Event must be in under_review state for approvals';
   END IF;
 
   v_expected_stage := public.get_next_approval_stage(p_event_id);
@@ -150,33 +150,18 @@ BEGIN
   IF p_decision = 'CHANGES_REQUESTED' THEN
     UPDATE public.events SET status = 'changes_requested', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;
     INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, reason)
-    VALUES (p_event_id, COALESCE(v_version, 1), p_decision, 'proposed', 'changes_requested', public.get_my_user_id(), p_remarks);
+    VALUES (p_event_id, COALESCE(v_version, 1), p_decision, 'under_review', 'changes_requested', public.get_my_user_id(), p_remarks);
 
   ELSIF p_decision = 'REJECTED' THEN
     UPDATE public.events SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;
     INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, reason)
-    VALUES (p_event_id, COALESCE(v_version, 1), p_decision, 'proposed', 'rejected', public.get_my_user_id(), p_remarks);
+    VALUES (p_event_id, COALESCE(v_version, 1), p_decision, 'under_review', 'rejected', public.get_my_user_id(), p_remarks);
     
   ELSIF p_decision = 'APPROVED' THEN
-    IF p_level = 'DEAN_ADMIN' THEN
-      UPDATE public.events SET status = 'approved', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;
-      INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, reason)
-      VALUES (p_event_id, COALESCE(v_version, 1), 'APPROVED', 'proposed', 'approved', public.get_my_user_id(), p_remarks);
-    ELSE
-      INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, reason)
-      VALUES (p_event_id, COALESCE(v_version, 1), 'APPROVED_' || p_level, 'proposed', 'proposed', public.get_my_user_id(), p_remarks);
-
-      v_next_stage := CASE p_level
-        WHEN 'FACULTY_MENTOR' THEN 'RESOURCE_INCHARGE'
-        WHEN 'RESOURCE_INCHARGE' THEN 'VERTICAL_COORDINATOR'
-        WHEN 'VERTICAL_COORDINATOR' THEN 'DEAN_ADMIN'
-      END;
-      
-      INSERT INTO public.event_approvals (event_id, approver_id, approver_level, decision)
-      VALUES (p_event_id, '00000000-0000-0000-0000-000000000000', v_next_stage, 'PENDING')
-      ON CONFLICT (event_id, approver_level) 
-      DO UPDATE SET decision = 'PENDING', remarks = NULL, decision_timestamp = NULL;
-    END IF;
+    -- Simplified for Hackathon: Faculty Mentor is the final approver
+    UPDATE public.events SET status = 'approved', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;
+    INSERT INTO public.event_audit_log (event_id, version_number, action, previous_status, new_status, performed_by, reason)
+    VALUES (p_event_id, COALESCE(v_version, 1), 'APPROVED', 'under_review', 'approved', public.get_my_user_id(), p_remarks);
   END IF;
 END;
 $$;

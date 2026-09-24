@@ -54,8 +54,8 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Event not found'; END IF;
   
   -- Must be in proposed state
-  IF v_status != 'proposed' THEN
-    RAISE EXCEPTION 'Event must be in proposed state for approvals';
+  IF v_status != 'under_review' THEN
+    RAISE EXCEPTION 'Event must be in under_review state for approvals';
   END IF;
 
   -- Validate sequential approval

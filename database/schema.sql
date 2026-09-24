@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS events (
     is_hackathon BOOLEAN DEFAULT FALSE,
     banner_image_url TEXT,
     academic_year VARCHAR(20) DEFAULT '2026-27',
-    status VARCHAR(30) DEFAULT 'upcoming' CHECK (status IN ('draft', 'proposed', 'upcoming', 'live', 'past', 'cancelled', 'approved', 'rejected', 'published')),
+    status VARCHAR(30) DEFAULT 'upcoming' CHECK (status IN ('draft', 'under_review', 'upcoming', 'live', 'past', 'cancelled', 'approved', 'rejected', 'published')),
     objectives TEXT,
     expected_outcomes TEXT,
     guest_details JSONB,

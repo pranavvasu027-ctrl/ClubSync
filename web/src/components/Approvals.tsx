@@ -15,12 +15,12 @@ export default function Approvals() {
 
   const fetchPendingApprovals = async () => {
     setLoading(true);
-    // Fetch all events that are 'proposed'. 
+    // Fetch all events that are 'under_review'. 
     // In a full production setup, we'd filter by the Faculty's college_id or specific club assignments.
     const { data, error } = await supabase
       .from('events')
       .select('*')
-      .eq('status', 'proposed')
+      .eq('status', 'under_review')
       .order('created_at', { ascending: false });
       
     if (error) {

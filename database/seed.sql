@@ -56,6 +56,6 @@ INSERT INTO events (event_id, club_id, club_name, college_id, college_name, titl
 VALUES
 (uuid_generate_v4(), 'VIT_CSI', 'CSI VIT Pune', 'VIT_PUNE', 'VIT Pune', 'Web Dev Bootcamp 2026', 'A 2-day intensive bootcamp on React and Next.js for beginners.', 'Workshop', 'Technical', '15 Sep 2026', '10:00 AM', 'Sharad Arena', 150.00, 200, 'live'),
 (uuid_generate_v4(), 'VIT_GDG', 'GDG VIT Pune', 'VIT_PUNE', 'VIT Pune', 'DevFest Hackathon', '24-hour hackathon building solutions for local businesses.', 'Hackathon', 'Technical', '28 Oct 2026', '09:00 AM', 'Computer Center, Lab 1-4', 0.00, 300, 'live'),
-(uuid_generate_v4(), 'VIT_EDC', 'EDC VIT Pune', 'VIT_PUNE', 'VIT Pune', 'Vishwapreneur 2026 (Proposals)', 'National level entrepreneurial summit with guest speakers.', 'Seminar', 'Entrepreneurship', '10 Jan 2027', '09:00 AM', 'Sharad Arena', 350.00, 1500, 'proposed'),
+(uuid_generate_v4(), 'VIT_EDC', 'EDC VIT Pune', 'VIT_PUNE', 'VIT Pune', 'Vishwapreneur 2026 (Proposals)', 'National level entrepreneurial summit with guest speakers.', 'Seminar', 'Entrepreneurship', '10 Jan 2027', '09:00 AM', 'Sharad Arena', 350.00, 1500, 'under_review'),
 (uuid_generate_v4(), 'VIT_VELOCE', 'Veloce Racing', 'VIT_PUNE', 'VIT Pune', 'Car Unveiling Ceremony', 'Unveiling the new Formula SAE car for the 2026 season.', 'Events & Workshops', 'Technical', '05 Nov 2026', '04:00 PM', 'Main Ground', 0.00, 500, 'upcoming')
 ON CONFLICT DO NOTHING;
