@@ -429,7 +429,20 @@ export async function updateEvent(eventId: string, updates: Partial<EventItem>):
  */
 export async function registerForEvent(event: EventItem): Promise<{ success: boolean; ticket?: DigitalTicket }> {
   try {
-    const qrToken = `CLUBSYNC-TKT-${event.id}-${CURRENT_USER.prn}-${Date.now()}`;
+    const ticketTier = event.isHackathon ? 'Hackathon All-Access Pass' : (event.ticketPrice > 0 ? 'VIP Delegate Pass' : 'Standard Entry Pass');
+
+    // Make the secure RPC call instead of a raw insert
+    const { data: generatedQr, error } = await supabase.rpc('register_for_event', {
+      p_event_id: event.id,
+      p_ticket_tier: ticketTier
+    });
+
+    if (error) {
+      console.warn('Registration RPC failed:', error);
+      throw error;
+    }
+
+    const finalQrToken = generatedQr || `CLUBSYNC-TKT-${event.id}-${CURRENT_USER.prn}-${Date.now()}`;
 
     // Update runtime event registration status
     runtimeEvents = runtimeEvents.map(e => 
@@ -438,7 +451,7 @@ export async function registerForEvent(event: EventItem): Promise<{ success: boo
         : e
     );
 
-    // Create Digital Ticket
+    // Create Digital Ticket for UI
     const newTicket: DigitalTicket = {
       id: `TCK_${Math.floor(10000 + Math.random() * 90000)}`,
       eventId: event.id,
@@ -450,26 +463,12 @@ export async function registerForEvent(event: EventItem): Promise<{ success: boo
       attendeeName: CURRENT_USER.name,
       prn: CURRENT_USER.prn,
       college: CURRENT_USER.collegeName,
-      ticketTier: event.isHackathon ? 'Hackathon All-Access Pass' : (event.ticketPrice > 0 ? 'VIP Delegate Pass' : 'Standard Entry Pass'),
-      qrCodeString: qrToken,
+      ticketTier: ticketTier,
+      qrCodeString: finalQrToken,
       checkInStatus: 'CONFIRMED',
     };
 
     runtimeTickets = [newTicket, ...runtimeTickets];
-
-    // Supabase persist
-    await supabase.from('event_registrations').insert({
-      user_id: CURRENT_USER.id,
-      event_id: event.id,
-      college_id: CURRENT_USER.collegeId,
-      attendee_name: CURRENT_USER.name,
-      attendee_prn: CURRENT_USER.prn,
-      academic_year: '2026-27',
-      amount_paid: event.ticketPrice,
-      payment_status: event.ticketPrice === 0 ? 'FREE' : 'COMPLETED',
-      qr_token: qrToken,
-      check_in_status: 'REGISTERED',
-    });
 
     return { success: true, ticket: newTicket };
   } catch (err) {

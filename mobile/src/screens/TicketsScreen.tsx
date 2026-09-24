@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
-import { DigitalTicket, MY_TICKETS } from '../data/mockData';
-import { CURRENT_USER } from '../services/clubSyncService';
+import { DigitalTicket } from '../data/mockData';
+import { CURRENT_USER, getUserTickets } from '../services/clubSyncService';
 
 export default function TicketsScreen() {
-  const [tickets, setTickets] = useState<DigitalTicket[]>(MY_TICKETS);
+  const [tickets, setTickets] = useState<DigitalTicket[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTicketIndex, setSelectedTicketIndex] = useState(0);
 
+  useEffect(() => {
+    const fetchTickets = async () => {
+      const data = await getUserTickets(CURRENT_USER.prn);
+      setTickets(data);
+      setLoading(false);
+    };
+    fetchTickets();
+  }, []);
+
   const activeTicket = tickets[selectedTicketIndex];
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#0C447C" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -21,21 +39,29 @@ export default function TicketsScreen() {
 
       <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
         {/* Ticket Selector Tabs */}
-        <View style={styles.ticketTabs}>
-          {tickets.map((t, idx) => (
-            <TouchableOpacity 
-              key={t.id}
-              style={[styles.tktTab, selectedTicketIndex === idx && styles.tktTabActive]}
-              onPress={() => setSelectedTicketIndex(idx)}
-            >
-              <Text style={[styles.tktTabText, selectedTicketIndex === idx && styles.tktTabTextActive]} numberOfLines={1}>
-                {t.eventTitle.split('—')[0]}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {tickets.length > 0 && (
+          <View style={styles.ticketTabs}>
+            {tickets.map((t, idx) => (
+              <TouchableOpacity 
+                key={t.id}
+                style={[styles.tktTab, selectedTicketIndex === idx && styles.tktTabActive]}
+                onPress={() => setSelectedTicketIndex(idx)}
+              >
+                <Text style={[styles.tktTabText, selectedTicketIndex === idx && styles.tktTabTextActive]} numberOfLines={1}>
+                  {t.eventTitle.split('—')[0]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-        {activeTicket ? (
+        {tickets.length === 0 ? (
+          <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 100 }}>
+             <Ionicons name="ticket-outline" size={64} color="#CBD5E1" />
+             <Text style={{ marginTop: 16, fontSize: 16, fontWeight: '600', color: '#64748B' }}>No Tickets Found</Text>
+             <Text style={{ marginTop: 8, fontSize: 14, color: '#94A3B8', textAlign: 'center' }}>You haven't registered for any events yet.</Text>
+          </View>
+        ) : activeTicket ? (
           <View style={styles.ticketCard}>
             {/* Ticket Header */}
             <View style={styles.ticketTop}>
