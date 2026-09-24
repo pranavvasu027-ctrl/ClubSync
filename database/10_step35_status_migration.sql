@@ -2,9 +2,12 @@
 -- Idempotent script to migrate legacy status values to the new canonical set
 -- draft, under_review, changes_requested, approved, published, rejected
 
--- 1. Safely migrate existing legacy data
-UPDATE public.events SET status = 'under_review' WHERE status = 'proposed';
-UPDATE public.events SET status = 'published' WHERE status IN ('live', 'upcoming');
+-- 1. Safely migrate existing legacy data (Bypass trigger using rpc_context)
+BEGIN;
+  SET LOCAL app.rpc_context = 'true';
+  UPDATE public.events SET status = 'under_review' WHERE status = 'proposed';
+  UPDATE public.events SET status = 'published' WHERE status IN ('live', 'upcoming');
+COMMIT;
 
 -- Note: We are keeping 'completed', 'past', 'cancelled', 'settled' if they exist,
 -- but the main Step 1-5 pipeline now strictly uses the canonical vocab.
