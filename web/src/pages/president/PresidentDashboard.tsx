@@ -14,9 +14,11 @@ const PresidentDashboard: React.FC = () => {
   const [taskCount, setTaskCount] = useState(0);
 
   useEffect(() => {
+    if (!club?.club_id) return;
+
     const fetchDashboardData = async () => {
       // Fetch events
-      const { data: evData } = await supabase.from('events').select('*').order('event_date', { ascending: true }).limit(5);
+      const { data: evData } = await supabase.from('events').select('*').eq('club_id', club.club_id).order('event_date', { ascending: true }).limit(5);
       if (evData) setEvents(evData as any[]);
 
       // Fetch pending tasks count
@@ -30,7 +32,7 @@ const PresidentDashboard: React.FC = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [club]);
 
   const formatDate = (d: string) => {
     return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });

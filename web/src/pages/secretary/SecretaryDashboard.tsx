@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './SecretaryDashboard.module.css';
-import { IconFileText, IconPhoto, IconEye, IconClock, IconCalendarEvent, IconArrowUpRight, IconEdit, IconCalendar, IconReport } from '@tabler/icons-react';
+import { IconFileText, IconPhoto, IconEye, IconClockHour4, IconCalendarEvent, IconArrowUpRight, IconEdit, IconCalendar } from '@tabler/icons-react';
 
 const SecretaryDashboard: React.FC = () => {
   const getDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import styles from './AdminDashboard.module.css';
-import { IconCheck, IconX, IconClock, IconAlertCircle } from '@tabler/icons-react';
+import { IconCheck, IconX, IconClockHour4, IconAlertTriangle } from '@tabler/icons-react';
 
 const AdminApprovalsQueue: React.FC = () => {
   const [approvals, setApprovals] = useState<any[]>([]);

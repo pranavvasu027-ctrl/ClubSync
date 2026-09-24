@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from './SecretaryDashboard.module.css';
-import { IconCloudUpload } from '@tabler/icons-react';
+import { IconUpload } from '@tabler/icons-react';
 
 const MediaLibrary: React.FC = () => {
   const [filter, setFilter] = useState('All');
@@ -47,7 +47,7 @@ const MediaLibrary: React.FC = () => {
       </div>
 
       <div className={styles.uploadZone}>
-        <IconCloudUpload size={30} style={{ color: 'var(--sec-amber-deep)', marginBottom: 8 }} />
+        <IconUpload size={30} style={{ color: 'var(--sec-amber-deep)', marginBottom: 8 }} />
         <h4>Drag &amp; drop files here or click to browse</h4>
         <p>Supports PNG, JPG, MP4, PDF up to 50MB</p>
       </div>

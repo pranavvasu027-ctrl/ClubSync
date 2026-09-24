@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { IconPrinter } from '@tabler/icons-react';
+import { IconFileText } from '@tabler/icons-react';
 
 const Reports: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -80,7 +80,7 @@ const Reports: React.FC = () => {
             {events.map(ev => <option key={ev.event_id} value={ev.event_id}>{ev.title}</option>)}
           </select>
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', color: '#000', border: 'none', padding: '8px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
-            <IconPrinter size={16} /> Export PDF
+            <IconFileText size={16} /> Export PDF
           </button>
         </div>
       </div>

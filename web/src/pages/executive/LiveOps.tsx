@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import styles from './TaskBoard.module.css'; // Reusing styles
-import { IconActivity, IconUsers, IconAlertTriangle, IconCheck } from '@tabler/icons-react';
+import { IconActivityHeartbeat, IconUsers, IconAlertTriangle, IconCheck } from '@tabler/icons-react';
 
 const LiveOps: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -85,7 +85,7 @@ const LiveOps: React.FC = () => {
       <div className={styles.hero}>
         <div>
           <div className={styles.heroEyebrow} style={{ color: '#EF4444' }}>
-            <IconActivity size={14} style={{ marginRight: 4, verticalAlign: 'middle' }}/>
+            <IconActivityHeartbeat size={14} style={{ marginRight: 4, verticalAlign: 'middle' }}/>
             Mission Control
           </div>
           <h1>Live Event Ops</h1>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import styles from './TaskBoard.module.css'; // Reuse layout styles
-import { IconStarFilled } from '@tabler/icons-react';
+import { IconStar } from '@tabler/icons-react';
 
 const EventFeedback: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
@@ -68,7 +68,7 @@ const EventFeedback: React.FC = () => {
           <div style={{ fontSize: 12, color: 'var(--exec-text-dim)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Average Rating</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 28, fontWeight: 700, color: 'var(--exec-amber)', fontFamily: 'monospace' }}>{avgRating}</span>
-            <IconStarFilled size={24} color="var(--exec-amber)" />
+            <IconStar size={24} color="var(--exec-amber)" />
           </div>
         </div>
         <div style={{ background: 'var(--exec-panel)', border: '1px solid var(--exec-line)', padding: 20, borderRadius: 12 }}>
@@ -90,7 +90,7 @@ const EventFeedback: React.FC = () => {
                   <div style={{ fontWeight: 600 }}>{f.user?.name || 'Anonymous'}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <IconStarFilled key={i} size={14} color={i < f.rating ? 'var(--exec-amber)' : 'rgba(255,255,255,0.1)'} />
+                      <IconStar key={i} size={14} color={i < f.rating ? 'var(--exec-amber)' : 'rgba(255,255,255,0.1)'} />
                     ))}
                   </div>
                 </div>
