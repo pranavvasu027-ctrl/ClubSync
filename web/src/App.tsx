@@ -74,13 +74,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const RoleProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, club, loading, hasClubRole } = useAuth();
+  
   if (loading) return <div style={{ padding: 50, textAlign: 'center' }}>Loading session...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (profile && !allowedRoles.map(r => r.toLowerCase()).includes(profile.user_type?.toLowerCase() || '')) {
-    return <Navigate to="/" replace />;
+  
+  // Phase 0: Allow platform admins/owners unrestricted access
+  if (profile?.user_type === 'Owner' || profile?.user_type === 'Admin') return <>{children}</>;
+  
+  // Phase 0: Check if they have the necessary role in their currently active club
+  if (club && hasClubRole(club.club_id, allowedRoles)) {
+    return <>{children}</>;
   }
-  return <>{children}</>;
+
+  // Fallback to global user type check for legacy compatibility during Phase 0 transition
+  if (profile && allowedRoles.map(r => r.toLowerCase()).includes(profile.user_type?.toLowerCase() || '')) {
+    return <>{children}</>;
+  }
+  
+  return <Navigate to="/" replace />;
 };
 
 function AppRoutes() {
