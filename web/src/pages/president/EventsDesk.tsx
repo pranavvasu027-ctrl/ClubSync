@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ReactSortable } from 'react-sortablejs';
+import { useAuth } from '../../context/AuthContext';
 import styles from './PresidentDashboard.module.css';
 import { IconCalendarEvent, IconMapPin, IconUsers, IconLayoutGrid, IconLayoutKanban, IconPlus } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 
-// ReactSortable requires items to have an `id` property
-type SortableEvent = {
-  id: string; // mapped from event_id
+type EventData = {
   event_id: string;
   title: string;
   event_date: string;
@@ -18,43 +16,105 @@ type SortableEvent = {
 };
 
 const EventsDesk: React.FC = () => {
-  const [events, setEvents] = useState<SortableEvent[]>([]);
+  const { club } = useAuth();
+  const [events, setEvents] = useState<EventData[]>([]);
   const [view, setView] = useState<'cards' | 'kanban'>('kanban');
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    if (club?.club_id) {
+      fetchEvents();
+    }
+  }, [club]);
 
   const fetchEvents = async () => {
-    const { data } = await supabase.from('events').select('*').order('event_date', { ascending: true });
+    const { data } = await supabase.from('events')
+      .select('*')
+      .eq('club_id', club?.club_id)
+      .eq('is_deleted', false)
+      .order('event_date', { ascending: true });
+      
     if (data) {
-      // Map event_id -> id for ReactSortable compatibility
-      setEvents(data.map((e: any) => ({ ...e, id: e.event_id })));
+      setEvents(data);
     }
   };
 
-  const updateEventStatus = async (newColEvents: SortableEvent[], status: string) => {
-    setEvents(prev => {
-      const otherEvents = prev.filter(e => e.status !== status);
-      const updatedEvents = newColEvents.map(e => ({ ...e, status }));
-      return [...otherEvents, ...updatedEvents];
-    });
-
-    for (const ev of newColEvents) {
-      if (ev.status !== status) {
-        await supabase.from('events').update({ status }).eq('event_id', ev.event_id);
-      }
+  const submitForApproval = async (eventId: string) => {
+    try {
+      const { error } = await supabase.rpc('submit_event_for_approval', { p_event_id: eventId });
+      if (error) throw error;
+      alert('Event submitted for approval!');
+      fetchEvents();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
     }
   };
+
+  const completeEvent = async (eventId: string) => {
+    try {
+      const { error } = await supabase.rpc('complete_event', { p_event_id: eventId });
+      if (error) throw error;
+      alert('Event marked as completed!');
+      fetchEvents();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  if (!club?.club_id) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center' }}>
+        <h2>No club assigned</h2>
+      </div>
+    );
+  }
 
   const columns = [
     { id: 'draft', title: 'Draft' },
-    { id: 'proposed', title: 'Submitted / Pending' },
-    { id: 'approved', title: 'Approved' },
-    { id: 'live', title: 'Published / Live' },
-    { id: 'past', title: 'Completed' },
+    { id: 'proposed', title: 'Pending Approval' },
+    { id: 'live', title: 'Live' },
+    { id: 'rejected', title: 'Rejected' },
+    { id: 'completed', title: 'Completed' },
   ];
+
+  const renderActions = (ev: EventData) => {
+    switch (ev.status) {
+      case 'draft':
+        return (
+          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+            <button onClick={() => navigate(`/president/events/new?edit=${ev.event_id}`)} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-rule)', background: 'var(--pres-paper)' }}>Edit</button>
+            <button onClick={() => submitForApproval(ev.event_id)} style={{ flex: 2, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'var(--pres-ink)', color: 'white' }}>Submit for Approval</button>
+          </div>
+        );
+      case 'rejected':
+        return (
+          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+            <button onClick={() => navigate(`/president/events/new?edit=${ev.event_id}`)} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-rule)', background: 'var(--pres-paper)' }}>Edit & Resubmit</button>
+          </div>
+        );
+      case 'proposed':
+        return (
+          <div style={{ marginTop: 10 }}>
+            <span style={{ fontSize: 11, padding: '4px 8px', background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 4, display: 'inline-block' }}>Pending Faculty Review</span>
+          </div>
+        );
+      case 'live':
+        return (
+          <div style={{ marginTop: 10 }}>
+            <button onClick={() => completeEvent(ev.event_id)} style={{ padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-green)', background: 'var(--pres-green-soft)', color: 'var(--pres-green)', width: '100%' }}>Mark Completed</button>
+          </div>
+        );
+      case 'completed':
+      case 'settled':
+        return (
+          <div style={{ marginTop: 10 }}>
+            <span style={{ fontSize: 11, padding: '4px 8px', background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 4, display: 'inline-block' }}>{ev.status.toUpperCase()}</span>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
@@ -85,29 +145,27 @@ const EventsDesk: React.FC = () => {
       {view === 'kanban' && (
         <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
           {columns.map(col => {
-            const colEvents = events.filter(e => e.status === col.id);
+            const colEvents = events.filter(e => {
+              if (col.id === 'completed') return e.status === 'completed' || e.status === 'settled';
+              return e.status === col.id;
+            });
             return (
               <div key={col.id} style={{ flex: '0 0 250px', background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', borderRadius: 9, padding: 12, display: 'flex', flexDirection: 'column', minHeight: 400 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, marginBottom: 10, padding: '0 2px' }}>
                   {col.title} <span style={{ background: 'var(--pres-card)', border: '1px solid var(--pres-rule-strong)', borderRadius: 10, padding: '1px 7px', fontSize: 10.5, color: 'var(--pres-ink-soft)' }}>{colEvents.length}</span>
                 </div>
                 
-                <ReactSortable
-                  list={colEvents}
-                  setList={(newList) => updateEventStatus(newList, col.id)}
-                  group="events"
-                  animation={150}
-                  style={{ flex: 1, minHeight: 50 }}
-                >
+                <div style={{ flex: 1, minHeight: 50 }}>
                   {colEvents.map(ev => (
-                    <div key={ev.id} style={{ background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 7, padding: '11px 12px', marginBottom: 9, cursor: 'grab', fontSize: 12.5, boxShadow: 'var(--pres-shadow-card)' }}>
+                    <div key={ev.event_id} style={{ background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 7, padding: '11px 12px', marginBottom: 9, fontSize: 12.5, boxShadow: 'var(--pres-shadow-card)' }}>
                       <div style={{ fontWeight: 600, marginBottom: 4 }}>{ev.title}</div>
                       <div style={{ fontSize: 10.5, color: 'var(--pres-ink-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <IconCalendarEvent size={12}/> {ev.event_date && !isNaN(new Date(ev.event_date).getTime()) ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'TBD'}
+                        <IconCalendarEvent size={12}/> {ev.event_date && !isNaN(new Date(ev.event_date).getTime()) ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'Date TBD'}
                       </div>
+                      {renderActions(ev)}
                     </div>
                   ))}
-                </ReactSortable>
+                </div>
               </div>
             );
           })}
@@ -120,18 +178,18 @@ const EventsDesk: React.FC = () => {
             let statusClass = '';
             if (ev.status === 'live') statusClass = styles.stLive;
             if (ev.status === 'proposed') statusClass = styles.stPending;
-            if (ev.status === 'approved') statusClass = styles.stApproved;
             if (ev.status === 'draft') statusClass = styles.stDraft;
 
             return (
-              <div key={ev.id} className={`${styles.eventCard} ${statusClass}`}>
+              <div key={ev.event_id} className={`${styles.eventCard} ${statusClass}`}>
                 <span className={`${styles.stamp} ${statusClass}`}>{ev.status}</span>
                 <div className={styles.eventTitle}>{ev.title}</div>
                 <div className={styles.eventMeta}>
-                  <span><IconCalendarEvent size={14}/> {ev.event_date && !isNaN(new Date(ev.event_date).getTime()) ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'TBD'}</span>
+                  <span><IconCalendarEvent size={14}/> {ev.event_date && !isNaN(new Date(ev.event_date).getTime()) ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'Date TBD'}</span>
                   <span><IconMapPin size={14}/> {ev.venue_name || 'TBD'}</span>
                   <span><IconUsers size={14}/> {ev.expected_count || 0}</span>
                 </div>
+                {renderActions(ev)}
               </div>
             );
           })}

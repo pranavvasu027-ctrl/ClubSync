@@ -73,6 +73,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const RoleProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
+  const { user, profile, loading } = useAuth();
+  if (loading) return <div style={{ padding: 50, textAlign: 'center' }}>Loading session...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (profile && !allowedRoles.map(r => r.toLowerCase()).includes(profile.user_type?.toLowerCase() || '')) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 function AppRoutes() {
   return (
     <Routes>
@@ -129,7 +139,7 @@ function AppRoutes() {
         <Route path="feedback" element={<EventFeedback />} />
         <Route path="team" element={<Team />} />
       </Route>
-      <Route path="/president" element={<ProtectedRoute><PresidentLayout /></ProtectedRoute>}>
+      <Route path="/president" element={<RoleProtectedRoute allowedRoles={['President', 'Owner']}><PresidentLayout /></RoleProtectedRoute>}>
         <Route index element={<PresidentDashboard />} />
         <Route path="events" element={<EventsDesk />} />
         <Route path="events/new" element={<NewEventProposal />} />
@@ -137,7 +147,7 @@ function AppRoutes() {
         <Route path="recruitment" element={<Recruitment />} />
         <Route path="team" element={<TeamDirectory />} />
       </Route>
-      <Route path="/faculty" element={<ProtectedRoute><FacultyLayout /></ProtectedRoute>}>
+      <Route path="/faculty" element={<RoleProtectedRoute allowedRoles={['Faculty', 'Owner']}><FacultyLayout /></RoleProtectedRoute>}>
         <Route index element={<FacultyDashboard />} />
         <Route path="approvals" element={<ApprovalsQueue />} />
         <Route path="ledger" element={<FacultyLedger />} />

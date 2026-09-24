@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import styles from './PresidentDashboard.module.css';
 
 const NewEventProposal: React.FC = () => {
   const { profile, club } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
 
   // Basic Details
   const [title, setTitle] = useState('');
@@ -46,6 +48,62 @@ const NewEventProposal: React.FC = () => {
 
   const surplusDeficit = income - expenditure;
 
+  useEffect(() => {
+    if (editId) {
+      loadEvent(editId);
+    }
+  }, [editId, club]);
+
+  const loadEvent = async (id: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('event_id', id)
+        .single();
+        
+      if (error) throw error;
+      if (!data) throw new Error('Event not found');
+      if (club?.club_id && data.club_id !== club.club_id) {
+        throw new Error('Unauthorized to edit this event');
+      }
+      if (data.status !== 'draft' && data.status !== 'rejected') {
+        throw new Error('Only draft or rejected events can be edited');
+      }
+
+      setTitle(data.title || '');
+      setEventType(data.event_type || 'Workshop');
+      setEventDate(data.event_date || '');
+      if (data.start_time) {
+        const d = new Date(data.start_time);
+        setStartTime(d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}));
+      }
+      if (data.end_time) {
+        const d = new Date(data.end_time);
+        setEndTime(d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false}));
+      }
+      setVenue(data.venue_name || '');
+      setScope(data.scope || 'INTRA_COLLEGE');
+      setTargetAudience(data.target_audience || '');
+      setExpectedCount(data.expected_count || 0);
+      setOutline(data.description || '');
+      setObjectives(data.objectives || '');
+      setOutcomes(data.expected_outcomes || '');
+      if (data.guest_details && Array.isArray(data.guest_details)) {
+        setGuests(data.guest_details);
+      }
+      if (data.resource_requirements && Array.isArray(data.resource_requirements)) {
+        setResources(data.resource_requirements);
+      }
+      // Budgets could be loaded here, but skipping for brevity
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddGuest = () => {
     setGuests([...guests, { name: '', designation: '', contact: '' }]);
   };
@@ -70,14 +128,11 @@ const NewEventProposal: React.FC = () => {
     return null;
   };
 
-  const saveToDatabase = async (status: string) => {
+  const saveToDatabase = async (action: 'draft' | 'submit') => {
     setError('');
     setSuccess('');
-    
-    console.log(`[SAVE] Attempting to save event with status: ${status}`);
 
-    // For draft, we only require the title.
-    if (status === 'draft') {
+    if (action === 'draft') {
       if (!title.trim()) {
         setError('Event Title is required even for a draft.');
         return;
@@ -101,15 +156,14 @@ const NewEventProposal: React.FC = () => {
         title,
         description: outline,
         event_type: eventType,
-        event_date: eventDate,
+        event_date: eventDate || null,
         start_time: eventDate && startTime ? new Date(`${eventDate}T${startTime}`).toISOString() : null,
         end_time: eventDate && endTime ? new Date(`${eventDate}T${endTime}`).toISOString() : null,
-        event_time: `${startTime} - ${endTime}`,
+        event_time: startTime && endTime ? `${startTime} - ${endTime}` : null,
         venue_name: venue,
         scope,
         target_audience: targetAudience,
         expected_count: expectedCount,
-        status: status, // 'draft' or 'proposed'
         club_id: club?.club_id || null,
         club_name: club?.name || 'Unknown Club',
         objectives,
@@ -118,58 +172,43 @@ const NewEventProposal: React.FC = () => {
         resource_requirements: resources,
         compliance_verified: compliance1 && compliance2 && compliance3,
         created_by: profile?.user_id || null,
+        status: 'draft'
       };
 
-      console.log(`[SAVE] Payload to events table:`, payload);
+      let eventId = editId;
 
-      // 1. Insert into events table
-      const { data: eventData, error: eventError } = await supabase.from('events').insert(payload).select().single();
-
-      if (eventError) {
-        console.error(`[SAVE] Supabase events insert error:`, eventError);
-        throw eventError;
+      if (editId) {
+        // Update existing event
+        const { error: updateError } = await supabase
+          .from('events')
+          .update(payload)
+          .eq('event_id', editId);
+          
+        if (updateError) throw updateError;
+      } else {
+        // Insert new event
+        const { data: eventData, error: insertError } = await supabase
+          .from('events')
+          .insert(payload)
+          .select()
+          .single();
+          
+        if (insertError) throw insertError;
+        eventId = eventData.event_id;
       }
 
-      console.log(`[SAVE] Event inserted successfully:`, eventData);
-      const eventId = eventData.event_id;
-
-      // 2. Insert into event_budgets
-      if (income > 0) {
-        const { error: incErr } = await supabase.from('event_budgets').insert({
-          event_id: eventId,
-          category: 'Other',
-          description: `Income: ${sourceOfFunds}`,
-          estimated_amount: income
-        });
-        if (incErr) console.error(`[SAVE] Income budget error:`, incErr);
-      }
-      if (expenditure > 0) {
-        const { error: expErr } = await supabase.from('event_budgets').insert({
-          event_id: eventId,
-          category: 'Other',
-          description: 'Expenditure',
-          estimated_amount: expenditure
-        });
-        if (expErr) console.error(`[SAVE] Expenditure budget error:`, expErr);
+      if (action === 'submit' && eventId) {
+        const { error: rpcError } = await supabase.rpc('submit_event_for_approval', { p_event_id: eventId });
+        if (rpcError) throw rpcError;
+        setSuccess('Event submitted for approval! Redirecting...');
+      } else {
+        setSuccess('Draft saved successfully! Redirecting...');
       }
 
-      // 3. If submitting, create a PENDING approval for faculty mentor
-      if (status === 'proposed') {
-        const { error: appErr } = await supabase.from('event_approvals').insert({
-          event_id: eventId,
-          approver_id: null,
-          approver_level: 'FACULTY_MENTOR',
-          decision: 'PENDING'
-        });
-        if (appErr) console.error(`[SAVE] Approval insert error:`, appErr);
-      }
-
-      setSuccess(`Event successfully saved as ${status.toUpperCase()}! Redirecting...`);
       setTimeout(() => navigate('/president/events'), 1500);
 
     } catch (err: any) {
       console.error(`[SAVE] Catch block error:`, err);
-      // Detailed error from Supabase
       const errorMsg = err.message || err.details || err.hint || JSON.stringify(err);
       setError(`Database Error: ${errorMsg}`);
     } finally {
@@ -182,7 +221,7 @@ const NewEventProposal: React.FC = () => {
       <div className={styles.hero} style={{ borderBottom: '2px solid var(--pres-ink)', marginBottom: 24, padding: 0 }}>
         <div>
           <div className={styles.heroEyebrow}>Proposal Form</div>
-          <h1 style={{ color: 'var(--pres-ink)' }}>Create Event Proposal</h1>
+          <h1 style={{ color: 'var(--pres-ink)' }}>{editId ? 'Edit Event Proposal' : 'Create Event Proposal'}</h1>
         </div>
       </div>
 
@@ -243,7 +282,7 @@ const NewEventProposal: React.FC = () => {
             </div>
             <div>
               <label className={styles.label}>Expected Count</label>
-              <input type="number" min="0" value={expectedCount} onChange={e => setExpectedCount(parseInt(e.target.value))} className={styles.inputField} />
+              <input type="number" min="0" value={expectedCount} onChange={e => setExpectedCount(parseInt(e.target.value) || 0)} className={styles.inputField} />
             </div>
           </div>
         </section>
@@ -339,7 +378,7 @@ const NewEventProposal: React.FC = () => {
           <button onClick={() => saveToDatabase('draft')} disabled={loading} style={{ padding: '10px 18px', background: 'var(--pres-paper-deep)', color: 'var(--pres-ink)', border: '1px solid var(--pres-rule)', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>
             SAVE DRAFT
           </button>
-          <button onClick={() => saveToDatabase('proposed')} disabled={loading} style={{ padding: '10px 18px', background: 'var(--pres-red)', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => saveToDatabase('submit')} disabled={loading} style={{ padding: '10px 18px', background: 'var(--pres-red)', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>
             SUBMIT PROPOSAL
           </button>
         </div>
