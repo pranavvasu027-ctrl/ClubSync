@@ -248,3 +248,7 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'message', 'Check-in successful!', 'user_id', v_reg.user_id);
 END;
 $$;
+
+-- 6. Add created_by to events
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.users(user_id) ON DELETE SET NULL;
+

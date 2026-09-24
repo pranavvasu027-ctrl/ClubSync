@@ -125,3 +125,75 @@ BEGIN
 END;
 $body;
 
+
+-- =================================================================================
+-- PHASE 1: FIX REGISTRATION ATTENDEE NAME
+-- =================================================================================
+
+CREATE OR REPLACE FUNCTION public.register_for_event(
+  p_event_id UUID,
+  p_ticket_tier VARCHAR
+)
+RETURNS UUID
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $body
+DECLARE
+  v_user_id UUID;
+  v_status VARCHAR;
+  v_capacity INT;
+  v_registered INT;
+  v_ticket_price NUMERIC;
+  v_payment_status VARCHAR;
+  v_registration_id UUID;
+  v_user_name VARCHAR;
+BEGIN
+  v_user_id := public.get_my_user_id();
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'Unauthenticated'; END IF;
+
+  SELECT name INTO v_user_name FROM public.users WHERE user_id = v_user_id;
+
+  -- Lock the event row for concurrency safety
+  SELECT status, expected_count, registered_count 
+  INTO v_status, v_capacity, v_registered 
+  FROM public.events 
+  WHERE event_id = p_event_id 
+  FOR UPDATE;
+
+  IF NOT FOUND THEN RAISE EXCEPTION 'Event not found'; END IF;
+
+  IF v_status NOT IN ('published', 'upcoming') THEN
+    RAISE EXCEPTION 'Event is not currently open for registration';
+  END IF;
+
+  IF v_registered >= v_capacity THEN
+    RAISE EXCEPTION 'Event capacity reached';
+  END IF;
+
+  -- Check if ticket exists
+  SELECT price INTO v_ticket_price 
+  FROM public.tickets 
+  WHERE event_id = p_event_id AND tier_name = p_ticket_tier;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invalid ticket tier';
+  END IF;
+
+  v_payment_status := CASE WHEN v_ticket_price > 0 THEN 'PENDING' ELSE 'FREE' END;
+
+  -- Check for existing registration
+  IF EXISTS (SELECT 1 FROM public.event_registrations WHERE event_id = p_event_id AND user_id = v_user_id) THEN
+    RAISE EXCEPTION 'User is already registered for this event';
+  END IF;
+
+  -- Insert Registration
+  INSERT INTO public.event_registrations (
+    event_id, user_id, attendee_name, ticket_tier, amount_paid, payment_status, qr_token
+  ) VALUES (
+    p_event_id, v_user_id, v_user_name, p_ticket_tier, v_ticket_price, v_payment_status, encode(gen_random_bytes(16), 'hex')
+  ) RETURNING registration_id INTO v_registration_id;
+
+  RETURN v_registration_id;
+END;
+$body;
+
