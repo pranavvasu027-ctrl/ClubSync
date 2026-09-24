@@ -35,36 +35,29 @@ export default function Approvals() {
     if (!user) return;
     setProcessingId(eventId);
     
-    const newStatus = action === 'approve' ? 'live' : 'draft'; // Send back to draft if rejected
-
-    // 1. Update the Event status
-    const { error: updateError } = await supabase
-      .from('events')
-      .update({ status: newStatus })
-      .eq('event_id', eventId);
-
-    if (updateError) {
-      alert("Error updating event: " + updateError.message);
-      setProcessingId(null);
-      return;
-    }
-
-    // 2. Log the approval/rejection trail
-    const { error: auditError } = await supabase
-      .from('event_approvals')
-      .insert([{
-        event_id: eventId,
-        approver_id: user.id,
-        status: action === 'approve' ? 'Approved' : 'Rejected',
-        comments: action === 'approve' ? 'Approved by Faculty Dashboard' : 'Rejected by Faculty Dashboard'
-      }]);
+    try {
+      // Use secure RPC instead of direct status update
+      const decision = action === 'approve' ? 'APPROVED' : 'REJECTED';
+      const remarks = action === 'approve' ? 'Approved via legacy dashboard' : 'Rejected via legacy dashboard';
       
-    if (auditError) {
-      console.warn("Could not write audit log, but event was updated:", auditError);
-    }
+      const { error } = await supabase.rpc('process_event_approval', {
+        p_event_id: eventId,
+        p_level: 'FACULTY_MENTOR',
+        p_decision: decision,
+        p_remarks: remarks
+      });
 
-    // Refresh list
-    fetchPendingApprovals();
+      if (error) {
+        alert("Error: " + error.message);
+        setProcessingId(null);
+        return;
+      }
+
+      // Refresh list
+      fetchPendingApprovals();
+    } catch (err: any) {
+      alert("Error: " + (err.message || 'Unknown error'));
+    }
     setProcessingId(null);
   };
 

@@ -158,14 +158,9 @@ const EventsDesk: React.FC = () => {
           </div>
         );
       case 'published':
-      case 'upcoming':
         return (
           <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
-            <button style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-ink)', background: 'var(--pres-paper)', color: 'var(--pres-ink)' }}>Manage Live Ops</button>
-            <button onClick={async () => {
-              await supabase.from('events').update({ status: 'live' }).eq('event_id', ev.event_id);
-              fetchEvents();
-            }} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-red)', background: 'var(--pres-red)', color: 'white' }}>Start Live Event</button>
+            <span style={{ fontSize: 11, padding: '4px 8px', background: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd', borderRadius: 4, display: 'inline-block' }}>✓ Published — Registrations Open</span>
           </div>
         );
       case 'live':
