@@ -301,3 +301,27 @@ BEGIN
 END;
 $$;
 
+
+-- =================================================================================
+-- DATABASE INDEXES FOR SCALABILITY & MULTI-TENANCY
+-- =================================================================================
+
+-- Events
+CREATE INDEX IF NOT EXISTS idx_events_club_status ON public.events(club_id, status);
+CREATE INDEX IF NOT EXISTS idx_events_club_date ON public.events(club_id, event_date);
+CREATE INDEX IF NOT EXISTS idx_events_college_date ON public.events(college_id, event_date);
+
+-- Approvals
+CREATE INDEX IF NOT EXISTS idx_event_approvals_event_decision ON public.event_approvals(event_id, decision);
+
+-- Memberships
+CREATE INDEX IF NOT EXISTS idx_memberships_club_status ON public.memberships(club_id, status);
+CREATE INDEX IF NOT EXISTS idx_memberships_user_club ON public.memberships(user_id, club_id);
+
+-- Registrations
+CREATE INDEX IF NOT EXISTS idx_event_registrations_event_user ON public.event_registrations(event_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_event_registrations_user ON public.event_registrations(user_id);
+
+-- Notifications
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON public.notifications(user_id, is_read);
+
