@@ -68,7 +68,7 @@ const NewEventProposal: React.FC = () => {
       if (club?.club_id && data.club_id !== club.club_id) {
         throw new Error('Unauthorized to edit this event');
       }
-      if (data.status !== 'draft' && data.status !== 'rejected') {
+      if (data.status !== 'draft' && data.status !== 'rejected' && data.status !== 'changes_requested') {
         throw new Error('Only draft or rejected events can be edited');
       }
 

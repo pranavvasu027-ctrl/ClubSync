@@ -71,6 +71,7 @@ const EventsDesk: React.FC = () => {
 
   const columns = [
     { id: 'draft', title: 'Draft' },
+    { id: 'changes_requested', title: 'Changes Requested' },
     { id: 'proposed', title: 'In Approval Queue' },
     { id: 'approved', title: 'Approved (Setup)' },
     { id: 'published', title: 'Published / Open' },
@@ -88,10 +89,16 @@ const EventsDesk: React.FC = () => {
             <button onClick={() => submitForApproval(ev.event_id)} style={{ flex: 2, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'var(--pres-ink)', color: 'white' }}>Submit for Approval</button>
           </div>
         );
-      case 'rejected':
+      case 'changes_requested':
         return (
           <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
             <button onClick={() => navigate(`/president/events/new?edit=${ev.event_id}`)} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-rule)', background: 'var(--pres-paper)' }}>Edit & Resubmit</button>
+          </div>
+        );
+      case 'rejected':
+        return (
+          <div style={{ marginTop: 10 }}>
+            <span style={{ fontSize: 11, padding: '4px 8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 4, display: 'inline-block' }}>Rejected</span>
           </div>
         );
       case 'proposed':
@@ -207,6 +214,7 @@ const EventsDesk: React.FC = () => {
             if (ev.status === 'live') statusClass = styles.stLive;
             if (ev.status === 'proposed') statusClass = styles.stPending;
             if (ev.status === 'draft') statusClass = styles.stDraft;
+            if (ev.status === 'changes_requested') statusClass = styles.stDraft;
 
             return (
               <div key={ev.event_id} className={`${styles.eventCard} ${statusClass}`}>

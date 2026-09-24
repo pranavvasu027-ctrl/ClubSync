@@ -22,7 +22,7 @@ const ApprovalsQueue: React.FC = () => {
   const [versionDetails, setVersionDetails] = useState<any>(null); // For history tabs
 
   const [remarks, setRemarks] = useState('');
-  const [rejectMode, setRejectMode] = useState(false);
+  const [actionMode, setActionMode] = useState<'none' | 'reject' | 'changes'>('none');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -31,7 +31,7 @@ const ApprovalsQueue: React.FC = () => {
     if (activeTab === 'approved') fetchApproved();
     if (activeTab === 'rejected') fetchRejected();
     setSelectedEvent(null);
-    setRejectMode(false);
+    setActionMode('none');
     setError('');
     setSuccess('');
   }, [activeTab]);
@@ -59,7 +59,7 @@ const ApprovalsQueue: React.FC = () => {
     const { data } = await supabase
       .from('event_approvals')
       .select('*, events(*)')
-      .eq('decision', 'REJECTED')
+      .in('decision', ['REJECTED', 'CHANGES_REQUESTED'])
       .eq('approver_level', 'FACULTY_MENTOR')
       .order('decision_timestamp', { ascending: false });
     if (data) setRejectedList(data);
@@ -82,7 +82,7 @@ const ApprovalsQueue: React.FC = () => {
 
   const handleSelectEvent = async (app: any) => {
     setSelectedEvent(app);
-    setRejectMode(false);
+    setActionMode('none');
     setError('');
     setSuccess('');
     setRemarks('');
@@ -114,8 +114,8 @@ const ApprovalsQueue: React.FC = () => {
   };
 
   const handleReject = async () => {
-    if (!rejectMode) {
-      setRejectMode(true);
+    if (actionMode !== 'reject') {
+      setActionMode('reject');
       return;
     }
     
@@ -135,11 +135,41 @@ const ApprovalsQueue: React.FC = () => {
 
       setSuccess('Event successfully rejected.');
       setSelectedEvent(null);
-      setRejectMode(false);
+      setActionMode('none');
       setRemarks('');
       fetchPending();
     } catch (err: any) {
       setError(err.message || 'Error rejecting event');
+    }
+  };
+
+  const handleRequestChanges = async () => {
+    if (actionMode !== 'changes') {
+      setActionMode('changes');
+      return;
+    }
+    
+    if (!remarks.trim()) {
+      setError('Remarks are required when requesting changes.');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.rpc('process_event_approval', {
+        p_event_id: selectedEvent.events.event_id,
+        p_level: 'FACULTY_MENTOR',
+        p_decision: 'CHANGES_REQUESTED',
+        p_remarks: remarks
+      });
+      if (error) throw error;
+
+      setSuccess('Changes successfully requested.');
+      setSelectedEvent(null);
+      setActionMode('none');
+      setRemarks('');
+      fetchPending();
+    } catch (err: any) {
+      setError(err.message || 'Error requesting changes');
     }
   };
 
@@ -173,7 +203,7 @@ const ApprovalsQueue: React.FC = () => {
       <div style={{ display: 'flex', gap: 16, marginBottom: 20, borderBottom: '1px solid var(--fac-rule)' }}>
         {renderTabButton('pending', 'Pending')}
         {renderTabButton('approved', 'Approved History')}
-        {renderTabButton('rejected', 'Rejected History')}
+        {renderTabButton('rejected', 'Rejected / Changes Requested')}
       </div>
 
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
@@ -314,29 +344,49 @@ const ApprovalsQueue: React.FC = () => {
             {/* Actions for Pending */}
             {activeTab === 'pending' && (
               <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--fac-rule)' }}>
-                {(rejectMode || remarks) && (
+                {(actionMode !== 'none' || remarks) && (
                   <textarea 
                     value={remarks} 
                     onChange={(e) => setRemarks(e.target.value)}
-                    placeholder="Add remarks (Required for rejection, optional for approval)"
+                    placeholder="Add remarks (Required for rejection/changes, optional for approval)"
                     rows={3}
                     style={{ width: '100%', padding: '8px 10px', background: 'var(--fac-parchment-deep)', border: '1px solid var(--fac-rule)', borderRadius: 6, color: 'var(--fac-ink)', fontSize: 13, marginBottom: 12, fontFamily: 'inherit' }}
                   />
                 )}
 
                 <div style={{ display: 'flex', gap: 10 }}>
-                  {!rejectMode && (
-                    <button onClick={handleApprove} className={styles.btn} style={{ flex: 1, background: 'var(--fac-green-soft)', color: 'var(--fac-green)', justifyContent: 'center' }}>
-                      <IconCheck size={16}/> Approve Proposal
-                    </button>
+                  {actionMode === 'none' && (
+                    <>
+                      <button onClick={handleApprove} className={styles.btn} style={{ flex: 1, background: 'var(--fac-green-soft)', color: 'var(--fac-green)', justifyContent: 'center' }}>
+                        <IconCheck size={16}/> Approve Proposal
+                      </button>
+                      <button onClick={handleRequestChanges} className={styles.btn} style={{ flex: 1, background: '#fef08a', color: '#854d0e', justifyContent: 'center' }}>
+                        <IconAlertTriangle size={16}/> Request Changes
+                      </button>
+                      <button onClick={handleReject} className={styles.btn} style={{ flex: 1, background: 'var(--fac-red-soft)', color: 'var(--fac-red)', justifyContent: 'center' }}>
+                        <IconX size={16}/> Reject Proposal
+                      </button>
+                    </>
                   )}
-                  <button onClick={handleReject} className={styles.btn} style={{ flex: 1, background: 'var(--fac-red-soft)', color: 'var(--fac-red)', justifyContent: 'center' }}>
-                    <IconX size={16}/> {rejectMode ? 'Confirm Rejection' : 'Reject Proposal'}
-                  </button>
-                  {rejectMode && (
-                    <button onClick={() => setRejectMode(false)} className={styles.btn} style={{ background: 'var(--fac-card)', border: '1px solid var(--fac-rule)', color: 'var(--fac-ink)', justifyContent: 'center' }}>
-                      Cancel
-                    </button>
+                  {actionMode === 'reject' && (
+                    <>
+                      <button onClick={handleReject} className={styles.btn} style={{ flex: 1, background: 'var(--fac-red-soft)', color: 'var(--fac-red)', justifyContent: 'center' }}>
+                        <IconX size={16}/> Confirm Rejection
+                      </button>
+                      <button onClick={() => setActionMode('none')} className={styles.btn} style={{ background: 'var(--fac-card)', border: '1px solid var(--fac-rule)', color: 'var(--fac-ink)', justifyContent: 'center' }}>
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                  {actionMode === 'changes' && (
+                    <>
+                      <button onClick={handleRequestChanges} className={styles.btn} style={{ flex: 1, background: '#fef08a', color: '#854d0e', justifyContent: 'center' }}>
+                        <IconAlertTriangle size={16}/> Confirm Changes Requested
+                      </button>
+                      <button onClick={() => setActionMode('none')} className={styles.btn} style={{ background: 'var(--fac-card)', border: '1px solid var(--fac-rule)', color: 'var(--fac-ink)', justifyContent: 'center' }}>
+                        Cancel
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -345,7 +395,7 @@ const ApprovalsQueue: React.FC = () => {
             {/* Actions for Approved/Rejected History */}
             {activeTab !== 'pending' && (
               <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--fac-rule)' }}>
-                <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>{activeTab === 'approved' ? 'Approval' : 'Rejection'} Details</strong>
+                <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Decision Details</strong>
                 <div style={{ fontSize: 13, color: 'var(--fac-ink)' }}>
                   <div><strong>Decision Date:</strong> {new Date(selectedEvent.decision_timestamp).toLocaleString()}</div>
                   <div><strong>Remarks:</strong> {selectedEvent.remarks || 'None'}</div>
@@ -354,7 +404,7 @@ const ApprovalsQueue: React.FC = () => {
 
                 <div style={{ marginTop: 16 }}>
                   <button onClick={() => handleViewVersion(selectedEvent.events.event_id, selectedEvent.events.current_version || 1)} className={styles.btn} style={{ background: 'var(--fac-card)', border: '1px solid var(--fac-rule)', color: 'var(--fac-ink)' }}>
-                    <IconFileText size={16} /> View {activeTab === 'approved' ? 'Approved' : 'Rejected'} Version
+                    <IconFileText size={16} /> View {activeTab === 'approved' ? 'Approved' : 'Reviewed'} Version
                   </button>
                 </div>
 
