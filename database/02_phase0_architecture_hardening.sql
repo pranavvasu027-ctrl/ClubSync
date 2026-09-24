@@ -325,3 +325,64 @@ CREATE INDEX IF NOT EXISTS idx_event_registrations_user ON public.event_registra
 -- Notifications
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON public.notifications(user_id, is_read);
 
+
+-- =================================================================================
+-- MAINTAIN DB SOURCE OF TRUTH CACHED COUNTERS
+-- =================================================================================
+
+-- 1. Trigger for event_registrations -> events.registered_count
+CREATE OR REPLACE FUNCTION public.update_event_registered_count()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $body
+BEGIN
+  IF TG_OP = 'INSERT' AND NEW.payment_status IN ('FREE', 'COMPLETED') THEN
+    UPDATE public.events 
+    SET registered_count = registered_count + 1 
+    WHERE event_id = NEW.event_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE public.events 
+    SET registered_count = registered_count - 1 
+    WHERE event_id = OLD.event_id;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NEW.payment_status IN ('FREE', 'COMPLETED') AND OLD.payment_status NOT IN ('FREE', 'COMPLETED') THEN
+      UPDATE public.events SET registered_count = registered_count + 1 WHERE event_id = NEW.event_id;
+    ELSIF NEW.payment_status NOT IN ('FREE', 'COMPLETED') AND OLD.payment_status IN ('FREE', 'COMPLETED') THEN
+      UPDATE public.events SET registered_count = registered_count - 1 WHERE event_id = NEW.event_id;
+    END IF;
+  END IF;
+  RETURN NULL;
+END;
+$body;
+
+DROP TRIGGER IF EXISTS trigger_update_event_registered_count ON public.event_registrations;
+CREATE TRIGGER trigger_update_event_registered_count
+AFTER INSERT OR UPDATE OR DELETE ON public.event_registrations
+FOR EACH ROW EXECUTE FUNCTION public.update_event_registered_count();
+
+-- 2. Trigger for memberships -> clubs.members_count
+CREATE OR REPLACE FUNCTION public.update_club_members_count()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $body
+BEGIN
+  IF TG_OP = 'INSERT' AND NEW.status = 'ACTIVE' THEN
+    UPDATE public.clubs SET members_count = members_count + 1 WHERE club_id = NEW.club_id;
+  ELSIF TG_OP = 'DELETE' AND OLD.status = 'ACTIVE' THEN
+    UPDATE public.clubs SET members_count = members_count - 1 WHERE club_id = OLD.club_id;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NEW.status = 'ACTIVE' AND OLD.status != 'ACTIVE' THEN
+      UPDATE public.clubs SET members_count = members_count + 1 WHERE club_id = NEW.club_id;
+    ELSIF NEW.status != 'ACTIVE' AND OLD.status = 'ACTIVE' THEN
+      UPDATE public.clubs SET members_count = members_count - 1 WHERE club_id = NEW.club_id;
+    END IF;
+  END IF;
+  RETURN NULL;
+END;
+$body;
+
+DROP TRIGGER IF EXISTS trigger_update_club_members_count ON public.memberships;
+CREATE TRIGGER trigger_update_club_members_count
+AFTER INSERT OR UPDATE OR DELETE ON public.memberships
+FOR EACH ROW EXECUTE FUNCTION public.update_club_members_count();
+
