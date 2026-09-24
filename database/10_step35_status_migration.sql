@@ -2,17 +2,7 @@
 -- Idempotent script to migrate legacy status values to the new canonical set
 -- draft, under_review, changes_requested, approved, published, rejected
 
--- 1. Safely migrate existing legacy data (Bypass trigger using rpc_context)
-BEGIN;
-  SET LOCAL app.rpc_context = 'true';
-  UPDATE public.events SET status = 'under_review' WHERE status = 'proposed';
-  UPDATE public.events SET status = 'published' WHERE status IN ('live', 'upcoming');
-COMMIT;
-
--- Note: We are keeping 'completed', 'past', 'cancelled', 'settled' if they exist,
--- but the main Step 1-5 pipeline now strictly uses the canonical vocab.
-
--- 2. Drop the old check constraint (safely finding its name first)
+-- 1. Drop the old check constraint FIRST (so we can insert 'under_review')
 DO $$
 DECLARE 
     con_name TEXT;
@@ -27,6 +17,13 @@ BEGIN
         EXECUTE 'ALTER TABLE public.events DROP CONSTRAINT ' || con_name;
     END IF;
 END $$;
+
+-- 2. Safely migrate existing legacy data (Bypass trigger using rpc_context)
+BEGIN;
+  SET LOCAL app.rpc_context = 'true';
+  UPDATE public.events SET status = 'under_review' WHERE status = 'proposed';
+  UPDATE public.events SET status = 'published' WHERE status IN ('live', 'upcoming');
+COMMIT;
 
 -- 3. Add the hardened check constraint with the exact requested valid statuses
 -- plus legacy historical ones so we don't break old row updates
