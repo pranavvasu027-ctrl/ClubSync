@@ -2,6 +2,7 @@
 -- STEP 3 FIX: RE-INTEGRATE AUDIT LOG INTO APPROVAL RPC
 -- =================================================================================
 
+DROP FUNCTION IF EXISTS public.process_event_approval(UUID, VARCHAR, VARCHAR, TEXT);
 CREATE OR REPLACE FUNCTION public.process_event_approval(
   p_event_id UUID, 
   p_level VARCHAR, 

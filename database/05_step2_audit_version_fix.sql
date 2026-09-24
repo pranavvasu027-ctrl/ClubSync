@@ -2,6 +2,7 @@
 -- STEP 2 FIX: RE-INTEGRATE AUDIT LOG & EVENT VERSIONS INTO SUBMIT RPC
 -- =================================================================================
 
+DROP FUNCTION IF EXISTS public.submit_event_for_approval(UUID);
 CREATE OR REPLACE FUNCTION public.submit_event_for_approval(p_event_id UUID)
 RETURNS void
 LANGUAGE plpgsql

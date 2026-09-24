@@ -2,6 +2,7 @@
 -- STEP 4 FIX: ADD AUDIT LOG TO PUBLISH RPC
 -- =================================================================================
 
+DROP FUNCTION IF EXISTS public.publish_event(UUID);
 CREATE OR REPLACE FUNCTION public.publish_event(p_event_id UUID)
 RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER
