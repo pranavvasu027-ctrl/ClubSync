@@ -97,12 +97,13 @@ const ApprovalsQueue: React.FC = () => {
 
   const handleApprove = async () => {
     try {
-      const { data, error } = await supabase.rpc('faculty_approve_event', {
+      const { error } = await supabase.rpc('process_event_approval', {
         p_event_id: selectedEvent.events.event_id,
+        p_level: 'FACULTY_MENTOR',
+        p_decision: 'APPROVED',
         p_remarks: remarks || 'Approved by Faculty Mentor'
       });
       if (error) throw error;
-      if (data?.success === false) throw new Error(data.message);
       
       setSuccess('Event successfully approved.');
       setSelectedEvent(null);
@@ -124,12 +125,13 @@ const ApprovalsQueue: React.FC = () => {
     }
 
     try {
-      const { data, error } = await supabase.rpc('faculty_reject_event', {
+      const { error } = await supabase.rpc('process_event_approval', {
         p_event_id: selectedEvent.events.event_id,
-        p_reason: remarks
+        p_level: 'FACULTY_MENTOR',
+        p_decision: 'REJECTED',
+        p_remarks: remarks
       });
       if (error) throw error;
-      if (data?.success === false) throw new Error(data.message);
 
       setSuccess('Event successfully rejected.');
       setSelectedEvent(null);

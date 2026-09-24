@@ -14,42 +14,34 @@ const StudentDashboard = () => {
   const [upcomingInterview, setUpcomingInterview] = useState<any | null>(null);
   const navigate = useNavigate();
 
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+
   useEffect(() => {
-    if (user) {
-      supabase.from('users').select('id').eq('auth_user_id', user.id).single()
-        .then(({ data }) => {
-          if (data) {
-            setDbUserId(data.id);
-            fetchData(data.id);
-          }
-        });
-    }
+    fetchData();
   }, [user]);
 
-  const fetchData = async (uid: string) => {
+  const fetchData = async () => {
     // Open cycles
     const { data: cyclesData } = await supabase.from('recruitment_cycles').select('*').eq('status', 'open').limit(3);
     if (cyclesData) setOpenCycles(cyclesData);
 
-    // My applications
-    const { data: appsData } = await supabase.from('applications')
-      .select('*, recruitment_cycles(title, club_name), recruitment_roles(role_name)')
-      .eq('student_id', uid)
-      .order('applied_at', { ascending: false })
-      .limit(3);
-    if (appsData) setMyApps(appsData);
-
-    // Upcoming interview
-    const { data: interviewsData } = await supabase.from('interviews')
-      .select('*, applications!inner(student_id, recruitment_cycles(title, club_name))')
-      .eq('applications.student_id', uid)
-      .eq('status', 'scheduled')
-      .order('interview_date', { ascending: true })
-      .limit(1);
-    
-    if (interviewsData && interviewsData.length > 0) {
-      setUpcomingInterview(interviewsData[0]);
+    if (user) {
+      // My applications
+      const { data: appsData } = await supabase.from('applications')
+        .select('*, recruitment_cycles(title, club_name), recruitment_roles(role_name)')
+        .eq('student_id', user.id)
+        .order('applied_at', { ascending: false })
+        .limit(3);
+      if (appsData) setMyApps(appsData);
     }
+
+    // Upcoming events (PHASE 1)
+    const { data: eventsData } = await supabase.from('events')
+      .select('*')
+      .in('status', ['published', 'upcoming'])
+      .order('created_at', { ascending: false })
+      .limit(3);
+    if (eventsData) setUpcomingEvents(eventsData);
   };
 
   return (
@@ -118,20 +110,22 @@ const StudentDashboard = () => {
 
         <div className={styles.col}>
           <div className={styles.sectionHeader}>
-            <h2>My Recent Applications</h2>
-            <button onClick={() => navigate('/student/applications')} className={styles.textBtn}>View All</button>
+            <h2>Upcoming Events</h2>
+            <button className={styles.textBtn}>View All</button>
           </div>
           <div className={styles.appList}>
-            {myApps.length === 0 ? (
-              <div className={styles.emptyState}>You haven't applied to any clubs yet.</div>
+            {upcomingEvents.length === 0 ? (
+              <div className={styles.emptyState}>No events published right now.</div>
             ) : (
-              myApps.map(app => (
-                <div key={app.id} className={styles.appCard}>
+              upcomingEvents.map(ev => (
+                <div key={ev.event_id} className={styles.appCard} onClick={() => navigate(`/student/events/${ev.event_id}`)} style={{ cursor: 'pointer' }}>
                   <div>
-                    <div className={styles.appTitle}>{app.recruitment_roles?.role_name}</div>
-                    <div className={styles.appClub}>{app.recruitment_cycles?.club_name}</div>
+                    <div className={styles.appTitle}>{ev.title}</div>
+                    <div className={styles.appClub}>{ev.club_name || 'VIT Pune'}</div>
                   </div>
-                  <StatusBadge status={app.status} size="sm" />
+                  <div>
+                    <span style={{ fontSize: 11, color: '#666' }}><IconCalendarEvent size={12}/> {ev.event_date ? new Date(ev.event_date).toLocaleDateString() : 'TBD'}</span>
+                  </div>
                 </div>
               ))
             )}

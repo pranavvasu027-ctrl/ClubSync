@@ -28,35 +28,23 @@ const AdminApprovalsQueue: React.FC = () => {
     setLoading(false);
   };
 
-  const handleDecision = async (approvalId: string, eventId: string, decision: 'APPROVED' | 'REJECTED' | 'CONDITIONAL_APPROVAL', nextLevel?: string) => {
-    // 1. Update the approval record
-    await supabase
-      .from('event_approvals')
-      .update({ decision, decision_timestamp: new Date().toISOString() })
-      .eq('approval_id', approvalId);
+  const handleDecision = async (approvalId: string, eventId: string, level: string, decision: 'APPROVED' | 'REJECTED' | 'CONDITIONAL_APPROVAL', remarks: string = '') => {
+    // Phase 1: Use secure RPC for multi-tier approval state machine
+    const { error } = await supabase.rpc('process_event_approval', {
+      p_event_id: eventId,
+      p_level: level,
+      p_decision: decision,
+      p_remarks: remarks
+    });
 
-    if (decision === 'REJECTED') {
-      await supabase.from('events').update({ status: 'cancelled' }).eq('event_id', eventId);
-    } else if (decision === 'APPROVED' && nextLevel) {
-      // Create the next tier approval
-      await supabase.from('event_approvals').insert([{
-        event_id: eventId,
-        approver_id: '00000000-0000-0000-0000-000000000000', // Need dynamic resolution in a real app
-        approver_level: nextLevel,
-        decision: 'PENDING'
-      }]);
-    } else if (decision === 'APPROVED' && !nextLevel) {
-      // Final approval (Dean)
-      await supabase.from('events').update({ status: 'upcoming' }).eq('event_id', eventId);
+    if (error) {
+      console.error('Failed to process approval:', error);
+      alert(`Approval failed: ${error.message}`);
+      return;
     }
 
+    // Optimistically remove from queue
     setApprovals(approvals.filter(a => a.approval_id !== approvalId));
-  };
-
-  const getNextLevel = (currentLevel: string) => {
-    if (currentLevel === 'RESOURCE_INCHARGE') return 'VERTICAL_COORDINATOR';
-    if (currentLevel === 'VERTICAL_COORDINATOR') return 'DEAN_ADMIN';
-    return null; // Dean is final
   };
 
   return (
@@ -115,14 +103,17 @@ const AdminApprovalsQueue: React.FC = () => {
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button 
-                          onClick={() => handleDecision(app.approval_id, ev.event_id, 'APPROVED', getNextLevel(app.approver_level))}
+                          onClick={() => handleDecision(app.approval_id, ev.event_id, app.approver_level, 'APPROVED')}
                           className={styles.actionBtn} 
                           style={{ background: 'rgba(34,197,94,0.15)', color: '#4ADE80', border: 'none' }}
                         >
-                          <IconCheck size={14}/> {getNextLevel(app.approver_level) ? 'Escalate' : 'Final Approve'}
+                          <IconCheck size={14}/> Approve
                         </button>
                         <button 
-                          onClick={() => handleDecision(app.approval_id, ev.event_id, 'REJECTED')}
+                          onClick={() => {
+                            const remarks = window.prompt("Reason for rejection:");
+                            if (remarks !== null) handleDecision(app.approval_id, ev.event_id, app.approver_level, 'REJECTED', remarks);
+                          }}
                           className={styles.actionBtn} 
                           style={{ color: 'var(--exec-text-dim)' }}
                         >

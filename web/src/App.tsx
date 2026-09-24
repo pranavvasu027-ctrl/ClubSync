@@ -44,6 +44,7 @@ import ApplicationForm from './pages/student/ApplicationForm';
 import MyApplications from './pages/student/MyApplications';
 import InterviewDetails from './pages/student/InterviewDetails';
 import Notifications from './pages/student/Notifications';
+import StudentEventDetails from './pages/student/StudentEventDetails';
 
 import RecruiterLayout from './layouts/RecruiterLayout';
 import RecruiterDashboard from './pages/recruiter/RecruiterDashboard';
@@ -114,6 +115,7 @@ function AppRoutes() {
         <Route path="applications" element={<MyApplications />} />
         <Route path="interview" element={<InterviewDetails />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="events/:eventId" element={<StudentEventDetails />} />
       </Route>
 
       <Route path="/recruiter" element={<ProtectedRoute><RecruiterLayout /></ProtectedRoute>}>

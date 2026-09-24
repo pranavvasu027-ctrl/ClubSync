@@ -91,7 +91,7 @@ const LiveOps: React.FC = () => {
           <h1>Live Event Ops</h1>
           <p>Real-time monitor for event execution, check-ins, and ground issues.</p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
           <select 
             value={selectedEventId} 
             onChange={e => setSelectedEventId(e.target.value)}
@@ -99,6 +99,22 @@ const LiveOps: React.FC = () => {
           >
             {events.map(ev => <option key={ev.event_id} value={ev.event_id}>{ev.title}</option>)}
           </select>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input 
+              type="text" 
+              placeholder="Scan QR Code..." 
+              style={{ padding: '8px 12px', borderRadius: 8, background: 'var(--exec-panel)', color: '#fff', border: '1px solid var(--exec-line)' }}
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter') {
+                  const token = e.currentTarget.value;
+                  e.currentTarget.value = '';
+                  const { data, error } = await supabase.rpc('scan_event_checkin', { p_event_id: selectedEventId, p_qr_token: token });
+                  if (error) alert(`Error: ${error.message}`);
+                  else alert(data?.message || 'Scanned!');
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
 

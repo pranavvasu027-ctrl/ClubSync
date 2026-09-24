@@ -71,10 +71,12 @@ const EventsDesk: React.FC = () => {
 
   const columns = [
     { id: 'draft', title: 'Draft' },
-    { id: 'proposed', title: 'Pending Approval' },
-    { id: 'live', title: 'Live' },
+    { id: 'proposed', title: 'In Approval Queue' },
+    { id: 'approved', title: 'Approved (Setup)' },
+    { id: 'published', title: 'Published / Open' },
+    { id: 'live', title: 'Live Event Day' },
     { id: 'rejected', title: 'Rejected' },
-    { id: 'completed', title: 'Completed' },
+    { id: 'completed', title: 'Completed / Past' },
   ];
 
   const renderActions = (ev: EventData) => {
@@ -95,7 +97,33 @@ const EventsDesk: React.FC = () => {
       case 'proposed':
         return (
           <div style={{ marginTop: 10 }}>
-            <span style={{ fontSize: 11, padding: '4px 8px', background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 4, display: 'inline-block' }}>Pending Faculty Review</span>
+            <span style={{ fontSize: 11, padding: '4px 8px', background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 4, display: 'inline-block' }}>In Multi-tier Review</span>
+          </div>
+        );
+      case 'approved':
+        return (
+          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+            <button onClick={async () => {
+              try {
+                const { error } = await supabase.rpc('publish_event', { p_event_id: ev.event_id });
+                if (error) throw error;
+                alert('Event Published! Registrations are now open.');
+                fetchEvents();
+              } catch(err: any) {
+                alert(err.message || 'Error publishing event (Are tickets configured?)');
+              }
+            }} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'var(--pres-green)', color: 'white' }}>Publish Event</button>
+          </div>
+        );
+      case 'published':
+      case 'upcoming':
+        return (
+          <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
+            <button style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-ink)', background: 'var(--pres-paper)', color: 'var(--pres-ink)' }}>Manage Live Ops</button>
+            <button onClick={async () => {
+              await supabase.from('events').update({ status: 'live' }).eq('event_id', ev.event_id);
+              fetchEvents();
+            }} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-red)', background: 'var(--pres-red)', color: 'white' }}>Start Live Event</button>
           </div>
         );
       case 'live':
