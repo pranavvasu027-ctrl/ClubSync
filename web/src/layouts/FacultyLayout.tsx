@@ -1,66 +1,103 @@
 import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { IconLayoutGrid, IconChecklist, IconReceipt2, IconUsers } from '@tabler/icons-react';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { IconLayoutGrid, IconChecklist, IconCalendarEvent, IconArrowUpRight, IconFileText, IconUserPlus, IconUsers, IconAlertTriangle, IconReceipt2, IconSearch, IconBell, IconChevronRight } from '@tabler/icons-react';
 import styles from './FacultyLayout.module.css';
 import { useAuth } from '../context/AuthContext';
 
 const FacultyLayout: React.FC = () => {
   const { profile } = useAuth();
+  const location = useLocation();
   
-  const getName = () => profile?.name || 'Faculty Advisor';
+  const getName = () => profile?.name || 'Prof. Pankaj Kunekar';
+  const getInitials = () => getName().split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+  const getCrumb = () => {
+    if (location.pathname.includes('/approvals')) return 'Proposal Queue';
+    if (location.pathname.includes('/ledger')) return 'Club Ledger';
+    if (location.pathname.includes('/team')) return 'Team Directory';
+    return 'Overview';
+  };
 
   return (
     <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <img src="/clubsync-logo.jpg" alt="ClubSync" className={styles.brandMark} />
-          <span>ClubSync</span>
-          <span className={styles.brandTag}>FACULTY</span>
-        </div>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24, flex: 1, fontFamily: 'monospace', fontSize: 11, color: 'var(--fac-text-dim)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--fac-green)' }}></span>
-            Systems nominal
+      {/* SIDEBAR */}
+      <aside className={styles.rail}>
+        <div className={styles.railTop}>
+          <div className={styles.brand}>
+            <div className={styles.brandMark}>R</div>
+            <div className={styles.brandName}>Registrar</div>
           </div>
+          <div className={styles.brandSub}>Faculty Advisor Desk</div>
         </div>
 
-        <div className={styles.rightCluster}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 11px 5px 5px', border: '1px solid rgba(129,140,248,0.28)', borderRadius: 20, background: 'rgba(129,140,248,0.12)' }}>
-            <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--fac-accent-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff' }}>FA</div>
+        <div className={styles.facultyTag}>
+          <span className={styles.dot}></span> 6 clubs under purview · AY 2026–27
+        </div>
+
+        <nav className={styles.nav}>
+          <div className={styles.navLabel}>Overview</div>
+          <NavLink to="/faculty" end className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
+            <IconLayoutGrid size={18}/> Overview
+          </NavLink>
+
+          <div className={styles.navLabel}>Approvals</div>
+          <NavLink to="/faculty/approvals" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
+            <IconChecklist size={18}/> Proposal Queue <span className={styles.nBadge}>5</span>
+          </NavLink>
+          {/* We link events to the same place for now, or just stub it */}
+          <NavLink to="/faculty/ledger" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
+            <IconCalendarEvent size={18}/> All Events
+          </NavLink>
+
+          <div className={styles.navLabel}>Planning</div>
+          <div className={styles.navItem}><IconArrowUpRight size={18}/> Event Planner</div>
+          <div className={styles.navItem}><IconFileText size={18}/> Progress Reports</div>
+
+          <div className={styles.navLabel}>People</div>
+          <NavLink to="/faculty/team" className={({isActive}) => `${styles.navItem} ${isActive ? styles.active : ''}`}>
+            <IconUserPlus size={18}/> Recruitment
+          </NavLink>
+          <div className={styles.navItem}><IconUsers size={18}/> Club Hierarchy</div>
+          <div className={styles.navItem}><IconCalendarEvent size={18}/> Mentorship</div>
+
+          <div className={styles.navLabel}>Compliance</div>
+          <div className={styles.navItem}><IconAlertTriangle size={18}/> Analytics</div>
+          <div className={styles.navItem}><IconReceipt2 size={18}/> NAAC / NBA Reports</div>
+          <div className={styles.navItem}><IconArrowUpRight size={18}/> Activity Log</div>
+        </nav>
+
+        <div className={styles.railBottom}>
+          <div className={styles.who}>
+            <div className={styles.whoAvatar}>{getInitials()}</div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 12, lineHeight: 1.2 }}>{getName()}</div>
-              <div style={{ fontFamily: 'monospace', fontSize: 9, color: '#818CF8', letterSpacing: '0.04em' }}>FACULTY</div>
+              <div className={styles.whoName}>{getName()}</div>
+              <div className={styles.whoRole}>Faculty Advisor</div>
             </div>
           </div>
         </div>
-      </header>
+      </aside>
 
-      <div className={styles.bodyGrid}>
-        <aside className={styles.rail}>
-          <div className={styles.railLabel}>Overview</div>
-          <NavLink to="/faculty" end className={({isActive}) => `${styles.railItem} ${isActive ? styles.active : ''}`}>
-            <IconLayoutGrid size={15}/> <span>Dashboard</span>
-          </NavLink>
+      {/* MAIN */}
+      <main className={styles.main}>
+        <header className={styles.topbar}>
+          <div className={styles.crumbs}>
+            <span>ClubSync</span><IconChevronRight size={13}/>
+            <span>Faculty Registrar</span><IconChevronRight size={13}/>
+            <span className={styles.current}>{getCrumb()}</span>
+          </div>
+          <div className={styles.topbarRight}>
+            <button className={styles.iconBtn} style={{ display: 'none' }}><IconSearch size={16}/></button>
+            <button className={styles.iconBtn}><IconSearch size={16}/></button>
+            <button className={styles.iconBtn}><IconBell size={16}/><span className={styles.ping}></span></button>
+          </div>
+        </header>
 
-          <div className={styles.railLabel}>Oversight</div>
-          <NavLink to="/faculty/approvals" className={({isActive}) => `${styles.railItem} ${isActive ? styles.active : ''}`}>
-            <IconChecklist size={15}/> <span>Approvals Queue</span>
-          </NavLink>
-          <NavLink to="/faculty/ledger" className={({isActive}) => `${styles.railItem} ${isActive ? styles.active : ''}`}>
-            <IconReceipt2 size={15}/> <span>Club Ledger</span>
-          </NavLink>
-          
-          <div className={styles.railLabel}>People</div>
-          <NavLink to="/faculty/team" className={({isActive}) => `${styles.railItem} ${isActive ? styles.active : ''}`}>
-            <IconUsers size={15}/> <span>Team Directory</span>
-          </NavLink>
-        </aside>
-
-        <main className={styles.main}>
-          <Outlet />
-        </main>
-      </div>
+        <div className={styles.content}>
+          <div className={styles.wrap}>
+            <Outlet />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

@@ -41,6 +41,7 @@ const NewEventProposal: React.FC = () => {
   const [compliance3, setCompliance3] = useState(false);
 
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const surplusDeficit = income - expenditure;
@@ -71,22 +72,32 @@ const NewEventProposal: React.FC = () => {
 
   const saveToDatabase = async (status: string) => {
     setError('');
-    const validationError = validate();
-    if (validationError && status !== 'draft') {
-      setError(validationError);
-      return;
-    }
+    setSuccess('');
+    
+    console.log(`[SAVE] Attempting to save event with status: ${status}`);
 
-    if (status !== 'draft' && (!compliance1 || !compliance2 || !compliance3)) {
-      setError('All compliance checkboxes must be checked to submit the proposal.');
-      return;
+    // For draft, we only require the title.
+    if (status === 'draft') {
+      if (!title.trim()) {
+        setError('Event Title is required even for a draft.');
+        return;
+      }
+    } else {
+      const validationError = validate();
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      if (!compliance1 || !compliance2 || !compliance3) {
+        setError('All compliance checkboxes must be checked to submit the proposal.');
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
-      // 1. Insert into events table
-      const { data: eventData, error: eventError } = await supabase.from('events').insert({
+      const payload = {
         title,
         description: outline,
         event_type: eventType,
@@ -107,76 +118,94 @@ const NewEventProposal: React.FC = () => {
         resource_requirements: resources,
         compliance_verified: compliance1 && compliance2 && compliance3,
         created_by: profile?.user_id || null,
-      }).select().single();
+      };
 
-      if (eventError) throw eventError;
+      console.log(`[SAVE] Payload to events table:`, payload);
 
+      // 1. Insert into events table
+      const { data: eventData, error: eventError } = await supabase.from('events').insert(payload).select().single();
+
+      if (eventError) {
+        console.error(`[SAVE] Supabase events insert error:`, eventError);
+        throw eventError;
+      }
+
+      console.log(`[SAVE] Event inserted successfully:`, eventData);
       const eventId = eventData.event_id;
 
       // 2. Insert into event_budgets
       if (income > 0) {
-        await supabase.from('event_budgets').insert({
+        const { error: incErr } = await supabase.from('event_budgets').insert({
           event_id: eventId,
           category: 'Other',
           description: `Income: ${sourceOfFunds}`,
           estimated_amount: income
         });
+        if (incErr) console.error(`[SAVE] Income budget error:`, incErr);
       }
       if (expenditure > 0) {
-        await supabase.from('event_budgets').insert({
+        const { error: expErr } = await supabase.from('event_budgets').insert({
           event_id: eventId,
           category: 'Other',
           description: 'Expenditure',
           estimated_amount: expenditure
         });
+        if (expErr) console.error(`[SAVE] Expenditure budget error:`, expErr);
       }
 
       // 3. If submitting, create a PENDING approval for faculty mentor
       if (status === 'proposed') {
-        await supabase.from('event_approvals').insert({
+        const { error: appErr } = await supabase.from('event_approvals').insert({
           event_id: eventId,
-          approver_id: null, // Faculty mentor will claim this
+          approver_id: null,
           approver_level: 'FACULTY_MENTOR',
           decision: 'PENDING'
         });
+        if (appErr) console.error(`[SAVE] Approval insert error:`, appErr);
       }
 
-      navigate('/president/events');
+      setSuccess(`Event successfully saved as ${status.toUpperCase()}! Redirecting...`);
+      setTimeout(() => navigate('/president/events'), 1500);
+
     } catch (err: any) {
-      setError(err.message || 'An error occurred while saving.');
+      console.error(`[SAVE] Catch block error:`, err);
+      // Detailed error from Supabase
+      const errorMsg = err.message || err.details || err.hint || JSON.stringify(err);
+      setError(`Database Error: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: '34px' }}>
+    <div className={styles.pageWrapper}>
       <div className={styles.hero} style={{ borderBottom: '2px solid var(--pres-ink)', marginBottom: 24, padding: 0 }}>
         <div>
           <div className={styles.heroEyebrow}>Proposal Form</div>
-          <h1>Create Event Proposal</h1>
+          <h1 style={{ color: 'var(--pres-ink)' }}>Create Event Proposal</h1>
         </div>
       </div>
 
       {error && <div style={{ background: '#FEE2E2', color: '#991B1B', padding: 12, borderRadius: 6, marginBottom: 20 }}>{error}</div>}
+      {success && <div style={{ background: 'var(--pres-green-soft)', color: 'var(--pres-green)', padding: 12, borderRadius: 6, marginBottom: 20, fontWeight: 600 }}>{success}</div>}
 
-      <div className={styles.panel} style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 800 }}>
+      <div className={styles.formPanel}>
         
         {/* EVENT DETAILS */}
         <section>
-          <h2 style={{ fontSize: 16, borderBottom: '1px solid var(--pres-rule)', paddingBottom: 8, marginBottom: 16 }}>① Event Details</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <h2 className={styles.sectionTitle}>① Event Details</h2>
+          <div className={styles.formGrid}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Club Name</label>
-              <input type="text" value={club?.name || 'Loading...'} disabled style={{ width: '100%', padding: '8px 12px', background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', borderRadius: 6, opacity: 0.7 }} />
+              <label className={styles.label}>Club Name</label>
+              <input type="text" value={club?.name || 'Loading...'} disabled className={styles.inputField} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Event Title <span style={{color: 'red'}}>*</span></label>
-              <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Event Title <span style={{color: 'red'}}>*</span></label>
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)} className={styles.inputField} placeholder="Enter event title" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Event Type</label>
-              <select value={eventType} onChange={e => setEventType(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }}>
+              <label className={styles.label}>Event Type</label>
+              <select value={eventType} onChange={e => setEventType(e.target.value)} className={styles.inputField}>
                 <option>Workshop</option>
                 <option>Seminar</option>
                 <option>Competition</option>
@@ -186,100 +215,100 @@ const NewEventProposal: React.FC = () => {
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Event Scope</label>
-              <select value={scope} onChange={e => setScope(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }}>
+              <label className={styles.label}>Event Scope</label>
+              <select value={scope} onChange={e => setScope(e.target.value)} className={styles.inputField}>
                 <option value="INTRA_COLLEGE">Intra-Collegiate</option>
                 <option value="INTER_COLLEGIATE">Inter-Collegiate</option>
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Event Date <span style={{color: 'red'}}>*</span></label>
-              <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Event Date <span style={{color: 'red'}}>*</span></label>
+              <input type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} className={styles.inputField} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Target Audience</label>
-              <input type="text" value={targetAudience} onChange={e => setTargetAudience(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Target Audience</label>
+              <input type="text" value={targetAudience} onChange={e => setTargetAudience(e.target.value)} className={styles.inputField} placeholder="e.g. First year students" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Start Time</label>
-              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Start Time</label>
+              <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className={styles.inputField} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>End Time</label>
-              <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>End Time</label>
+              <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className={styles.inputField} />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Venue <span style={{color: 'red'}}>*</span></label>
-              <input type="text" value={venue} onChange={e => setVenue(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Venue <span style={{color: 'red'}}>*</span></label>
+              <input type="text" value={venue} onChange={e => setVenue(e.target.value)} className={styles.inputField} placeholder="e.g. Main Auditorium" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Expected Count</label>
-              <input type="number" min="0" value={expectedCount} onChange={e => setExpectedCount(parseInt(e.target.value))} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Expected Count</label>
+              <input type="number" min="0" value={expectedCount} onChange={e => setExpectedCount(parseInt(e.target.value))} className={styles.inputField} />
             </div>
           </div>
         </section>
 
         {/* DESCRIPTION */}
         <section>
-          <h2 style={{ fontSize: 16, borderBottom: '1px solid var(--pres-rule)', paddingBottom: 8, marginBottom: 16 }}>② Event Description</h2>
+          <h2 className={styles.sectionTitle}>② Event Description</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Brief Outline</label>
-              <textarea value={outline} onChange={e => setOutline(e.target.value)} rows={3} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }}></textarea>
+              <label className={styles.label}>Brief Outline</label>
+              <textarea value={outline} onChange={e => setOutline(e.target.value)} rows={3} className={styles.inputField} placeholder="Summarize the event..."></textarea>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Objectives</label>
-              <textarea value={objectives} onChange={e => setObjectives(e.target.value)} rows={2} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }}></textarea>
+              <label className={styles.label}>Objectives</label>
+              <textarea value={objectives} onChange={e => setObjectives(e.target.value)} rows={2} className={styles.inputField} placeholder="What does this event aim to achieve?"></textarea>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Expected Outcomes</label>
-              <textarea value={outcomes} onChange={e => setOutcomes(e.target.value)} rows={2} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }}></textarea>
+              <label className={styles.label}>Expected Outcomes</label>
+              <textarea value={outcomes} onChange={e => setOutcomes(e.target.value)} rows={2} className={styles.inputField} placeholder="What will participants learn/gain?"></textarea>
             </div>
           </div>
         </section>
 
         {/* GUESTS */}
         <section>
-          <h2 style={{ fontSize: 16, borderBottom: '1px solid var(--pres-rule)', paddingBottom: 8, marginBottom: 16 }}>③ Guest / Resource Person</h2>
+          <h2 className={styles.sectionTitle}>③ Guest / Resource Person</h2>
           {guests.map((g, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <input type="text" placeholder="Name" value={g.name} onChange={e => updateGuest(i, 'name', e.target.value)} style={{ padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
-              <input type="text" placeholder="Designation" value={g.designation} onChange={e => updateGuest(i, 'designation', e.target.value)} style={{ padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
-              <input type="text" placeholder="Contact" value={g.contact} onChange={e => updateGuest(i, 'contact', e.target.value)} style={{ padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+            <div key={i} className={styles.guestGrid}>
+              <input type="text" placeholder="Name" value={g.name} onChange={e => updateGuest(i, 'name', e.target.value)} className={styles.inputField} />
+              <input type="text" placeholder="Designation" value={g.designation} onChange={e => updateGuest(i, 'designation', e.target.value)} className={styles.inputField} />
+              <input type="text" placeholder="Contact" value={g.contact} onChange={e => updateGuest(i, 'contact', e.target.value)} className={styles.inputField} />
             </div>
           ))}
-          <button onClick={handleAddGuest} style={{ fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 4, background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', cursor: 'pointer' }}>+ Add another person</button>
+          <button onClick={handleAddGuest} style={{ fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 4, background: 'var(--pres-paper-deep)', color: 'var(--pres-ink)', border: '1px solid var(--pres-rule)', cursor: 'pointer' }}>+ Add another person</button>
         </section>
 
         {/* BUDGET */}
         <section>
-          <h2 style={{ fontSize: 16, borderBottom: '1px solid var(--pres-rule)', paddingBottom: 8, marginBottom: 16 }}>④ Budget Details</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <h2 className={styles.sectionTitle}>④ Budget Details</h2>
+          <div className={styles.formGrid}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Income (₹)</label>
-              <input type="number" min="0" value={income} onChange={e => setIncome(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Income (₹)</label>
+              <input type="number" min="0" value={income} onChange={e => setIncome(Number(e.target.value))} className={styles.inputField} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Expenditure (₹)</label>
-              <input type="number" min="0" value={expenditure} onChange={e => setExpenditure(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Expenditure (₹)</label>
+              <input type="number" min="0" value={expenditure} onChange={e => setExpenditure(Number(e.target.value))} className={styles.inputField} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Surplus / Deficit (₹)</label>
-              <input type="number" value={surplusDeficit} disabled style={{ width: '100%', padding: '8px 12px', background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', borderRadius: 6, opacity: 0.8, color: surplusDeficit < 0 ? 'red' : 'inherit' }} />
+              <label className={styles.label}>Surplus / Deficit (₹)</label>
+              <input type="number" value={surplusDeficit} disabled className={styles.inputField} style={{ color: surplusDeficit < 0 ? 'var(--pres-red)' : 'var(--pres-ink)', fontWeight: 600 }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Source of Funds</label>
-              <input type="text" value={sourceOfFunds} onChange={e => setSourceOfFunds(e.target.value)} style={{ width: '100%', padding: '8px 12px', background: '#fff', border: '1px solid var(--pres-rule)', borderRadius: 6 }} />
+              <label className={styles.label}>Source of Funds</label>
+              <input type="text" value={sourceOfFunds} onChange={e => setSourceOfFunds(e.target.value)} className={styles.inputField} placeholder="e.g. Sponsorship, College Fund" />
             </div>
           </div>
         </section>
 
         {/* RESOURCES */}
         <section>
-          <h2 style={{ fontSize: 16, borderBottom: '1px solid var(--pres-rule)', paddingBottom: 8, marginBottom: 16 }}>⑤ Resource Requirements</h2>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13 }}>
+          <h2 className={styles.sectionTitle}>⑤ Resource Requirements</h2>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: 'var(--pres-ink)' }}>
             {['Classrooms', 'Labs', 'Auditorium', 'Seminar Hall', 'Open Ground', 'Equipment', 'Other'].map(r => (
-              <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={resources.includes(r)} onChange={() => toggleResource(r)} /> {r}
               </label>
             ))}
@@ -288,17 +317,17 @@ const NewEventProposal: React.FC = () => {
 
         {/* COMPLIANCE */}
         <section>
-          <h2 style={{ fontSize: 16, borderBottom: '1px solid var(--pres-rule)', paddingBottom: 8, marginBottom: 16 }}>⑥ Compliance</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h2 className={styles.sectionTitle}>⑥ Compliance</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13, color: 'var(--pres-ink)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <input type="checkbox" checked={compliance1} onChange={e => setCompliance1(e.target.checked)} />
               Event complies with institute guidelines
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <input type="checkbox" checked={compliance2} onChange={e => setCompliance2(e.target.checked)} />
               Event is beneficial to students/institute
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <input type="checkbox" checked={compliance3} onChange={e => setCompliance3(e.target.checked)} />
               Required approvals will be obtained before the event
             </label>
@@ -306,8 +335,8 @@ const NewEventProposal: React.FC = () => {
         </section>
 
         {/* ACTIONS */}
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12, paddingTop: 16, borderTop: '1px solid var(--pres-rule)' }}>
-          <button onClick={() => saveToDatabase('draft')} disabled={loading} style={{ padding: '10px 18px', background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>
+        <div className={styles.actions}>
+          <button onClick={() => saveToDatabase('draft')} disabled={loading} style={{ padding: '10px 18px', background: 'var(--pres-paper-deep)', color: 'var(--pres-ink)', border: '1px solid var(--pres-rule)', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>
             SAVE DRAFT
           </button>
           <button onClick={() => saveToDatabase('proposed')} disabled={loading} style={{ padding: '10px 18px', background: 'var(--pres-red)', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>

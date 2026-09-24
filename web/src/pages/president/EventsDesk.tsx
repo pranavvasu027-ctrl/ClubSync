@@ -103,7 +103,7 @@ const EventsDesk: React.FC = () => {
                     <div key={ev.id} style={{ background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 7, padding: '11px 12px', marginBottom: 9, cursor: 'grab', fontSize: 12.5, boxShadow: 'var(--pres-shadow-card)' }}>
                       <div style={{ fontWeight: 600, marginBottom: 4 }}>{ev.title}</div>
                       <div style={{ fontSize: 10.5, color: 'var(--pres-ink-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <IconCalendarEvent size={12}/> {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'TBD'}
+                        <IconCalendarEvent size={12}/> {ev.event_date && !isNaN(new Date(ev.event_date).getTime()) ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'TBD'}
                       </div>
                     </div>
                   ))}
@@ -128,7 +128,7 @@ const EventsDesk: React.FC = () => {
                 <span className={`${styles.stamp} ${statusClass}`}>{ev.status}</span>
                 <div className={styles.eventTitle}>{ev.title}</div>
                 <div className={styles.eventMeta}>
-                  <span><IconCalendarEvent size={14}/> {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'TBD'}</span>
+                  <span><IconCalendarEvent size={14}/> {ev.event_date && !isNaN(new Date(ev.event_date).getTime()) ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'TBD'}</span>
                   <span><IconMapPin size={14}/> {ev.venue_name || 'TBD'}</span>
                   <span><IconUsers size={14}/> {ev.expected_count || 0}</span>
                 </div>
