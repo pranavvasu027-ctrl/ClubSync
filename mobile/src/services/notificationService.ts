@@ -1,20 +1,28 @@
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { CURRENT_USER } from './clubSyncService';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+let Notifications: any = null;
+
+try {
+  Notifications = require('expo-notifications');
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch (e) {
+  console.warn('expo-notifications not available (Expo Go?), push notifications disabled');
+}
 
 export async function registerForPushNotificationsAsync() {
+  if (!Notifications) return undefined;
+
   let token;
 
   if (Platform.OS === 'android') {
@@ -41,11 +49,10 @@ export async function registerForPushNotificationsAsync() {
     }
     
     token = await Notifications.getExpoPushTokenAsync({
-      projectId: "your-expo-project-id", // Replace with your actual project ID
+      projectId: "21c48e29-80e1-4695-9713-872a8ff4e70c",
     });
     
     if (token && token.data && CURRENT_USER?.id) {
-      // Save token to Supabase for the user
       await supabase.from('users').update({
         push_token: token.data
       }).eq('user_id', CURRENT_USER.id);

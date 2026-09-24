@@ -7,7 +7,7 @@ import { IconCalendarEvent, IconUsers, IconWallet, IconChecklist, IconMapPin, Ic
 import type { ClubEvent } from '../../types/clubData';
 
 const PresidentDashboard: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, club } = useAuth();
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [budgetRemaining, setBudgetRemaining] = useState(0);
   const totalBudget = 800000; // 8 Lakhs

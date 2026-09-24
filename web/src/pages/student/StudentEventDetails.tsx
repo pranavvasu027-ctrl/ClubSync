@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { IconCalendarEvent, IconMapPin, IconUsers, IconTicket, IconQrcode } from '@tabler/icons-react';
+import { IconCalendarEvent, IconMapPin, IconUsers, IconTicket, IconQrcode, IconChecklist } from '@tabler/icons-react';
 
 const StudentEventDetails: React.FC = () => {
   const { eventId } = useParams();
