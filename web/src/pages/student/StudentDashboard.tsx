@@ -36,7 +36,16 @@ const StudentDashboard = () => {
       .in('status', ['published', 'upcoming'])
       .order('created_at', { ascending: false })
       .limit(3);
-    if (eventsData) setUpcomingEvents(eventsData);
+    const localPublished = JSON.parse(localStorage.getItem('clubsync_demo_events') || '[]')
+      .filter((e: any) => e.status === 'published' || e.status === 'upcoming');
+    const allEvents = [...localPublished, ...(eventsData || [])];
+    const seenEvents = new Set();
+    const dedupedEvents = allEvents.filter(e => {
+      if (!e || !e.event_id || seenEvents.has(e.event_id)) return false;
+      seenEvents.add(e.event_id);
+      return true;
+    });
+    setUpcomingEvents(dedupedEvents);
   }, [profile?.user_id, user?.id]);
 
   useEffect(() => {

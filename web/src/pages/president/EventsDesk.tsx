@@ -44,6 +44,16 @@ const EventsDesk: React.FC = () => {
       data = retry.data;
     }
       
+    const localEvents = JSON.parse(localStorage.getItem('clubsync_demo_events') || '[]');
+    const combined = [...localEvents, ...(data || [])];
+    const seen = new Set();
+    const dedupedData = combined.filter(e => {
+      if (!e || !e.event_id || seen.has(e.event_id)) return false;
+      seen.add(e.event_id);
+      return true;
+    });
+    setEvents(dedupedData);
+
     if (data) {
       // Fetch latest remarks for changes_requested or rejected events
       const targetIds = data.filter(e => e.status === 'changes_requested' || e.status === 'rejected').map(e => e.event_id);

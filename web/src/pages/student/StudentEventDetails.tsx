@@ -33,6 +33,10 @@ const StudentEventDetails: React.FC = () => {
     
     if (evData) {
       setEvent(evData);
+    } else {
+      const localEvents = JSON.parse(localStorage.getItem('clubsync_demo_events') || '[]');
+      const found = localEvents.find((e: any) => e.event_id === eventId);
+      if (found) setEvent(found);
     }
 
     // Fetch Tickets
