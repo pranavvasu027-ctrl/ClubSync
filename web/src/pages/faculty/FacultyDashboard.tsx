@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import styles from './FacultyDashboard.module.css';
-import layoutStyles from '../../layouts/FacultyLayout.module.css';
-import { IconChecklist, IconBuilding, IconWallet, IconReceipt2, IconAlertTriangle, IconArrowUpRight, IconCheck, IconFileText, IconUsers } from '@tabler/icons-react';
+import { IconChecklist, IconBuilding, IconAlertTriangle, IconArrowUpRight, IconCheck, IconFileText, IconUsers } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const FacultyDashboard: React.FC = () => {
+  const { profile, supervisedClubs } = useAuth();
   const getDay = () => new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -16,15 +17,26 @@ const FacultyDashboard: React.FC = () => {
   const [needsSignoff, setNeedsSignoff] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchStats();
-    fetchRecentApprovals();
-    fetchNeedsSignoff();
-    fetchAuditLogs();
-  }, []);
+  const isPlatformAdmin = ['owner', 'super_admin', 'platform_admin', 'admin'].includes((profile?.user_type || '').toLowerCase());
 
-  const fetchStats = async () => {
-    // Pending
+  const fetchStats = useCallback(async () => {
+    if (!isPlatformAdmin) {
+      // Scope statistics to faculty's supervised clubs
+      const { data: allApprovals } = await supabase
+        .from('event_approvals')
+        .select('decision, events(club_id)')
+        .eq('approver_level', 'FACULTY_MENTOR');
+      
+      if (allApprovals) {
+        const scoped = allApprovals.filter((a: any) => a.events?.club_id && supervisedClubs.includes(a.events.club_id));
+        setPendingCount(scoped.filter((a: any) => a.decision === 'PENDING').length);
+        setApprovedCount(scoped.filter((a: any) => a.decision === 'APPROVED').length);
+        setRejectedCount(scoped.filter((a: any) => a.decision === 'REJECTED').length);
+      }
+      return;
+    }
+
+    // Platform admin: global counts
     const { count: pendCount } = await supabase
       .from('event_approvals')
       .select('*', { count: 'exact', head: true })
@@ -32,7 +44,6 @@ const FacultyDashboard: React.FC = () => {
       .eq('approver_level', 'FACULTY_MENTOR');
     if (pendCount !== null) setPendingCount(pendCount);
 
-    // Approved
     const { count: appCount } = await supabase
       .from('event_approvals')
       .select('*', { count: 'exact', head: true })
@@ -40,36 +51,43 @@ const FacultyDashboard: React.FC = () => {
       .eq('approver_level', 'FACULTY_MENTOR');
     if (appCount !== null) setApprovedCount(appCount);
 
-    // Rejected
     const { count: rejCount } = await supabase
       .from('event_approvals')
       .select('*', { count: 'exact', head: true })
       .eq('decision', 'REJECTED')
       .eq('approver_level', 'FACULTY_MENTOR');
     if (rejCount !== null) setRejectedCount(rejCount);
-  };
+  }, [isPlatformAdmin, supervisedClubs]);
 
-  const fetchRecentApprovals = async () => {
+  const fetchRecentApprovals = useCallback(async () => {
     const { data } = await supabase
       .from('event_approvals')
-      .select('*, events(title, club_name, status)')
+      .select('*, events(title, club_name, club_id, status)')
       .eq('decision', 'APPROVED')
       .eq('approver_level', 'FACULTY_MENTOR')
-      .order('decision_timestamp', { ascending: false })
-      .limit(5);
-    if (data) setRecentApprovals(data);
-  };
+      .order('decision_timestamp', { ascending: false });
+    if (data) {
+      const scoped = isPlatformAdmin 
+        ? data.slice(0, 5) 
+        : data.filter((item: any) => item.events?.club_id && supervisedClubs.includes(item.events.club_id)).slice(0, 5);
+      setRecentApprovals(scoped);
+    }
+  }, [isPlatformAdmin, supervisedClubs]);
 
-  const fetchNeedsSignoff = async () => {
+  const fetchNeedsSignoff = useCallback(async () => {
     const { data } = await supabase
       .from('event_approvals')
-      .select('*, events(title, club_name)')
+      .select('*, events(title, club_name, club_id)')
       .eq('decision', 'PENDING')
       .eq('approver_level', 'FACULTY_MENTOR')
-      .order('created_at', { ascending: true })
-      .limit(3);
-    if (data) setNeedsSignoff(data);
-  };
+      .order('created_at', { ascending: true });
+    if (data) {
+      const scoped = isPlatformAdmin 
+        ? data.slice(0, 3) 
+        : data.filter((item: any) => item.events?.club_id && supervisedClubs.includes(item.events.club_id)).slice(0, 3);
+      setNeedsSignoff(scoped);
+    }
+  }, [isPlatformAdmin, supervisedClubs]);
 
   const fetchAuditLogs = async () => {
     const { data } = await supabase
@@ -79,6 +97,13 @@ const FacultyDashboard: React.FC = () => {
       .limit(5);
     if (data) setAuditLogs(data);
   };
+
+  useEffect(() => {
+    fetchStats();
+    fetchRecentApprovals();
+    fetchNeedsSignoff();
+    fetchAuditLogs();
+  }, [fetchStats, fetchRecentApprovals, fetchNeedsSignoff]);
 
   const getTimeElapsed = (dateString: string) => {
     const diff = Date.now() - new Date(dateString).getTime();

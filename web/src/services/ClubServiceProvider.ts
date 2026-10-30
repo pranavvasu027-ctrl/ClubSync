@@ -1,4 +1,4 @@
-import { IClubRepository } from './ClubService';
+import type { IClubRepository } from './ClubService';
 import { SupabaseClubRepository } from './SupabaseClubRepository';
 import { MockClubRepository } from './MockClubRepository';
 

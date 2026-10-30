@@ -87,3 +87,57 @@
 \
 ---\
 
+---
+
+## V1 Launch Scoping & Backend Integration (from project_progress.md)
+
+> **Current Status: V1 (VIT-Only Launch) Prep**
+> The app is scoped down and stabilized for an exclusive V1 launch at Vishwakarma Institute of Technology (VIT). Complex multi-college features are safely hidden behind feature flags.
+
+### ✨ Added (New Features & Architecture)
+- **Observer Role & Dashboard:** Implemented a secondary read-only role (observer) that bypasses college restrictions to view all data globally. Added a dedicated Observer Dashboard in the Profile screen.
+- **Feature Flag System:** Introduced `src/config/featureFlags.ts` to manage application scopes. Created `MULTI_COLLEGE_ENABLED` to toggle between V1 (VIT-only) and V3 (National).
+- **Unstop-Style Events Hub:** Merged both internal Campus Events and external Competitions into a single, unified EventsScreen.
+- **QR Attendance Scanner:** Replaced the text-based mock tester with a real, functional `expo-camera` implementation.
+- **Supabase Backend Integration:** Connected the app to a live Supabase (PostgreSQL) database. Created `src/lib/supabase.ts`.
+- **Real Google OAuth:** Implemented proper Google Sign-In using `expo-auth-session` + `expo-web-browser`.
+- **Email/Password Authentication:** Added Sign In and Sign Up flows using `supabase.auth.signInWithPassword()` and `supabase.auth.signUp()`.
+- **Email Verification:** After sign up, users receive a verification email from Supabase.
+- **Forgot Password:** Added a "Forgot Password?" button that calls `supabase.auth.resetPasswordForEmail()`.
+- **Database Schema:** Created `public.users` table with Row-Level Security (RLS) policies. Added a PostgreSQL trigger (`on_auth_user_created`) that auto-creates a profile row.
+
+### 🗑️ Removed / Hidden (Scoped out for V1)
+- **Club Committee Edit Tools:** Completely removed the 'President Edit Mode' from the mobile app. All club management delegated to the web platform.
+- **Multi-College UI (Hidden):** Hid the college switcher chips behind the feature flag.
+- **Cross-College Registration Blocks:** Removed empty-state fallbacks and cross-college warning strips.
+- **Multi-College Onboarding (Hidden):** Step 1 of onboarding now auto-assigns VIT Pune.
+- **Competitions Screen:** Deleted `CompetitionsScreen.tsx`; data integrated into the unified Events Hub.
+- **Observer Demo Button:** Removed; observer role auto-detected from the database.
+- **Mock Auth Fallbacks:** Removed all fake `return { success: true }` fallbacks.
+
+### 🔄 Refactored / Changed
+- **Profile Editing:** Locked the 'College / Institute Name' input field during VIT-only phase.
+- **Mock Data Normalization:** Updated event scopes to 'Intra-Collegiate'; removed external college references.
+- **TypeScript Stability:** Resolved all lingering strict-mode compilation errors.
+- **Login UI Cleanup:** Redesigned the login screen with styled inputs and links.
+
+### 🚧 Next Steps
+- **Google OAuth Setup:** Enable Google as an Auth Provider in Supabase and configure the Google Cloud Console OAuth consent screen + Client ID.
+- **Testing & QA:** End-to-end device testing for Sign Up → Email Verification → Sign In and Google OAuth flows.
+- **Web Dashboard:** Convert the HTML dashboards into a production React/Vite application connected to Supabase.
+
+---
+
+## Implementation Status Summary
+
+| Area | Status |
+|---|---|
+| **Mobile App (Expo)** | ✅ Core UI complete (Home, Events, Clubs, Tasks, Profile, Dashboard, Onboarding) |
+| **Authentication** | ✅ Email/Password + Google OAuth via Supabase |
+| **Database** | ✅ Schema deployed on Supabase (PostgreSQL) |
+| **Web Dashboard** | 🔧 In active development (React + Vite) |
+| **QR Ticketing** | ✅ QR generation & scanning implemented |
+| **Push Notifications** | ✅ Expo push notifications setup |
+| **Multi-College (V3)** | ⏸️ Hidden behind feature flags |
+| **Deployment** | 📋 See `docs/DEPLOYMENT.md` |
+

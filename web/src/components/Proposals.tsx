@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { FilePlus, Calendar, MapPin, Loader2, X } from 'lucide-react';
 
 export default function Proposals() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [proposals, setProposals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -26,23 +26,23 @@ export default function Proposals() {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, profile?.user_id]);
 
   const fetchData = async () => {
-    if (!user) return;
+    const targetUserId = profile?.user_id;
+    if (!targetUserId && !user) return;
     setLoading(true);
     
-    // 1. Fetch user's clubs (Assuming president role or core team)
-    // Actually, for the web dashboard MVP, let's fetch clubs where the user is an active member
+    // Fetch user's clubs where user is an active member using internal profile user_id
     const { data: membershipData } = await supabase
       .from('memberships')
-      .select('club_id, clubs(club_name, college_id)')
-      .eq('user_id', user.id)
-      .eq('is_active', true);
+      .select('club_id, clubs(name, college_id)')
+      .eq('user_id', targetUserId || user?.id)
+      .eq('status', 'ACTIVE');
 
     const clubs = membershipData?.map((m: any) => ({
       id: m.club_id,
-      name: m.clubs?.club_name,
+      name: m.clubs?.name,
       college_id: m.clubs?.college_id
     })) || [];
     setUserClubs(clubs);

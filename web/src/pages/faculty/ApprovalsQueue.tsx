@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import styles from './FacultyDashboard.module.css';
 import layoutStyles from '../../layouts/FacultyLayout.module.css';
-import { IconCheck, IconX, IconEye, IconFileText, IconAlertTriangle, IconChecklist } from '@tabler/icons-react';
+import { IconCheck, IconX, IconEye, IconFileText, IconAlertTriangle } from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
 
 const ApprovalsQueue: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, supervisedClubs } = useAuth();
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
   const [pendingList, setPendingList] = useState<any[]>([]);
@@ -26,6 +26,45 @@ const ApprovalsQueue: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const isPlatformAdmin = ['owner', 'super_admin', 'platform_admin', 'admin'].includes((profile?.user_type || '').toLowerCase());
+
+  const filterByPurview = useCallback((items: any[]) => {
+    if (isPlatformAdmin) return items;
+    return items.filter(item => {
+      const clubId = item?.events?.club_id;
+      return clubId && supervisedClubs.includes(clubId);
+    });
+  }, [isPlatformAdmin, supervisedClubs]);
+
+  const fetchPending = useCallback(async () => {
+    const { data } = await supabase
+      .from('event_approvals')
+      .select('*, events(*)')
+      .eq('decision', 'PENDING')
+      .eq('approver_level', 'FACULTY_MENTOR');
+    if (data) setPendingList(filterByPurview(data));
+  }, [filterByPurview]);
+
+  const fetchApproved = useCallback(async () => {
+    const { data } = await supabase
+      .from('event_approvals')
+      .select('*, events(*)')
+      .eq('decision', 'APPROVED')
+      .eq('approver_level', 'FACULTY_MENTOR')
+      .order('decision_timestamp', { ascending: false });
+    if (data) setApprovedList(filterByPurview(data));
+  }, [filterByPurview]);
+
+  const fetchRejected = useCallback(async () => {
+    const { data } = await supabase
+      .from('event_approvals')
+      .select('*, events(*)')
+      .in('decision', ['REJECTED', 'CHANGES_REQUESTED'])
+      .eq('approver_level', 'FACULTY_MENTOR')
+      .order('decision_timestamp', { ascending: false });
+    if (data) setRejectedList(filterByPurview(data));
+  }, [filterByPurview]);
+
   useEffect(() => {
     if (activeTab === 'pending') fetchPending();
     if (activeTab === 'approved') fetchApproved();
@@ -34,36 +73,7 @@ const ApprovalsQueue: React.FC = () => {
     setActionMode('none');
     setError('');
     setSuccess('');
-  }, [activeTab]);
-
-  const fetchPending = async () => {
-    const { data } = await supabase
-      .from('event_approvals')
-      .select('*, events(*)')
-      .eq('decision', 'PENDING')
-      .eq('approver_level', 'FACULTY_MENTOR');
-    if (data) setPendingList(data);
-  };
-
-  const fetchApproved = async () => {
-    const { data } = await supabase
-      .from('event_approvals')
-      .select('*, events(*)')
-      .eq('decision', 'APPROVED')
-      .eq('approver_level', 'FACULTY_MENTOR')
-      .order('decision_timestamp', { ascending: false });
-    if (data) setApprovedList(data);
-  };
-
-  const fetchRejected = async () => {
-    const { data } = await supabase
-      .from('event_approvals')
-      .select('*, events(*)')
-      .in('decision', ['REJECTED', 'CHANGES_REQUESTED'])
-      .eq('approver_level', 'FACULTY_MENTOR')
-      .order('decision_timestamp', { ascending: false });
-    if (data) setRejectedList(data);
-  };
+  }, [activeTab, fetchPending, fetchApproved, fetchRejected]);
 
   const fetchFullDetails = async (eventData: any) => {
     // budgets
@@ -96,14 +106,20 @@ const ApprovalsQueue: React.FC = () => {
   };
 
   const handleApprove = async () => {
+    const eventClubId = selectedEvent?.events?.club_id;
+    if (!isPlatformAdmin && (!eventClubId || !supervisedClubs.includes(eventClubId))) {
+      setError('Unauthorized: You are not authorized to review events outside your supervised club purview.');
+      return;
+    }
+
     try {
-      const { error } = await supabase.rpc('process_event_approval', {
+      const { error: rpcError } = await supabase.rpc('process_event_approval', {
         p_event_id: selectedEvent.events.event_id,
         p_level: 'FACULTY_MENTOR',
         p_decision: 'APPROVED',
         p_remarks: remarks || 'Approved by Faculty Mentor'
       });
-      if (error) throw error;
+      if (rpcError) throw rpcError;
       
       setSuccess('Event successfully approved.');
       setSelectedEvent(null);
@@ -124,14 +140,20 @@ const ApprovalsQueue: React.FC = () => {
       return;
     }
 
+    const eventClubId = selectedEvent?.events?.club_id;
+    if (!isPlatformAdmin && (!eventClubId || !supervisedClubs.includes(eventClubId))) {
+      setError('Unauthorized: You are not authorized to review events outside your supervised club purview.');
+      return;
+    }
+
     try {
-      const { error } = await supabase.rpc('process_event_approval', {
+      const { error: rpcError } = await supabase.rpc('process_event_approval', {
         p_event_id: selectedEvent.events.event_id,
         p_level: 'FACULTY_MENTOR',
         p_decision: 'REJECTED',
         p_remarks: remarks
       });
-      if (error) throw error;
+      if (rpcError) throw rpcError;
 
       setSuccess('Event successfully rejected.');
       setSelectedEvent(null);
@@ -154,14 +176,20 @@ const ApprovalsQueue: React.FC = () => {
       return;
     }
 
+    const eventClubId = selectedEvent?.events?.club_id;
+    if (!isPlatformAdmin && (!eventClubId || !supervisedClubs.includes(eventClubId))) {
+      setError('Unauthorized: You are not authorized to review events outside your supervised club purview.');
+      return;
+    }
+
     try {
-      const { error } = await supabase.rpc('process_event_approval', {
+      const { error: rpcError } = await supabase.rpc('process_event_approval', {
         p_event_id: selectedEvent.events.event_id,
         p_level: 'FACULTY_MENTOR',
         p_decision: 'CHANGES_REQUESTED',
         p_remarks: remarks
       });
-      if (error) throw error;
+      if (rpcError) throw rpcError;
 
       setSuccess('Changes successfully requested.');
       setSelectedEvent(null);

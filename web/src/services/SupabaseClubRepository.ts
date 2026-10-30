@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { IClubRepository, Club, ClubEvent } from './ClubService';
+import type { IClubRepository, Club, ClubEvent } from './ClubService';
 
 export class SupabaseClubRepository implements IClubRepository {
   async getClubDetails(clubId: string): Promise<Club | null> {

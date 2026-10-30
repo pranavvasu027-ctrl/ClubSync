@@ -1,0 +1,3 @@
+[submodule "ClubConnectApp"]
+	path = ClubConnectApp
+	url = https://github.com/Manan-YMCA/ClubConnectApp.git

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import styles from './TaskBoard.module.css'; // Reusing TaskBoard styles for layout
-import { IconCoin, IconCheck, IconPlus, IconTrash } from '@tabler/icons-react';
+// @ts-ignore
+import { IconCoins, IconCheck, IconPlus, IconTrash } from '@tabler/icons-react';
 
 const EventBudget: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);

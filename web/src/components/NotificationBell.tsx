@@ -4,32 +4,37 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 interface Notification {
-  id: string;
+  id?: string;
+  notification_id?: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning';
+  type: string;
   is_read: boolean;
   created_at: string;
 }
 
 const NotificationBell: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [dbUserId, setDbUserId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!user) return;
-    // Get the DB user id
-    supabase.from('users').select('id').eq('auth_user_id', user.id).single()
-      .then(({ data }) => {
-        if (data) {
-          setDbUserId(data.id);
-          fetchNotifications(data.id);
-        }
-      });
-  }, [user]);
+    if (profile?.user_id) {
+      setDbUserId(profile.user_id);
+      fetchNotifications(profile.user_id);
+    } else if (user) {
+      // Query users table by auth_user_id to retrieve internal user_id
+      supabase.from('users').select('user_id').eq('auth_user_id', user.id).single()
+        .then(({ data }) => {
+          if (data?.user_id) {
+            setDbUserId(data.user_id);
+            fetchNotifications(data.user_id);
+          }
+        });
+    }
+  }, [user, profile?.user_id]);
 
   // Close on outside click
   useEffect(() => {
@@ -50,9 +55,12 @@ const NotificationBell: React.FC = () => {
     if (data) setNotifications(data);
   };
 
-  const markRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+  const markRead = async (notif: Notification) => {
+    const targetId = notif.notification_id || notif.id;
+    if (!targetId) return;
+    const colName = notif.notification_id ? 'notification_id' : 'id';
+    await supabase.from('notifications').update({ is_read: true }).eq(colName, targetId);
+    setNotifications(prev => prev.map(n => (n.notification_id === targetId || n.id === targetId) ? { ...n, is_read: true } : n));
   };
 
   const markAllRead = async () => {
@@ -64,13 +72,13 @@ const NotificationBell: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const typeIcon = (type: string) => {
-    if (type === 'success') return <IconCircleCheck size={14} />;
+    if (type === 'success' || type === 'trophy') return <IconCircleCheck size={14} />;
     if (type === 'warning') return <IconAlertTriangle size={14} />;
     return <IconInfoCircle size={14} />;
   };
 
   const typeColor = (type: string) => {
-    if (type === 'success') return '#4ADE80';
+    if (type === 'success' || type === 'trophy') return '#4ADE80';
     if (type === 'warning') return '#FBBF24';
     return '#60A5FA';
   };
@@ -168,10 +176,10 @@ const NotificationBell: React.FC = () => {
                 <div>No notifications yet</div>
               </div>
             ) : (
-              notifications.map(n => (
+              notifications.map((n, idx) => (
                 <div
-                  key={n.id}
-                  onClick={() => markRead(n.id)}
+                  key={n.notification_id || n.id || idx}
+                  onClick={() => markRead(n)}
                   style={{
                     padding: '12px 16px',
                     borderBottom: '1px solid rgba(255,255,255,0.05)',

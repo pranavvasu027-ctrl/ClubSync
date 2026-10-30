@@ -1,4 +1,4 @@
-import { IClubRepository, Club, ClubEvent } from './ClubService';
+import type { IClubRepository, Club, ClubEvent } from './ClubService';
 
 export class MockClubRepository implements IClubRepository {
   private mockClubs: Club[] = [

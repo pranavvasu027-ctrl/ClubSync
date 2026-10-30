@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Shield } from 'lucide-react';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
@@ -10,7 +9,6 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('student');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +41,12 @@ export default function Login() {
       }
 
       if (data.user) {
-        // Insert custom user profile
+        // Insert custom user profile with default STUDENT role
         const { error: profileError } = await supabase.from('users').insert({
           auth_user_id: data.user.id,
           name: name,
           email: email,
-          user_type: role,
+          user_type: 'STUDENT',
           college_id: 'VIT_PUNE'
         });
 
@@ -95,31 +93,17 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} style={styles.form}>
           {!isLogin && (
-            <>
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Full Name</label>
-                <input 
-                  type="text" 
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  style={styles.input}
-                  placeholder="Rahul Sharma"
-                  required={!isLogin}
-                />
-              </div>
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Select Role</label>
-                <select 
-                  value={role} 
-                  onChange={e => setRole(e.target.value)} 
-                  style={styles.select}
-                >
-                  <option value="student">Student (Apply to clubs)</option>
-                  <option value="recruiter">Recruiter (Review applications)</option>
-                  <option value="admin">Admin (Manage recruitment cycles)</option>
-                </select>
-              </div>
-            </>
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Full Name</label>
+              <input 
+                type="text" 
+                value={name}
+                onChange={e => setName(e.target.value)}
+                style={styles.input}
+                placeholder="Rahul Sharma"
+                required={!isLogin}
+              />
+            </div>
           )}
 
           <div style={styles.inputGroup}>

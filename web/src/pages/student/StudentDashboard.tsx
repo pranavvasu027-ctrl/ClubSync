@@ -1,35 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { IconChecklist, IconCalendarEvent, IconSearch, IconVideo } from '@tabler/icons-react';
 import styles from './StudentDashboard.module.css';
-import StatusBadge from '../../components/StatusBadge';
 
 const StudentDashboard = () => {
   const { user, profile } = useAuth();
-  const [dbUserId, setDbUserId] = useState<string | null>(null);
   const [openCycles, setOpenCycles] = useState<any[]>([]);
   const [myApps, setMyApps] = useState<any[]>([]);
-  const [upcomingInterview, setUpcomingInterview] = useState<any | null>(null);
+  const [upcomingInterview] = useState<any | null>(null);
   const navigate = useNavigate();
 
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     // Open cycles
     const { data: cyclesData } = await supabase.from('recruitment_cycles').select('*').eq('status', 'open').limit(3);
     if (cyclesData) setOpenCycles(cyclesData);
 
-    if (user) {
-      // My applications
+    const targetUserId = profile?.user_id || user?.id;
+    if (targetUserId) {
+      // My applications: query applications table with applicant_id and internal user_id
       const { data: appsData } = await supabase.from('applications')
-        .select('*, recruitment_cycles(title, club_name), recruitment_roles(role_name)')
-        .eq('student_id', user.id)
+        .select('*')
+        .eq('applicant_id', targetUserId)
         .order('applied_at', { ascending: false })
         .limit(3);
       if (appsData) setMyApps(appsData);
@@ -42,14 +37,18 @@ const StudentDashboard = () => {
       .order('created_at', { ascending: false })
       .limit(3);
     if (eventsData) setUpcomingEvents(eventsData);
-  };
+  }, [profile?.user_id, user?.id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return (
     <>
       <div className={styles.hero}>
         <div>
           <div className={styles.heroEyebrow}>Student Portal</div>
-          <h1>Welcome back, {profile?.name?.split(' ')[0]}!</h1>
+          <h1>Welcome back, {profile?.name?.split(' ')[0] || 'Student'}!</h1>
           <p>Find the best clubs, apply for roles, and track your interviews.</p>
         </div>
       </div>
@@ -58,7 +57,7 @@ const StudentDashboard = () => {
         <div className={styles.interviewCard}>
           <div className={styles.intIcon}><IconCalendarEvent size={24} /></div>
           <div className={styles.intContent}>
-            <h3>Upcoming Interview: {upcomingInterview.applications.recruitment_cycles.club_name}</h3>
+            <h3>Upcoming Interview: {upcomingInterview.applications?.recruitment_cycles?.club_name || 'Club'}</h3>
             <p>
               Date: <strong>{new Date(upcomingInterview.interview_date).toLocaleDateString()}</strong> at <strong>{upcomingInterview.interview_time}</strong>
             </p>
@@ -93,7 +92,7 @@ const StudentDashboard = () => {
               <div className={styles.emptyState}>No open recruitment cycles right now.</div>
             ) : (
               openCycles.map(cycle => (
-                <div key={cycle.id} className={styles.cycleCard}>
+                <div key={cycle.id || cycle.cycle_id} className={styles.cycleCard}>
                   <div className={styles.cycleHeader}>
                     <h4>{cycle.title}</h4>
                     <span className={styles.clubName}>{cycle.club_name}</span>
@@ -101,7 +100,7 @@ const StudentDashboard = () => {
                   <div className={styles.cycleMeta}>
                     Deadline: {new Date(cycle.application_deadline).toLocaleDateString()}
                   </div>
-                  <button className={styles.applyBtn} onClick={() => navigate(`/student/apply/${cycle.id}`)}>Apply Now</button>
+                  <button className={styles.applyBtn} onClick={() => navigate(`/student/apply/${cycle.id || cycle.cycle_id}`)}>Apply Now</button>
                 </div>
               ))
             )}
@@ -111,7 +110,7 @@ const StudentDashboard = () => {
         <div className={styles.col}>
           <div className={styles.sectionHeader}>
             <h2>Upcoming Events</h2>
-            <button className={styles.textBtn}>View All</button>
+            <button className={styles.textBtn} onClick={() => navigate('/student')}>View All</button>
           </div>
           <div className={styles.appList}>
             {upcomingEvents.length === 0 ? (

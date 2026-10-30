@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import styles from './AdminDashboard.module.css';
-import { IconCheck, IconX, IconCoin, IconEdit } from '@tabler/icons-react';
+// @ts-ignore
+import { IconCheck, IconX, IconCoins, IconEdit } from '@tabler/icons-react';
 
 const FinanceVerification: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Users, Search, Loader2, CheckCircle, XCircle, FileText, ChevronRight, MessageSquare } from 'lucide-react';
+import { Users, Search, Loader2, CheckCircle, FileText } from 'lucide-react';
 
 export default function Recruitments() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
@@ -13,18 +13,27 @@ export default function Recruitments() {
 
   useEffect(() => {
     fetchApplications();
-  }, [user]);
+  }, [user, profile?.user_id]);
 
   const fetchApplications = async () => {
     setLoading(true);
     // In production, filter by user's club using an inner join on memberships.
     const { data, error } = await supabase
       .from('applications')
-      .select('*, clubs(club_name)')
-      .order('submitted_at', { ascending: false });
+      .select('*, clubs(name)')
+      .order('applied_at', { ascending: false });
 
     if (error) {
-      console.error("Error fetching applications:", error);
+      // Fallback query if columns vary
+      const fallback = await supabase
+        .from('applications')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!fallback.error && fallback.data) {
+        setApplications(fallback.data);
+      } else {
+        console.error("Error fetching applications:", error);
+      }
     } else {
       setApplications(data || []);
     }
@@ -32,8 +41,10 @@ export default function Recruitments() {
   };
 
   const handleUpdateStatus = async (newStatus: string) => {
-    if (!selectedApp || !user) return;
+    if (!selectedApp || (!user && !profile)) return;
     setProcessing(true);
+
+    const targetInterviewerId = profile?.user_id || user?.id;
 
     // 1. Update application status
     const { error: updateError } = await supabase
@@ -48,12 +59,12 @@ export default function Recruitments() {
     }
 
     // 2. Insert interview evaluation audit if remarks were added
-    if (remarks && remarks !== selectedApp.remarks) {
+    if (remarks && remarks !== selectedApp.remarks && targetInterviewerId) {
       await supabase
         .from('interview_evaluations')
         .insert([{
           application_id: selectedApp.application_id,
-          interviewer_id: user.id,
+          interviewer_id: targetInterviewerId,
           remarks: remarks
         }]);
     }
@@ -61,22 +72,23 @@ export default function Recruitments() {
     // 3. Send Realtime Notification to the Mobile App User
     let notifTitle = '';
     let notifMessage = '';
+    const clubDisplayName = selectedApp.clubs?.name || selectedApp.clubs?.club_name || 'Club';
     
     if (newStatus === 'SHORTLISTED') {
       notifTitle = 'Application Shortlisted! 🎉';
-      notifMessage = `Your application for ${selectedApp.applied_role} at ${selectedApp.clubs?.club_name} has been shortlisted. Check your email for next steps.`;
+      notifMessage = `Your application for ${selectedApp.applied_role} at ${clubDisplayName} has been shortlisted. Check your email for next steps.`;
     } else if (newStatus === 'INTERVIEW_SCHEDULED') {
       notifTitle = 'Interview Scheduled 📅';
-      notifMessage = `An interview has been scheduled for your ${selectedApp.applied_role} application at ${selectedApp.clubs?.club_name}.`;
+      notifMessage = `An interview has been scheduled for your ${selectedApp.applied_role} application at ${clubDisplayName}.`;
     } else if (newStatus === 'OFFERED') {
       notifTitle = 'Offer Received! 🏆';
-      notifMessage = `Congratulations! You've been offered the role of ${selectedApp.applied_role} at ${selectedApp.clubs?.club_name}.`;
+      notifMessage = `Congratulations! You've been offered the role of ${selectedApp.applied_role} at ${clubDisplayName}.`;
     } else if (newStatus === 'REJECTED') {
       notifTitle = 'Application Update';
-      notifMessage = `Your application for ${selectedApp.applied_role} at ${selectedApp.clubs?.club_name} was not selected at this time.`;
+      notifMessage = `Your application for ${selectedApp.applied_role} at ${clubDisplayName} was not selected at this time.`;
     }
 
-    if (notifTitle) {
+    if (notifTitle && selectedApp.applicant_id) {
       await supabase
         .from('notifications')
         .insert([{
@@ -151,7 +163,7 @@ export default function Recruitments() {
                   <strong style={{ fontSize: 14 }}>{app.applicant_name}</strong>
                   <span className={`badge ${getStatusBadgeClass(app.status)}`} style={{ fontSize: 10 }}>{app.status}</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{app.applied_role} • {app.clubs?.club_name}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{app.applied_role} • {app.clubs?.name || app.clubs?.club_name || 'Club'}</div>
                 <div style={{ fontSize: 11, color: '#94a3b8' }}>PRN: {app.applicant_prn} | CGPA: {app.applicant_cgpa}</div>
               </div>
             ))
@@ -179,7 +191,7 @@ export default function Recruitments() {
               <div style={{ display: 'flex', gap: 20, padding: 12, background: 'var(--bg)', borderRadius: 8 }}>
                 <div><span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Role</span> <strong style={{ fontSize: 13 }}>{selectedApp.applied_role}</strong></div>
                 <div><span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>CGPA</span> <strong style={{ fontSize: 13 }}>{selectedApp.applicant_cgpa}</strong></div>
-                <div><span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Applied</span> <strong style={{ fontSize: 13 }}>{new Date(selectedApp.submitted_at).toLocaleDateString()}</strong></div>
+                <div><span style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block' }}>Applied</span> <strong style={{ fontSize: 13 }}>{new Date(selectedApp.applied_at || selectedApp.submitted_at || selectedApp.created_at).toLocaleDateString()}</strong></div>
               </div>
             </div>
 

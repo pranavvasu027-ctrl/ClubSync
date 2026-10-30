@@ -1,0 +1,794 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>ClubSync</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: persistent left sidebar + sticky top bar + content with optional right rail; sidebar becomes a drawer under 900px, rails stack, grids collapse to one column. */
+:root{
+  --bg:#f3f7fd; --surface:#ffffff; --ink:#0a1431; --muted:#5d6a86; --line:#e3e9f4;
+  --blue:#0b63f6; --blue-soft:#e8f0fe; --navy:#0a1f4d; --soft:#f6f9fe;
+  --green:#12a37a; --green-soft:#dcf5ec; --amber:#f59e0b; --amber-soft:#fff2d9; --red:#e5484d; --red-soft:#ffe9ea; --purple:#7c3aed;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --shadow:0 1px 2px rgba(10,20,49,.04),0 4px 14px rgba(10,20,49,.05);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:auto}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:60}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit;color:var(--ink)}
+h1,h2,h3,h4,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:8px}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.sm{width:14px;height:14px}.ic.lg{width:24px;height:24px}
+.row{display:flex;align-items:center;gap:8px}
+.muted{color:var(--muted)}
+.tiny{font-size:12px}
+
+/* shell */
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;height:100vh;background:var(--surface);border-right:1px solid var(--line);padding:18px 12px;display:flex;flex-direction:column;gap:6px;z-index:40}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;padding:2px 8px 18px;letter-spacing:-.01em}
+.logo svg{width:28px;height:28px}
+.nav{display:flex;flex-direction:column;gap:3px}
+.nav a{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#2a3553;font-weight:500}
+.nav a:hover{background:var(--soft)}
+.nav a.on{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.side .bottom{margin-top:auto}
+.scrim{display:none}
+.main{min-width:0}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);display:flex;align-items:center;gap:14px;padding:14px max(24px,env(safe-area-inset-right,0px)) 14px 24px}
+.hamb{display:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;align-items:center;justify-content:center}
+.search{flex:1;min-width:0;max-width:560px;display:flex;align-items:center;gap:9px;background:#e9f0fb;border-radius:10px;padding:0 12px;height:40px;color:var(--muted)}
+.search input{flex:1;min-width:0;border:0;background:transparent;outline:0;height:100%}
+.search input::placeholder{color:#7a86a3}
+.top .sp{flex:1}
+.bell{position:relative;background:none;border:0;padding:6px;border-radius:50%;display:flex}
+.bell i{position:absolute;top:4px;right:5px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--bg)}
+.me{display:flex;align-items:center;gap:8px;background:none;border:0;padding:2px;border-radius:999px;font-weight:600}
+.av{width:32px;height:32px;border-radius:50%;background:#cfe0ff;color:var(--blue);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.me small{display:block;font-weight:400;color:var(--muted);font-size:11px;line-height:1.1;text-align:left}
+.menu{position:relative}
+.drop{position:absolute;right:0;top:calc(100% + 8px);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:200px;padding:6px;z-index:50}
+.drop a{display:block;padding:9px 12px;border-radius:8px;font-weight:500}
+.drop a:hover{background:var(--soft)}
+.content{padding:6px max(24px,env(safe-area-inset-right,0px)) 40px 24px}
+.pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:6px 0 16px}
+.pagehead h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.pagehead p{color:var(--muted);margin-top:3px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.cols.wide{grid-template-columns:minmax(0,1fr) 320px}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+
+/* primitives */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px;min-width:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--blue);color:#fff;border:1px solid var(--blue);border-radius:9px;padding:9px 16px;font-weight:600;white-space:nowrap}
+.btn:hover{background:#0a56d8}
+.btn.sm{padding:7px 12px;font-size:12.5px}
+.btn.out{background:var(--surface);color:var(--blue);border-color:#bcd2fb}
+.btn.out:hover{background:var(--blue-soft)}
+.btn.soft{background:var(--blue-soft);color:var(--blue);border-color:transparent}
+.btn.ok{background:var(--green);border-color:var(--green)}
+.btn.danger{background:var(--surface);color:var(--red);border-color:#f3b8ba}
+.btn.block{display:flex;width:100%}
+.link{color:var(--blue);font-weight:600;font-size:12.5px;display:inline-flex;align-items:center;gap:4px;background:none;border:0;padding:0}
+.sec{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.sec h2{font-size:16px;font-weight:700}
+.chip{display:inline-flex;align-items:center;background:var(--blue-soft);color:var(--blue);padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600}
+.pill.g{background:var(--green-soft);color:#0a7d5c}.pill.a{background:var(--amber-soft);color:#b36b00}.pill.n{background:#edf0f6;color:#44506b}
+.dotc{width:6px;height:6px;border-radius:50%;background:currentColor}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 0;color:#41506f;font-weight:500;white-space:nowrap;display:flex;gap:6px;align-items:center}
+.tabs button.on{color:var(--blue);border-color:var(--blue);font-weight:600}
+.count{background:#e4ecfa;color:#41506f;border-radius:999px;font-size:11px;padding:1px 7px;font-weight:600}
+.tabs button.on .count{background:var(--blue);color:#fff}
+.sel{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:0 10px;height:38px;color:#33405d;min-width:0}
+.sel select{border:0;background:transparent;outline:0;appearance:none;-webkit-appearance:none;padding-right:4px;min-width:0;max-width:100%;cursor:pointer}
+.filters{display:flex;flex-wrap:wrap;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow);margin-bottom:14px}
+.filters .sel.grow{flex:1;min-width:180px}
+.filters .sel input{flex:1;border:0;outline:0;background:transparent;min-width:0}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+
+/* banners (stand-ins for photography) */
+.ban{position:relative;background-size:cover;background-position:center;overflow:hidden}
+.b-tech{background:radial-gradient(circle at 70% 25%,rgba(80,150,255,.55),transparent 38%),radial-gradient(circle at 20% 80%,rgba(0,40,120,.8),transparent 50%),linear-gradient(135deg,#071538,#0f3a8f 55%,#050c26)}
+.b-work{background:radial-gradient(circle at 30% 30%,rgba(255,200,140,.35),transparent 40%),linear-gradient(135deg,#1c222e,#3d4658 60%,#6b5a4b)}
+.b-hack{background:radial-gradient(circle at 60% 20%,rgba(190,120,255,.6),transparent 40%),radial-gradient(circle at 10% 90%,rgba(255,60,160,.35),transparent 45%),linear-gradient(135deg,#1b0a3d,#4b1fa8 60%,#140730)}
+.b-social{background:radial-gradient(circle at 50% 100%,rgba(30,90,30,.8),transparent 55%),linear-gradient(135deg,#3b2a1a,#5b7a2f 70%,#2d4a1e)}
+.b-lead{background:radial-gradient(circle at 75% 20%,rgba(255,160,80,.45),transparent 38%),linear-gradient(135deg,#2a1710,#5a3524 55%,#14131f)}
+.b-cult{background:radial-gradient(circle at 50% 30%,rgba(255,120,80,.6),transparent 40%),linear-gradient(135deg,#3b0d2a,#a3204f 60%,#e0653a)}
+.b-photo{background:radial-gradient(circle at 70% 40%,rgba(255,90,170,.65),transparent 38%),linear-gradient(135deg,#0d0830,#4a1d7a 60%,#d6336c)}
+.b-ent{background:radial-gradient(circle at 65% 30%,rgba(120,190,255,.4),transparent 40%),linear-gradient(135deg,#0b1226,#1d3c6b 65%,#2f6aa8)}
+.b-robot{background:radial-gradient(circle at 30% 60%,rgba(90,140,255,.5),transparent 40%),linear-gradient(135deg,#0a1630,#1f4fc0 60%,#0a1020)}
+.b-design{background:radial-gradient(circle at 25% 30%,#ffd24a,transparent 35%),radial-gradient(circle at 75% 60%,#ff5fa2,transparent 40%),linear-gradient(135deg,#f59e0b,#6366f1)}
+.b-music{background:radial-gradient(circle at 70% 30%,rgba(240,100,255,.5),transparent 40%),linear-gradient(135deg,#1e1b4b,#7a1f95 70%,#150b2e)}
+.b-drama{background:radial-gradient(circle at 40% 40%,rgba(255,140,80,.4),transparent 40%),linear-gradient(135deg,#4a0d0d,#7a1d1d 50%,#12141f)}
+.b-env{background:radial-gradient(circle at 50% 70%,rgba(190,230,120,.5),transparent 45%),linear-gradient(135deg,#0f3d1e,#2f7a2f 60%,#69a52a)}
+.b-fin{background:linear-gradient(135deg,#0b1224,#0e4f66 65%,#0a2a3a)}
+.b-fin::after,.b-code::after,.b-tech::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 22px)}
+.b-code{background:radial-gradient(circle at 55% 45%,rgba(60,140,255,.55),transparent 42%),linear-gradient(135deg,#050c1f,#0c2a5c 60%,#040913)}
+.tag{position:absolute;top:10px;left:10px;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;z-index:1}
+.bm{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.18);backdrop-filter:blur(4px);border:0;color:#fff;display:grid;place-items:center;z-index:1}
+.bm.on{background:#fff;color:var(--blue)}
+
+/* event cards */
+.ev .ban{height:96px;border-radius:12px 12px 0 0}
+.ev{padding:0;overflow:hidden;display:flex;flex-direction:column;cursor:pointer}
+.ev .bd{display:grid;grid-template-columns:42px minmax(0,1fr);gap:12px;padding:12px 14px 6px}
+.date{text-align:center;line-height:1.05}
+.date b{display:block;font-size:20px;font-weight:700}
+.date span{font-size:10.5px;font-weight:700;color:var(--red);display:block}
+.date em{font-style:normal;font-size:11px;color:var(--muted)}
+.ev h3{font-size:14px;font-weight:700;margin-bottom:5px}
+.meta{display:flex;align-items:center;gap:6px;font-size:12px;color:#44506b;margin-top:3px;min-width:0}
+.meta span{min-width:0;overflow-wrap:anywhere}
+.cdot{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--blue);color:#fff;flex:none}
+.cdot svg{width:10px;height:10px}
+.ev .ft{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 14px 14px;margin-top:auto;font-size:12px;color:var(--muted)}
+
+/* stats */
+.stat{display:flex;align-items:center;gap:12px;cursor:pointer;padding:14px}
+.stat .bub{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none}
+.stat small{display:block;font-size:12px;color:#44506b}
+.stat b{font-size:22px;font-weight:700}
+.stat .go{margin-left:auto;color:#8592ad}
+
+/* clubs */
+.club{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.club .ban{height:78px}
+.club .lg{position:absolute;left:14px;bottom:-18px;width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;border:2px solid #fff;z-index:2}
+.club .bd{padding:24px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.club .bd h3{font-size:14px;font-weight:700;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.club .bd p{font-size:12px;color:#44506b}
+.club .chips{margin:4px 0 8px}
+.club .btn{margin-top:auto}
+.mini{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow);cursor:pointer}
+.ico{width:42px;height:42px;border-radius:12px;background:var(--navy);color:#fff;display:grid;place-items:center;flex:none}
+
+.promo{border-radius:14px;padding:18px;min-height:150px;position:relative;overflow:hidden;background:linear-gradient(135deg,#dcebff,#eef5ff);border:1px solid var(--line)}
+.promo h3{font-size:16px;line-height:1.25;max-width:58%}
+.promo .ppl{position:absolute;right:10px;bottom:0;display:flex;align-items:flex-end;gap:2px}
+.promo .ppl i{display:block;border-radius:30px 30px 4px 4px}
+.dl{display:flex;flex-direction:column}
+.dl a{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.dl a:last-child{border:0}
+.dl .ico2{width:30px;height:30px;border-radius:8px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;flex:none}
+.dl b{font-weight:600;font-size:12.5px;display:block}
+
+/* detail pages */
+.hero{height:210px;border-radius:14px;display:flex;align-items:flex-end;padding:22px;color:#fff}
+.hero h1{font-size:clamp(24px,4vw,38px);font-weight:800;letter-spacing:-.02em;line-height:1.08;position:relative;z-index:2}
+.hero .by{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:500;position:relative;z-index:2}
+.hero .acts{position:absolute;top:12px;right:12px;display:flex;gap:8px;z-index:2}
+.info{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.info div{display:flex;gap:10px;align-items:center;min-width:0}
+.info .ib{width:34px;height:34px;border-radius:10px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;flex:none}
+.info b{display:block;font-weight:600;font-size:12.5px}.info small{color:var(--muted);font-size:11.5px}
+.faces{display:flex}.faces i{width:22px;height:22px;border-radius:50%;border:2px solid #fff;margin-left:-6px;background:linear-gradient(135deg,#7aa7ff,#3b5bdb)}
+.faces i:first-child{margin-left:0}.faces i:nth-child(2){background:linear-gradient(135deg,#ffb88a,#e8590c)}.faces i:nth-child(3){background:linear-gradient(135deg,#8ce99a,#2b8a3e)}
+.sect h2{font-size:15px;font-weight:700;margin-bottom:8px}
+.sect p{color:#33405d;max-width:75ch}
+.sect{padding:14px 0 2px;scroll-margin-top:110px}
+.ticks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.ticks li{display:flex;gap:9px;align-items:flex-start;color:#33405d}
+.ticks .ck{width:16px;height:16px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;margin-top:2px;flex:none}
+.ticks .ck svg{width:10px;height:10px;stroke-width:3}
+.reqs{display:flex;gap:20px;flex-wrap:wrap;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:12px}
+.reqs span{display:flex;gap:8px;align-items:center;font-size:12.5px;color:#33405d}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:0 0 14px 18px;position:relative;font-size:12.5px}
+.tl li::before{content:"";position:absolute;left:0;top:5px;width:9px;height:9px;border-radius:50%;background:var(--blue)}
+.tl li::after{content:"";position:absolute;left:4px;top:15px;bottom:-4px;width:1px;background:#bcd2fb}
+.tl li:last-child::after{display:none}
+.tl b{font-weight:600;display:block}
+.person{display:flex;gap:14px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
+.pic{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ffd7b0,#c97a3f);display:grid;place-items:center;color:#fff;font-weight:700;flex:none}
+.soc{display:flex;gap:8px;margin-left:auto}
+.soc i{font-style:normal;width:26px;height:26px;border-radius:7px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-size:10px;font-weight:700}
+.tile{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.tile small{display:block;color:var(--muted);font-size:11.5px}
+.tile .ib{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:8px 12px;font-size:12.5px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.related{display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer}
+.related .ban{width:46px;height:46px;border-radius:9px;flex:none}
+.related b{display:block;font-size:12.5px}
+
+/* club detail */
+.chead{display:flex;gap:16px;align-items:flex-end;margin-top:-44px;padding:0 18px;position:relative;z-index:2;flex-wrap:wrap}
+.chead .big{width:84px;height:84px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;border:4px solid #fff;flex:none;box-shadow:var(--shadow)}
+.chead .big svg{width:38px;height:38px}
+.cinfo{margin-left:auto;display:grid;grid-template-columns:repeat(2,auto);gap:10px 26px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font-size:12px;align-self:flex-end}
+.cinfo div{display:flex;gap:9px;align-items:center}.cinfo small{display:block;color:var(--muted)}
+.person.sm{padding:6px 0;border:0;background:none;gap:10px}
+.person.sm .pic{width:38px;height:38px;font-size:12px}
+.socials{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center;font-size:10.5px;color:var(--muted)}
+.socials span{display:flex;flex-direction:column;align-items:center;gap:4px}
+.socials i{font-style:normal;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--blue);background:var(--blue-soft);font-weight:700;font-size:11px}
+
+/* notifications */
+.nlist{padding:0;overflow:hidden}
+.ngroup{padding:12px 16px 6px;font-weight:700;font-size:13px}
+.nitem{display:flex;gap:12px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+.nitem .dot{width:7px;height:7px;border-radius:50%;background:var(--blue);flex:none}
+.nitem .dot.off{background:transparent}
+.nitem .ico{width:36px;height:36px;border-radius:50%}
+.nitem .ico.lt{background:var(--blue-soft);color:var(--blue)}
+.nitem .tx{flex:1;min-width:0}.nitem b{font-weight:600}
+.nitem .th{width:76px;height:42px;border-radius:7px;flex:none}
+.kebab{background:none;border:0;color:var(--muted);padding:4px;display:flex}
+.fl{display:flex;flex-direction:column}
+.fl label{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;color:#33405d}
+.fl label.on{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.fl label span{flex:1}
+.fl input{accent-color:var(--blue);width:15px;height:15px}
+
+/* profile + settings */
+.pcard{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.photo{width:104px;height:104px;border-radius:50%;background:linear-gradient(135deg,#ffcf9f,#b8692a 55%,#5b3418);display:grid;place-items:center;color:#fff;font-weight:700;font-size:30px;position:relative;flex:none}
+.photo button{position:absolute;right:0;bottom:2px;width:28px;height:28px;border-radius:50%;border:2px solid #fff;background:#fff;display:grid;place-items:center;color:var(--ink)}
+.set{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start}
+.sm-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;padding:11px 12px;border-radius:10px}
+.sm-item small{display:block;color:var(--muted);font-size:11.5px}
+.sm-item.on{background:var(--blue-soft);color:var(--blue)}
+.sm-item .go{margin-left:auto}
+.field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600}
+.inp{display:flex;align-items:center;gap:9px;border:1px solid #d5deee;border-radius:9px;padding:0 12px;height:42px;background:var(--surface);color:var(--muted)}
+.inp:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,99,246,.12)}
+.inp input{flex:1;min-width:0;border:0;outline:0;background:transparent;height:100%;font-weight:400}
+.inp button{background:none;border:0;color:var(--muted);display:flex;padding:0}
+.pwgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rules{list-style:none;padding:0;margin:10px 0;display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}
+.rules li{display:flex;align-items:center;gap:8px}
+.rules i{width:12px;height:12px;border-radius:50%;border:1.5px solid #b6c2da;display:grid;place-items:center}
+.rules li.ok{color:#0a7d5c}.rules li.ok i{background:var(--green);border-color:var(--green)}
+.prefrow{display:grid;grid-template-columns:28px 1fr minmax(160px,300px);gap:12px;align-items:center;padding:10px 0}
+.prefrow small{display:block;color:var(--muted);font-size:11.5px}
+.prefrow .sel{width:100%}
+.hd{display:flex;gap:10px;align-items:center;font-weight:700;margin-bottom:10px}
+.hd small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.hd .hi{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--blue-soft);color:var(--blue)}
+
+/* recruitments */
+.rec{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px}
+.rec h3{font-size:14.5px;font-weight:700}
+.rec .acts{display:flex;flex-direction:column;gap:8px;align-items:center}
+.rec .meta{gap:12px;flex-wrap:wrap}
+.rec .meta .m{display:flex;gap:5px;align-items:center}
+.stk{display:flex;align-items:center;gap:8px}
+
+/* faculty */
+.frow{display:grid;grid-template-columns:48px minmax(0,1.5fr) auto minmax(0,1.2fr) auto auto;gap:16px;align-items:center;padding:14px}
+.frow .ib{width:46px;height:46px;border-radius:50%;display:grid;place-items:center}
+.frow h3{font-size:14px;font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.nums{display:flex;gap:20px}.nums div{text-align:center;font-size:11px;color:var(--muted)}.nums b{display:block;color:var(--ink);font-size:14px}
+.nxt{background:var(--soft);border-radius:9px;padding:8px 10px;font-size:11.5px;display:grid;gap:4px}
+.nxt p{display:flex;gap:8px;align-items:flex-start}.nxt p>span:first-child{color:var(--blue);font-weight:700;min-width:54px}
+.stat .bub.t{border-radius:50%}
+
+.pill.r{background:var(--red-soft);color:#b42318}
+.apr,.ear{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 14px}
+.ear{cursor:pointer}.ear.sel{border-color:var(--blue);box-shadow:0 0 0 2px rgba(11,99,246,.15)}
+.th{width:72px;height:56px;border-radius:10px}
+.mn{min-width:0}.mn h3{font-size:14px;font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
+.mn .meta span{overflow-wrap:anywhere}
+.stc{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.acts2{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:240px}
+.btn.danger:hover{background:var(--red-soft)}
+.mback{position:fixed;inset:0;background:rgba(10,20,49,.5);display:grid;place-items:center;padding:16px;z-index:90}
+.modal{background:var(--surface);border-radius:16px;padding:22px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(10,20,49,.3)}
+.modal h2{font-size:18px}
+textarea{font:inherit;color:var(--ink);border:1px solid #d5deee;border-radius:9px;padding:10px 12px;width:100%;resize:vertical;background:var(--surface)}
+textarea:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px rgba(11,99,246,.12)}
+.dtl{position:sticky;top:calc(84px + env(safe-area-inset-top,0px))}
+.att{display:flex;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-size:12.5px}
+.bars text{fill:var(--muted);font-size:10px}
+.tw{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{text-align:left;color:var(--muted);font-weight:600;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl tr:last-child td{border:0}
+@media (max-width:900px){.apr,.ear{grid-template-columns:72px minmax(0,1fr)}.apr .stc,.apr .acts2,.ear .stc,.ear .acts2{grid-column:1/-1;max-width:none;justify-content:flex-start}.dtl{position:static}}
+/* auth */
+.auth{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);background:linear-gradient(135deg,#e4efff,#f3f8ff 55%,#dcebff);position:relative;overflow:hidden}
+.auth .l{padding:28px max(24px,env(safe-area-inset-left,0px)) 28px max(40px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;position:relative;z-index:1}
+.auth .logo{padding:0 0 60px;font-size:20px}
+.auth .l h1{font-size:clamp(26px,3.4vw,38px);font-weight:700;letter-spacing:-.02em;line-height:1.12;max-width:11em;margin-bottom:14px;position:relative}
+.auth .l h1::before{content:"";display:block;width:26px;height:2px;background:var(--blue);margin-bottom:14px}
+.auth .l p.sub{color:#44506b;max-width:26em}
+.scene{margin-top:auto;height:300px;position:relative;margin-left:-40px;margin-bottom:-28px;min-width:0}
+.scene .bld{position:absolute;left:0;bottom:0;width:64%;height:78%;background:linear-gradient(180deg,#cfe0f5,#aac3e4);clip-path:polygon(0 100%,0 30%,45% 18%,100% 0,100% 100%)}
+.scene .win{position:absolute;left:0;bottom:0;width:64%;height:78%;background:repeating-linear-gradient(90deg,rgba(255,255,255,.55) 0 18px,transparent 18px 30px);-webkit-mask:linear-gradient(180deg,transparent 25%,#000 25% 78%,transparent 78%);mask:linear-gradient(180deg,transparent 25%,#000 25% 78%,transparent 78%);clip-path:polygon(0 100%,0 30%,45% 18%,100% 0,100% 100%)}
+.scene .gr{position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(180deg,#d8e8c8,#e9f1dd)}
+.scene .tree{position:absolute;bottom:50px;width:70px;height:110px;border-radius:50% 50% 45% 45%;background:radial-gradient(circle at 40% 35%,#7db561,#3d7a38)}
+.scene .st{position:absolute;bottom:20px;display:flex;gap:14px;left:12%}
+.scene .st i{display:block;width:26px;height:86px;border-radius:14px 14px 4px 4px}
+.auth .r{display:grid;place-items:center;padding:28px max(24px,env(safe-area-inset-right,0px)) 28px 16px;position:relative;z-index:1}
+.acard{background:var(--surface);border-radius:18px;box-shadow:0 10px 40px rgba(10,40,120,.12);border:1px solid var(--line);padding:30px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px}
+.acard h2{font-size:24px;font-weight:700;letter-spacing:-.01em}
+.gbtn{display:flex;gap:10px;align-items:center;justify-content:center;border:1px solid #d5deee;border-radius:9px;background:var(--surface);height:42px;font-weight:600}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px}.or::before,.or::after{content:"";height:1px;background:var(--line);flex:1}
+.chk{display:flex;gap:8px;align-items:center;font-size:12.5px}.chk input{accent-color:var(--blue);width:15px;height:15px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:10px;font-weight:600;z-index:80;box-shadow:var(--shadow)}
+
+.slogan{position:relative;z-index:2;font-size:22px;font-weight:700;line-height:1.2;color:#fff;margin-right:22px}
+.slogan i{display:block;width:38px;height:2px;background:#fff;margin-top:12px}
+.hero{justify-content:flex-end}
+.chead2{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;margin:0 0 18px;align-items:start}
+.chead2 .cl{padding:0 6px;min-width:0}
+.big2{width:96px;height:96px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;border:5px solid #fff;margin-top:-50px;position:relative;z-index:3;box-shadow:var(--shadow)}
+.big2 svg{width:42px;height:42px}
+.chead2 .trow{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-top:-4px}
+.chead2 h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.chead2 .cinfo{margin:10px 0 0;width:100%;grid-template-columns:1fr 1fr;align-self:start}
+.datebadge{position:absolute;left:10px;bottom:-14px;background:#fff;color:var(--ink);border-radius:8px;padding:3px 9px;text-align:center;font-weight:700;font-size:15px;line-height:1.05;z-index:2;box-shadow:var(--shadow)}
+.datebadge small{display:block;font-size:9.5px;color:var(--blue)}
+.ev .ban:has(.datebadge){overflow:visible}
+.goic{margin-left:auto;width:24px;height:24px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center}
+@media (max-width:1100px){
+  .chead2{grid-template-columns:minmax(0,1fr)}
+  .cols,.cols.wide{grid-template-columns:minmax(0,1fr)}
+  .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .frow{grid-template-columns:48px minmax(0,1fr) auto;}
+  .frow .nums{grid-column:2/-1}.frow .nxt{grid-column:2/-1}
+  .info{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;left:0;top:0;bottom:0;height:auto;width:260px;transform:translateX(-102%);transition:transform .2s;padding-top:calc(18px + env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px));box-shadow:var(--shadow)}
+  body.nav-open .side{transform:none}
+  body.nav-open .scrim{display:block;position:fixed;inset:0;background:rgba(10,20,49,.4);z-index:35}
+  .hamb{display:flex}
+  .grid3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .set{grid-template-columns:minmax(0,1fr)}
+  .auth{grid-template-columns:minmax(0,1fr)}
+  .auth .l{padding:24px 20px 0}.auth .logo{padding-bottom:22px}
+  .scene{height:170px;margin:18px -20px 0}
+  .auth .r{padding:16px 16px 28px;order:-0}
+  .cinfo{margin-left:0;width:100%}
+}
+@media (max-width:620px){
+  .top{padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));gap:8px}
+  .content{padding:4px max(16px,env(safe-area-inset-right,0px)) 32px max(16px,env(safe-area-inset-left,0px))}
+  .me .nm{display:none}
+  .top .sp{display:none}
+  .me{flex:none}
+  .grid3,.grid2{grid-template-columns:minmax(0,1fr)}
+  .pagehead h1{font-size:22px}
+  .pwgrid{grid-template-columns:1fr}
+  .prefrow{grid-template-columns:28px 1fr}.prefrow .sel{grid-column:1/-1}
+  .rec{grid-template-columns:48px minmax(0,1fr)}.rec .acts{grid-column:1/-1;flex-direction:row}
+  .rec .acts .btn{flex:1}
+  .kv{grid-template-columns:110px 1fr}
+  .tl li{grid-template-columns:1fr;gap:0}
+  .frow{grid-template-columns:44px minmax(0,1fr)}
+  .frow>*:nth-child(n+3){grid-column:1/-1}
+  .hero{height:190px;padding:16px}
+  .cinfo{grid-template-columns:1fr}
+  .acard{padding:22px}
+  .info{grid-template-columns:minmax(0,1fr)}
+  .grid4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat{padding:12px;gap:9px}.stat .go{display:none}
+  .nitem .th{display:none}
+  .socials{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .person{flex-wrap:wrap}.soc{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="app"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+/* ---------- icons ---------- */
+const P={alert:'M12 9v4M12 17h.01M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0',book:'M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4zM4 16a4 4 0 0 1 4-4h12',home:'M3 11l9-8 9 8M5 10v10h14V10',calendar:'M3 5h18v16H3zM3 10h18M8 3v4M16 3v4',users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8',briefcase:'M3 7h18v13H3zM8 7V4h8v3M3 13h18',trophy:'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H3v2a4 4 0 0 0 4 4M17 6h4v2a4 4 0 0 1-4 4',bell:'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4',gear:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',search:'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.3-4.3',clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M12 7v5l3 2',pin:'M12 22s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4',arrow:'M5 12h14M13 6l6 6-6 6',chev:'M9 6l6 6-6 6',chevd:'M6 9l6 6 6-6',back:'M19 12H5M11 6l-6 6 6 6',bookmark:'M6 3h12v18l-6-4-6 4z',check:'M5 13l4 4L19 7',code:'M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16',camera:'M3 8h4l2-3h6l2 3h4v12H3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8',chart:'M4 20V10M10 20V4M16 20v-8M22 20H2',palette:'M12 3a9 9 0 0 0 0 18c1.5 0 2-1 1.5-2s0-2 1.5-2h2a4 4 0 0 0 4-4 9 9 0 0 0-9-10',music:'M9 18V5l12-2v13M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3M21 16a3 3 0 1 1-3-3 3 3 0 0 1 3 3',leaf:'M5 19C5 9 11 4 20 4c0 9-5 15-15 15zM5 19l8-8',mail:'M3 5h18v14H3zM3 6l9 7 9-7',phone:'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2',lock:'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6',file:'M6 3h9l4 4v14H6zM14 3v5h5M9 13h6M9 17h6',user:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 21a8 8 0 0 1 16 0',userplus:'M10 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M3 21a7 7 0 0 1 14 0M19 8v6M16 11h6',pencil:'M4 20l1-4L16 5l3 3L8 19zM14 7l3 3',plus:'M12 5v14M5 12h14',share:'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6M8.6 13.5l6.8 4M15.4 6.5l-6.8 4',mega:'M3 11v3l14 5V6zM17 9a3 3 0 0 1 0 6M7 15l1 5h3l-1-4',bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10',download:'M12 4v12M6 11l6 6 6-6M4 20h16',trash:'M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14',globe:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',shield:'M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z',gift:'M4 10h16v10H4zM3 7h18v3H3zM12 7v13M12 7c-3-4-6-1-4 0M12 7c3-4 6-1 4 0',tag:'M3 12V3h9l9 9-9 9zM7.5 7.5h.01',menu:'M4 6h16M4 12h16M4 18h16',x:'M6 6l12 12M18 6L6 18',smile:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M8 14a5 5 0 0 0 8 0M9 9h.01M15 9h.01',trend:'M3 17l6-6 4 4 8-8M15 7h6v6',more:'M12 5h.01M12 12h.01M12 19h.01',robot:'M5 8h14v10H5zM12 8V4M9 13h.01M15 13h.01M3 12v3M21 12v3',list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',doc:'M6 3h9l4 4v14H6zM9 12h6M9 16h6',check2:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18M8 12l3 3 5-6',link:'M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1',ext:'M14 4h6v6M20 4l-9 9M18 14v6H4V6h6'};
+const ic=(n,c='')=>`<svg class="ic ${c}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]||''}"/></svg>`;
+const logoSvg=`<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="11" cy="12" r="7" fill="#0b63f6"/><circle cx="21" cy="11" r="5" fill="#4d9bff"/><circle cx="19" cy="21" r="6.5" fill="#0b63f6" opacity=".85"/><circle cx="9" cy="23" r="3.5" fill="#79b4ff"/></svg>`;
+
+/* ---------- data ---------- */
+const EV=[
+ {t:'Building Scalable Web Apps',cat:'Tech Talk',cls:'b-tech',col:'#0b63f6',mon:'MAR',d:25,dow:'Mon',club:'Computer Science Club',ic:'code',time:'4:00 PM – 6:00 PM',loc:'Main Auditorium',n:120},
+ {t:'UI/UX Design Workshop',cat:'Workshop',cls:'b-work',col:'#12a37a',mon:'MAR',d:28,dow:'Thu',club:'Design Club',ic:'palette',time:'2:00 PM – 5:00 PM',loc:'Innovation Lab',n:85},
+ {t:'ClubSync Hackathon 2025',cat:'Hackathon',cls:'b-hack',col:'#7c3aed',mon:'APR',d:'02',dow:'Tue',club:'Innovation Club',ic:'bulb',time:'9:00 AM – Apr 3, 6:00 PM',loc:'Engineering Block',n:200},
+ {t:'Campus Clean-Up Drive',cat:'Social Impact',cls:'b-social',col:'#f97316',mon:'APR',d:'05',dow:'Fri',club:'Environment Club',ic:'leaf',time:'10:00 AM – 1:00 PM',loc:'Campus Grounds',n:60},
+ {t:'Leadership in the 21st Century',cat:'Leadership',cls:'b-lead',col:'#e11d48',mon:'APR',d:10,dow:'Wed',club:'Business Club',ic:'chart',time:'3:00 PM – 5:00 PM',loc:'Seminar Hall A',n:95},
+ {t:'Spring Fest 2025',cat:'Cultural',cls:'b-cult',col:'#a21caf',mon:'APR',d:12,dow:'Fri',club:'Cultural Club',ic:'music',time:'6:00 PM – 10:00 PM',loc:'Open Air Theatre',n:300}];
+const PAST=[
+ {t:'Intro to Open Source',cat:'Workshop',cls:'b-code',col:'#12a37a',mon:'FEB',d:20,dow:'Tue',club:'Computer Science Club',ic:'code',time:'2:00 PM – 4:00 PM',loc:'Lab 2, CS Block',n:140},
+ {t:'Photo Walk: Old City',cat:'Social Impact',cls:'b-photo',col:'#f97316',mon:'FEB',d:11,dow:'Sun',club:'Photography Club',ic:'camera',time:'7:00 AM – 10:00 AM',loc:'Main Gate',n:48},
+ {t:'Pitch Night 3.0',cat:'Leadership',cls:'b-ent',col:'#e11d48',mon:'JAN',d:27,dow:'Sat',club:'Entrepreneurship Cell',ic:'chart',time:'5:00 PM – 8:00 PM',loc:'Seminar Hall A',n:110}];
+const CL=[
+ {n:'Computer Science Club',m:'2.4K',d:'A community of students passionate about technology, development, and innovation.',tg:['Tech','Workshops','Hackathons'],ic:'code',cls:'b-code',cat:'Technology',mem:1},
+ {n:'Photography Club',m:'1.2K',d:'Explore the art of photography, share your work, and learn from fellow creators.',tg:['Photography','Creative Arts','Events'],ic:'camera',cls:'b-photo',cat:'Arts',mem:1},
+ {n:'Entrepreneurship Cell',m:'3.1K',d:'Turn ideas into impact. Learn, build, and collaborate on real-world projects.',tg:['Business','Startups','Networking'],ic:'chart',cls:'b-ent',cat:'Business',mem:1},
+ {n:'Robotics Club',m:'1.8K',d:'Build, learn, and innovate with robotics and automation.',tg:['Robotics','AI/ML','Competitions'],ic:'robot',cls:'b-robot',cat:'Technology'},
+ {n:'Design Club',m:'1.5K',d:'For students who love design, UI/UX, creativity, and visual storytelling.',tg:['Design','UI/UX','Creative Arts'],ic:'palette',cls:'b-design',cat:'Arts'},
+ {n:'Music Club',m:'1.1K',d:'A space for music lovers, performers, and creators.',tg:['Music','Performance','Events'],ic:'music',cls:'b-music',cat:'Cultural'},
+ {n:'Drama Club',m:'980',d:'Act, create, and bring stories to life on stage.',tg:['Drama','Performing Arts','Theatre'],ic:'smile',cls:'b-drama',cat:'Cultural'},
+ {n:'Environmental Club',m:'1.3K',d:'Work towards a greener, cleaner, and more sustainable campus.',tg:['Sustainability','Awareness','Community'],ic:'leaf',cls:'b-env',cat:'Social Impact'},
+ {n:'Finance & Investment Club',m:'1.6K',d:'Learn, discuss, and explore the world of finance and investing.',tg:['Finance','Investing','Workshops'],ic:'trend',cls:'b-fin',cat:'Business'}];
+const REC=[
+ {t:'Technical Team Recruitment',c:'Computer Science Club',d:'Join our technical team and work on web development, AI/ML projects, and more!',tg:['Web Development','AI/ML','Open Source'],o:15,by:'25 Mar 2024',el:'Open to all students',ic:'code'},
+ {t:'Content & Design Team Recruitment',c:'Photography Club',d:'Help us create stunning content, manage our social media, and design creatives.',tg:['Graphic Design','Video Editing','Social Media'],o:8,by:'28 Mar 2024',el:'Open to all students',ic:'camera'},
+ {t:'Event Management Team Recruitment',c:'Entrepreneurship Cell',d:'Be a part of our event management team and help organize amazing events.',tg:['Event Planning','Marketing','Community Outreach'],o:12,by:'30 Mar 2024',el:'Open to all students',ic:'chart'},
+ {t:'Core Team Recruitment',c:'Robotics Club',d:'Join our core team and work on robotics projects, competitions, and research.',tg:['Mechanical Design','Embedded Systems','Project Management'],o:10,by:'5 Apr 2024',el:'Open to 2nd year and above',ic:'users'},
+ {t:'Creative Team Recruitment',c:'Cultural Club',d:'Unleash your creativity! Join our creative team for event design, branding, and more.',tg:['Graphic Design','Photography','Content Writing'],o:6,by:'7 Apr 2024',el:'Open to all students',ic:'palette'}];
+const NOTES=[
+ {g:'Today',t:'club',u:1,ic:'code',navy:1,h:'<b>Computer Science Club</b> posted a new event',s:'Building Scalable Web Apps',w:'2 hours ago',th:'b-tech'},
+ {g:'Today',t:'mention',u:1,pic:'IV',h:'<b>Ishita Verma</b> mentioned you in a comment',s:'"@Rohit Sharma would love to have you in the design team!"',w:'4 hours ago'},
+ {g:'Today',t:'recruit',u:1,ic:'palette',navy:1,h:'<b>Design Club</b> opened new recruitment',s:'UI/UX Designer',w:'6 hours ago',th:'b-design'},
+ {g:'Today',t:'system',u:0,ic:'trophy',h:'Your application to <b>Robotics Club</b> has been shortlisted',s:'Next steps will be shared soon. Keep an eye on your email.',w:'8 hours ago'},
+ {g:'Yesterday',t:'club',u:0,ic:'users',h:'<b>Entrepreneurship Cell</b> posted a new article',s:'From Ideas to Impact: Lessons from Campus Startups',w:'1 day ago',th:'b-ent'},
+ {g:'Yesterday',t:'event',u:0,ic:'calendar',h:'<b>Music Club</b> announced a new event',s:'Acoustic Night',w:'1 day ago',th:'b-music'},
+ {g:'Yesterday',t:'club',u:0,pic:'RK',ic2:'userplus',h:'<b>Rohan Kapoor</b> started following you',s:'',w:'1 day ago'},
+ {g:'Earlier',t:'club',u:0,ic:'mega',h:'<b>Environmental Club</b> shared an update',s:'Join our campus clean-up drive this weekend!',w:'2 days ago',th:'b-env'},
+ {g:'Earlier',t:'event',u:0,ic:'doc',h:'Your event registration is confirmed',s:"You're all set for the 24-Hour Hackathon!",w:'3 days ago'}];
+
+/* ---------- state ---------- */
+const S={id:0,joined:{},reg:false,saved:{0:1,2:1,3:1,5:1},applied:{},follow:{},evTab:'up',recTab:'open',nTab:'all',nSel:[],read:false,clubCat:'All',role:'student',menu:false,cTab:'ov',eaTab:'p',eaSel:0,modal:null,reps:[]};
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const toast=m=>{const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,2000)};
+
+/* ---------- shell ---------- */
+const NAV_S=[['home','Home','home'],['events','Events','calendar'],['clubs','Clubs','users'],['recruitments','Recruitments','briefcase']];
+const NAV_F=[['faculty','Overview','home','ov'],['fclubs','Supervised Clubs','users','sup'],['approvals','Event Approvals','calendar','ea'],['frecruit','Recruitment','briefcase','rc'],['fmembers','Members','users','mb'],['freports','Reports','chart','rp']];
+function shell(active,inner,opt={}){
+ const fac=S.role==='faculty', nav=fac?NAV_F:NAV_S;
+ const items=nav.map(n=>`<a href="#${n[0]}" class="${(fac?n[3]:n[0])===active?'on':''}">${ic(n[2])}${n[1]}${fac&&n[3]==='ea'&&fcount('p')?`<span class="count" style="margin-left:auto;background:var(--blue);color:#fff">${fcount('p')}</span>`:''}</a>`).join('');
+ const user=fac?`<span class="av">DM</span><span class="nm">Dr. A. Mehta<small>Faculty Supervisor</small></span>`:`<span class="av">RS</span><span class="nm">Rohit Sharma</span>`;
+ return `<div class="app"><aside class="side" id="side"><a class="logo" href="#home">${logoSvg}ClubSync</a><nav class="nav">${items}</nav><div class="nav bottom"><a href="#preferences" class="${active==='prefs'?'on':''}">${ic('gear')}Settings</a></div></aside><div class="scrim" data-act="nav"></div>
+ <div class="main"><header class="top"><button class="hamb" data-act="nav" aria-label="Open menu">${ic('menu')}</button>
+ <label class="search">${ic('search')}<input type="search" placeholder="${fac?'Search clubs, events, or students...':'Search events, clubs, or topics...'}" aria-label="Search"></label><span class="sp"></span>
+ ${fac?'':`<a class="bell" href="#notifications" aria-label="Notifications">${ic('bell')}${S.read?'':'<i></i>'}</a>`}
+ <div class="menu"><button class="me" data-act="menu" aria-expanded="${S.menu}">${user}${ic('chevd','sm')}</button>${S.menu?`<div class="drop">${fac?'<a href="#fclubs">Supervised clubs</a><a href="#home" data-role="student">Switch to student view</a>':'<a href="#profile">My profile</a><a href="#faculty" data-role="faculty">Switch to faculty view</a>'}<a href="#preferences">Settings</a><a href="#login">Sign out</a></div>`:''}</div></header>
+ <main class="content">${inner}</main></div></div>`;
+}
+
+/* ---------- components ---------- */
+const evCard=(e,i,list='EV')=>`<article class="card ev" data-go="event" data-id="${i}" data-l="${list}" data-s="${(e.t+' '+e.club+' '+e.cat+' '+e.loc).toLowerCase()}" data-type="${e.cat}" data-club="${e.club}" tabindex="0">
+ <div class="ban ${e.cls}"><span class="tag" style="background:${e.col}">${e.cat}</span><button class="bm ${S.saved[i]&&list==='EV'?'on':''}" data-save="${i}" aria-label="Save event">${ic('bookmark','sm')}</button></div>
+ <div class="bd"><div class="date"><span>${e.mon}</span><b>${e.d}</b><em>${e.dow}</em></div><div style="min-width:0"><h3>${e.t}</h3>
+ <div class="meta"><i class="cdot">${ic(e.ic)}</i><span>${e.club}</span></div><div class="meta">${ic('clock','sm')}<span>${e.time}</span></div><div class="meta">${ic('pin','sm')}<span>${e.loc}</span></div></div></div>
+ <div class="ft"><span class="row" style="gap:6px">${ic('users','sm')}${e.n} interested</span><button class="btn sm">Learn More ${ic('arrow','sm')}</button></div></article>`;
+const clubCard=(c,i)=>`<article class="card club" data-go="club" data-id="${i}" data-s="${(c.n+' '+c.d+' '+c.tg.join(' ')).toLowerCase()}" data-ccat="${c.cat}" tabindex="0">
+ <div class="ban ${c.cls}"><span class="lg">${ic(c.ic)}</span></div><div class="bd"><h3>${c.n}${S.joined[i]!==undefined?'':''}${c.mem||S.joined[i]?'<span class="pill g">Member</span>':''}</h3><small class="muted tiny">${c.m} members</small><p>${c.d}</p>
+ <div class="chips">${c.tg.map(t=>`<span class="chip">${t}</span>`).join('')}</div><button class="btn out block">View Club ${ic('arrow','sm')}</button></div></article>`;
+const miniClub=(i)=>{const c=CL[i];return `<div class="mini" data-go="club" data-id="${i}"><span class="ico">${ic(c.ic)}</span><div style="flex:1;min-width:0"><b>${c.n}</b><div class="tiny muted">${c.m} members</div></div><button class="btn out sm">View Club</button></div>`};
+
+/* ---------- pages ---------- */
+function pHome(){
+ const stats=[['calendar','Upcoming Events',12,'#e7efff','#0b63f6','events'],['users','My Clubs',4,'#dcf5ec','#12a37a','clubs'],['briefcase','Open Recruitments',6,'#efe6ff','#7c3aed','recruitments'],['trophy','Hackathons',2,'#ffeedd','#f97316','events']];
+ const dl=[['calendar','Club Recruitment Applications','Mar 30, 2025','recruitments'],['file','Hackathon Registration','Apr 1, 2025','hackathons'],['doc','Event Proposal Submission','Apr 5, 2025','events'],['users','Club Membership Renewal','Apr 10, 2025','clubs']];
+ return `<div class="cols"><div class="stack"><div class="pagehead" style="margin-bottom:0"><div><h1>Good morning, Rohit!</h1><p>Explore events, connect with clubs, and make the most of your college experience.</p></div></div>
+ <div class="grid4">${stats.map(s=>`<a class="card stat" href="#${s[5]}"><span class="bub" style="background:${s[3]};color:${s[4]}">${ic(s[0])}</span><div><small>${s[1]}</small><b>${s[2]}</b></div><span class="go">${ic('chev','sm')}</span></a>`).join('')}</div>
+ <section><div class="sec"><h2>Upcoming Events</h2><a class="link" href="#events">View all ${ic('arrow','sm')}</a></div><div class="grid3">${EV.slice(0,3).map((e,i)=>evCard(e,i)).join('')}</div></section>
+ <section><div class="sec"><h2>My Clubs</h2><a class="link" href="#clubs">View all ${ic('arrow','sm')}</a></div><div class="grid3">${[0,4,2].map(i=>{const c=CL[i];const u=[12,8,6][[0,4,2].indexOf(i)];const nm=['Computer Science Club','Design Club','Innovation Club'][[0,4,2].indexOf(i)];const cols=['#7c3aed','#12a37a','#0b63f6'][[0,4,2].indexOf(i)];return `<article class="card" data-go="club" data-id="${i}" style="cursor:pointer"><div class="row" style="align-items:flex-start;justify-content:space-between"><span class="ico" style="background:${cols};border-radius:50%;width:44px;height:44px">${ic(c.ic)}</span><span class="pill" style="background:var(--blue-soft);color:var(--blue)">You're a member</span></div><h3 style="margin-top:10px;font-size:14px">${nm}</h3><p class="tiny muted">${['Build • Learn • Innovate','Create • Collaborate • Inspire','Ideas • Impact • Change'][[0,4,2].indexOf(i)]}</p><p class="tiny muted" style="margin:3px 0 10px">${u} upcoming events</p><button class="btn out sm" style="margin-left:auto;display:flex">View Club</button></article>`}).join('')}</div></section>
+ <div class="card row" style="gap:14px;background:linear-gradient(90deg,#fff,#edf4ff);flex-wrap:wrap"><span class="ico" style="background:#fff;color:var(--blue);border:1px solid var(--line)">${ic('users')}</span><div style="flex:1;min-width:200px"><b>Explore More Clubs</b><div class="tiny muted">Find your community, join new clubs, and be part of something great.</div></div><a class="btn" href="#clubs">Explore Clubs</a></div></div>
+ <aside class="stack"><div class="card"><div class="sec"><h2 class="row" style="font-size:14px">${ic('calendar')} Upcoming Deadlines</h2><a class="link" href="#recruitments">View all ${ic('arrow','sm')}</a></div><div class="dl">${dl.map(d=>`<a href="#${d[3]}"><span class="ico2">${ic(d[0],'sm')}</span><span style="flex:1;min-width:0"><b>${d[1]}</b><small class="muted tiny">${d[2]}</small></span>${ic('chev','sm')}</a>`).join('')}</div></div>
+ <div class="promo"><h3>Your Ideas. Our Campus.</h3><p class="tiny muted" style="margin:6px 0 12px;max-width:55%">Join clubs, attend events, build your future.</p><a class="btn sm" href="#clubs" style="border-radius:50%;width:30px;height:30px;padding:0" aria-label="Explore">${ic('arrow','sm')}</a><div class="ppl"><i style="width:34px;height:84px;background:#1e3a8a"></i><i style="width:30px;height:70px;background:#f59e0b"></i><i style="width:32px;height:78px;background:#ec4899"></i></div></div></aside></div>`;
+}
+function pEvents(hack){
+ const types=[...new Set(EV.map(e=>e.cat))], clubs=[...new Set(EV.map(e=>e.club))];
+ let list,l='EV',idx;
+ if(hack){list=EV.map((e,i)=>[e,i]).filter(x=>x[0].cat==='Hackathon');}
+ else if(S.evTab==='past'){list=PAST.map((e,i)=>[e,i]);l='PAST';}
+ else if(S.evTab==='saved'){list=EV.map((e,i)=>[e,i]).filter(x=>S.saved[x[1]]);}
+ else list=EV.map((e,i)=>[e,i]);
+ const tabs=hack?'':`<div class="tabs" style="flex:1"><button class="${S.evTab==='up'?'on':''}" data-evtab="up">Upcoming Events <span class="count">12</span></button><button class="${S.evTab==='past'?'on':''}" data-evtab="past">Past Events <span class="count">8</span></button><button class="${S.evTab==='saved'?'on':''}" data-evtab="saved">Saved Events <span class="count">${Object.keys(S.saved).length}</span></button></div><div class="sel" style="margin-bottom:4px">Sort by <select aria-label="Sort"><option>Date (Soonest)</option><option>Most interested</option></select></div>`;
+ return `<div class="pagehead"><div><h1>${hack?'Hackathons':'Events'}</h1><p>${hack?'Build, compete, and ship with teams from across campus.':'Discover and join events from clubs across campus.'}</p></div></div>
+ <div class="filters" data-fgroup="evgrid"><label class="sel grow">${ic('search','sm')}<input type="search" placeholder="Search events..." data-fq aria-label="Search events"></label>
+ <label class="sel">${ic('calendar','sm')}<select aria-label="Date"><option>Date</option><option>This week</option><option>This month</option></select></label>
+ <label class="sel">${ic('tag','sm')}<select data-ftype aria-label="Event type"><option value="">Event Type</option>${types.map(t=>`<option>${t}</option>`).join('')}</select></label>
+ <label class="sel">${ic('users','sm')}<select data-fclub aria-label="Club"><option value="">Club</option>${clubs.map(t=>`<option>${t}</option>`).join('')}</select></label>
+ <label class="sel">${ic('pin','sm')}<select aria-label="Location"><option>Location</option><option>Main Auditorium</option><option>Innovation Lab</option></select></label></div>
+ ${tabs?`<div class="row" style="align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px;border-bottom:1px solid var(--line)">${tabs.replace('class="tabs"','class="tabs" style="border:0;flex:1"')}</div>`:''}
+ <div class="grid3" id="evgrid">${list.length?list.map(x=>evCard(x[0],x[1],l)).join(''):''}</div><div class="empty" id="evempty" ${list.length?'hidden':''}>No events here yet.</div>`;
+}
+function pEvent(){
+ const L=S.l==='PAST'?PAST:EV, e=L[S.id]||EV[0], i=S.id;
+ const rel=[1,2,5].filter(x=>x!==i).slice(0,3);
+ return `<a class="link" href="#events" style="margin:4px 0 10px">${ic('back','sm')} Back to Events</a>
+ <div class="cols wide"><div class="stack"><div class="hero ban ${e.cls}"><span class="tag" style="background:${e.col};position:absolute;top:14px;left:14px">${e.cat}</span><div class="acts"><button class="bm ${S.saved[i]?'on':''}" data-save="${i}" aria-label="Save">${ic('bookmark','sm')}</button><button class="bm" data-act="share" aria-label="Share">${ic('share','sm')}</button></div><div><h1>${e.t}</h1><div class="by"><i class="cdot" style="width:22px;height:22px">${ic(e.ic)}</i>By ${e.club}</div></div></div>
+ <div class="info"><div><span class="ib">${ic('calendar')}</span><span><b>${e.dow}, ${e.mon[0]+e.mon.slice(1).toLowerCase()} ${e.d}, 2025</b><small>${e.time}</small></span></div><div><span class="ib">${ic('pin')}</span><span><b>${e.loc}</b><small>Block A, Campus</small></span></div><div><span class="ib">${ic('globe')}</span><span><b>In-Person Event</b><small>On Campus</small></span></div><div><span class="faces"><i></i><i></i><i></i></span><span><b>${e.n}+</b><small>registered</small></span></div></div>
+ <div class="tabs" id="etabs">${['About','Agenda','Speakers','Organizer','FAQs'].map((t,k)=>`<button class="${k?'':'on'}" data-scroll="s-${t.toLowerCase()}">${t}</button>`).join('')}</div>
+ <div class="card" style="padding:6px 18px 18px"><div class="sect" id="s-about"><h2>About the Event</h2><p>Join us for an exciting session on how to design, build, and scale modern web applications. Our expert speaker will share real-world insights, best practices, and lessons learned from building high-traffic web platforms.</p><div class="chips" style="margin-top:10px">${['Web Development','Scalability','System Design','Career Guidance'].map(t=>`<span class="chip">${t}</span>`).join('')}</div></div>
+ <div class="sect"><h2>What You'll Learn</h2><ul class="ticks">${['Key principles of scalable architecture','Best practices for modern web development','Real-world case studies and challenges','Q&A session with industry experts'].map(t=>`<li><span class="ck">${ic('check')}</span>${t}</li>`).join('')}</ul></div>
+ <div class="sect"><div class="reqs"><b class="row">${ic('doc')} Requirements</b><span>${ic('check2','sm')} Laptop required</span><span>${ic('check2','sm')} Basic knowledge of JavaScript or web fundamentals (recommended)</span></div></div>
+ <div class="sect" id="s-agenda"><h2>Agenda</h2><ul class="tl">${[['4:00 PM – 4:30 PM','Keynote: Building for Scale','Why scalability matters and key architectural principles.'],['4:30 PM – 5:15 PM','System Architecture Deep Dive','Real-world examples, tools, and best practices.'],['5:15 PM – 6:00 PM','Q&A Session','Ask questions and interact with the speaker.']].map(a=>`<li><span class="muted">${a[0]}</span><span><b>${a[1]}</b><span class="muted">${a[2]}</span></span></li>`).join('')}</ul></div>
+ <div class="sect" id="s-speakers"><h2>Speaker</h2><div class="person"><span class="pic">AM</span><div style="min-width:0"><b>Aarav Mehta</b><div class="tiny muted">Software Engineer at TechCorp</div><p class="tiny muted" style="margin-top:3px">Aarav has 5+ years of experience building scalable web platforms. He has worked on products used by millions of users and is passionate about developer communities.</p></div><div class="soc"><i>in</i><i>tw</i><i>gh</i></div></div></div>
+ <div class="sect" id="s-organizer"><h2>Organizer</h2><p>${e.club} runs hands-on workshops, tech talks and hackathons for students of every year.</p></div>
+ <div class="sect" id="s-faqs"><h2>FAQs</h2><p><b>Is there a fee?</b> No, the event is free for all students. <b>Will I get a certificate?</b> Yes, a participation certificate is issued after attendance.</p></div></div></div>
+ <aside class="stack"><div class="card stack" style="gap:10px"><span class="pill g" style="align-self:flex-start">${ic('shield','sm')} Registration Open</span><div class="tiny" style="background:var(--green-soft);padding:8px 10px;border-radius:8px;display:flex;gap:8px;align-items:center;color:#0a7d5c;font-weight:600">${ic('users','sm')} ${S.reg?44:45} seats remaining</div>
+ <button class="btn block ${S.reg?'ok':''}" data-act="reg">${S.reg?'Registered '+'✓':'Register for Event '+ic('arrow','sm')}</button><button class="btn out block" data-save="${i}" style="color:var(--ink);border-color:var(--line)">${ic('bookmark','sm')} ${S.saved[i]?'Saved':'Save Event'}</button><button class="btn out block" data-act="cal" style="color:var(--ink);border-color:var(--line);justify-content:flex-start">${ic('calendar','sm')} + Add to Google Calendar</button></div>
+ <div class="card"><div class="sec"><h2 style="font-size:14px">Event Organizer</h2><a class="link" href="#club" data-id="0">View Club ${ic('arrow','sm')}</a></div><div class="row" style="gap:12px"><span class="ico" style="width:54px;height:54px;border-radius:50%">${ic(e.ic)}</span><div><b>${e.club}</b><div class="tiny muted">2.4K followers</div></div></div><p class="tiny muted" style="margin:10px 0">A community of students passionate about technology, development, and innovation.</p><button class="btn soft block" data-follow="0">${ic('userplus','sm')} ${S.follow[0]?'Following':'Follow Club'}</button></div>
+ <div class="card"><div class="sec"><h2 style="font-size:14px">Related Events</h2><a class="link" href="#events">View All ${ic('arrow','sm')}</a></div>${rel.map(k=>{const r=EV[k];return `<div class="related" data-go="event" data-id="${k}"><div class="ban ${r.cls}"></div><div style="flex:1;min-width:0"><span class="pill" style="background:#eee9ff;color:${r.col}">${r.cat}</span><b>${r.t}</b><small class="muted tiny">${r.club} · ${r.dow}, ${r.mon[0]+r.mon.slice(1).toLowerCase()} ${r.d}, 2025</small></div></div>`}).join('')}</div></aside></div>`;
+}
+function pClubs(){
+ const cats=['All','Technology','Cultural','Sports','Arts','Social Impact','Academic','Business','Media'];
+ const my=CL.map((c,i)=>[c,i]).filter(x=>x[0].mem||S.joined[x[1]]);
+ const ex=CL.map((c,i)=>[c,i]).filter(x=>!x[0].mem&&!S.joined[x[1]]);
+ const tab=S.clubTab||'my';
+ const body=tab==='my'
+  ?`<section><h2 style="font-size:16px;margin-bottom:12px">My Clubs (${my.length})</h2>${my.length?`<div class="grid3">${my.map(x=>clubCard(x[0],x[1])).join('')}</div>`:'<div class="card empty">You have not joined any clubs yet. Open Explore Clubs to find one.</div>'}</section>`
+  :`<section data-fgroup="cgrid"><div class="sec" style="flex-wrap:wrap"><div><h2>Explore Clubs</h2><div class="tiny muted">Find new clubs and communities that match your interests.</div></div><div class="row" style="flex-wrap:wrap"><label class="sel">${ic('search','sm')}<input type="search" data-fq placeholder="Search clubs..." style="border:0;outline:0;background:transparent;width:140px;min-width:0" aria-label="Search clubs"></label><label class="sel">${ic('tag','sm')}<select data-fcat aria-label="Category">${cats.map(c=>`<option>${c==='All'?'Category':c}</option>`).join('')}</select></label></div></div>
+ <div class="chips" style="margin-bottom:14px">${cats.map(c=>`<button class="chip" data-cat="${c}" style="border:0;padding:6px 14px;font-size:12px;${S.clubCat===c?'background:var(--blue);color:#fff':'background:var(--surface);border:1px solid var(--line);color:#33405d'}">${c}</button>`).join('')}</div>
+ <div class="grid3" id="cgrid">${ex.map(x=>clubCard(x[0],x[1])).join('')}</div></section>`;
+ return `<div class="pagehead"><div><h1>Clubs</h1><p>Discover, join, and be part of communities on campus.</p></div><button class="btn" data-act="newclub">${ic('plus','sm')} Create Club</button></div>
+ <div class="tabs" style="margin-bottom:16px"><button class="${tab==='my'?'on':''}" data-clubtab="my">My Clubs (${my.length})</button><button class="${tab==='explore'?'on':''}" data-clubtab="explore">Explore Clubs</button></div>${body}`;
+}
+function pClub(){
+ const c=CL[S.id]||CL[0], i=S.id, mem=c.mem||S.joined[i];
+ const evs=[{go:0,x:EV[0]},{x:{t:'Introduction to Web Development',cls:'b-code',mon:'APR',d:'03',time:'2:00 PM – 5:00 PM',loc:'Lab 2, CS Block'}},{x:{t:'24-Hour Hackathon',cls:'b-hack',mon:'APR',d:18,time:'10:00 AM (Sat)',loc:'Innovation Lab'}}];
+ return `<a class="link" href="#clubs" style="margin:4px 0 10px">${ic('back','sm')} Back to Clubs</a>
+ <div class="hero ban ${c.cls}" style="height:190px;justify-content:flex-end;align-items:center"><div class="slogan">${(SLOG[i]||SLOG[0]).join('<br>')}<i></i></div></div>
+ <div class="chead2"><div class="cl"><span class="big2">${ic(c.ic)}</span>
+ <div class="trow"><div style="min-width:0"><h1>${c.n}</h1><div class="muted" style="margin-top:2px">${c.m} members • ${c.cat==='Technology'?'Tech':c.cat} • Established in 2021</div></div><div class="row"><button class="btn ${mem?'ok':''}" data-join="${i}">${ic('userplus','sm')} ${mem?'Joined':'Join Club'}</button><button class="btn out" data-follow="${i}" style="color:var(--ink);border-color:var(--line)">${ic('bookmark','sm')} ${S.follow[i]?'Following':'Follow'}</button><button class="btn out" data-act="more" aria-label="More" style="color:var(--ink);border-color:var(--line);padding:9px 11px">${ic('more','sm')}</button></div></div>
+ <p class="muted" style="max-width:72ch;margin:10px 0">${c.d} We organize workshops, tech talks, hackathons, and collaborative projects to help students learn, build, and grow together.</p>
+ <div class="chips">${['Tech','Workshops','Hackathons','Web Development','AI/ML','Open Source'].map(t=>`<span class="chip" style="padding:5px 14px">${t}</span>`).join('')}</div></div>
+ <div class="cinfo"><div>${ic('calendar')}<span><small>Established</small>2021</span></div><div>${ic('pin')}<span><small>Based at</small>Main Campus</span></div><div>${ic('users')}<span><small>${c.m}</small>Members</span></div><div>${ic('mail')}<span><small>Contact</small><a class="link" href="#club">csc@college.edu</a></span></div></div></div>
+ <div class="cols wide"><div class="stack">
+ <div class="card" style="padding:0"><div class="tabs" style="padding:0 16px">${['Overview','Events','Members','Gallery','Recruitments','Resources'].map((t,k)=>`<button class="${k?'':'on'}" data-tabsel>${t}</button>`).join('')}</div>
+ <div style="padding:16px"><h2 style="font-size:17px;margin-bottom:6px">About Us</h2><p class="muted" style="max-width:75ch">The ${c.n} is a student-run community dedicated to exploring technology, fostering innovation, and building practical skills. We conduct hands-on workshops, invite industry experts for tech talks, organize hackathons, and work on real-world projects. Whether you're a beginner or an experienced developer, there's a place for you here.</p>
+ <div class="grid4" style="margin-top:14px">${[['bulb','Learn','Gain practical skills through workshops','#e7efff','#0b63f6'],['code','Build','Work on real-world projects','#dcf5ec','#12a37a'],['users','Collaborate','Connect with like-minded peers','#efe6ff','#7c3aed'],['trend','Grow','Explore opportunities and build your career','#e7efff','#0b63f6']].map(f=>`<div class="tile"><span class="ib" style="background:${f[3]};color:${f[4]}">${ic(f[0],'sm')}</span><div><b>${f[1]}</b><small>${f[2]}</small></div></div>`).join('')}</div></div></div>
+ <section style="padding:0 4px"><div class="sec"><h2 style="font-size:17px">Upcoming Events</h2><a class="link" href="#events">View All ${ic('arrow','sm')}</a></div><div class="grid3">${evs.map(o=>{const x=o.x;return `<article class="card ev" ${o.go!==undefined?'data-go="event" data-id="0"':''} style="cursor:pointer"><div class="ban ${x.cls}" style="height:100px"><span class="datebadge"><small>${x.mon}</small>${x.d}</span></div><div class="bd" style="display:block;padding:12px 14px 14px"><h3>${x.t}</h3><div class="meta">${ic('clock','sm')}<span>${x.time}</span><span class="goic">${ic('arrow','sm')}</span></div><div class="meta">${ic('pin','sm')}<span>${x.loc}</span></div></div></article>`}).join('')}</div></section></div>
+ <aside class="stack"><div class="card"><div class="sec"><h2 style="font-size:14px">Club Team</h2><button class="link">View All ${ic('arrow','sm')}</button></div>${[['AM','Aarav Mehta','President','3rd Year, Computer Science'],['IV','Ishita Verma','Vice President','3rd Year, Information Technology'],['RK','Rohan Kapoor','Events Head','2nd Year, Computer Science']].map(p=>`<div class="person sm"><span class="pic">${p[0]}</span><div style="min-width:0"><b>${p[1]}</b> <span class="chip" style="margin-left:4px">${p[2]}</span><div class="tiny muted">${p[3]}</div></div></div>`).join('')}</div>
+ <div class="card"><h2 style="font-size:14px;margin-bottom:10px">Social Links</h2><div class="socials">${[['Website','W'],['Instagram','ig'],['LinkedIn','in'],['Discord','dc'],['GitHub','gh']].map(s=>`<span><i>${s[1]}</i>${s[0]}</span>`).join('')}</div></div>
+ <div class="card"><div class="sec"><h2 style="font-size:14px">Related Clubs</h2><button class="link">View All ${ic('arrow','sm')}</button></div>${[4,3].map(k=>`<div class="related" data-go="club" data-id="${k}"><div class="ban ${CL[k].cls}"></div><div style="flex:1;min-width:0"><b>${CL[k].n}</b><small class="muted tiny">${CL[k].m} members</small></div><button class="btn out sm">View Club ${ic('arrow','sm')}</button></div>`).join('')}</div></aside></div>`;
+}
+const SLOG=[['Code','Collaborate','Create','Innovate'],['Capture','Create','Share','Inspire'],['Ideate','Build','Pitch','Launch'],['Build','Automate','Compete','Innovate'],['Design','Imagine','Create','Inspire'],['Play','Perform','Jam','Create'],['Act','Express','Perform','Inspire'],['Green','Clean','Sustain','Care'],['Learn','Invest','Grow','Lead']];
+const NT={all:'All',club:'Club Updates',event:'Event Updates',recruit:'Recruitments',mention:'Mentions',system:'System'};
+function pNotes(){
+ const cnt=t=>NOTES.filter(n=>n.t===t).length;
+ const vis=NOTES.filter(n=>(S.nTab==='all'||n.t===S.nTab)&&(!S.nSel.length||S.nSel.includes(n.t)));
+ const groups=['Today','Yesterday','Earlier'];
+ return `<div class="pagehead"><div><h1>Notifications</h1><p>Stay updated with your clubs, events, recruitments, and more</p></div><button class="btn out" data-act="markread">${ic('check','sm')} Mark all as read</button></div>
+ <div class="cols"><div class="stack"><div class="tabs">${Object.keys(NT).map(k=>`<button class="${S.nTab===k?'on':''}" data-ntab="${k}">${NT[k]} (${k==='all'?12:cnt(k)||1})</button>`).join('')}</div>
+ ${groups.map(g=>{const rows=vis.filter(n=>n.g===g);if(!rows.length)return '';return `<section><div class="ngroup" style="padding-left:0">${g}</div><div class="card nlist">${rows.map((n,k)=>`<div class="nitem" style="${k?'':'border-top:0'}"><span class="dot ${n.u&&!S.read?'':'off'}"></span>${n.pic?`<span class="pic" style="width:36px;height:36px;font-size:11px">${n.pic}</span>`:`<span class="ico ${n.navy?'':'lt'}">${ic(n.ic,'sm')}</span>`}<div class="tx"><div>${n.h}</div>${n.s?`<div class="tiny muted">${n.s}</div>`:''}<div class="tiny muted">${n.w}</div></div>${n.th?`<div class="th ban ${n.th}"></div>`:''}<button class="kebab" aria-label="More">${ic('more','sm')}</button></div>`).join('')}</div></section>`}).join('')||'<div class="card empty">Nothing matches these filters.</div>'}</div>
+ <aside class="stack"><div class="card"><div class="sec"><h2 style="font-size:14px">Filters</h2><button class="link" data-act="clearf">Clear All</button></div><div class="fl">${[['','All Notifications','bell'],['club','Club Updates','gear'],['event','Event Updates','calendar'],['recruit','Recruitments','users'],['mention','Mentions','users'],['system','System','trophy']].map(f=>`<label class="${(f[0]===''?!S.nSel.length:S.nSel.includes(f[0]))?'on':''}">${ic(f[2],'sm')}<span>${f[1]}</span><input type="checkbox" data-nf="${f[0]}" ${(f[0]===''?!S.nSel.length:S.nSel.includes(f[0]))?'checked':''}></label>`).join('')}</div></div>
+ <div class="card"><h2 style="font-size:14px;margin-bottom:6px">Quick Actions</h2><a class="dl" href="#preferences"><span class="row" style="padding:10px 0;border-bottom:1px solid var(--line);gap:10px">${ic('gear','sm')}<span style="flex:1">Notification Settings</span>${ic('chev','sm')}</span></a><button class="row" style="padding:10px 0;width:100%;background:none;border:0;gap:10px" data-act="mute">${ic('bell','sm')}<span style="flex:1;text-align:left">Mute Notifications</span>${ic('chev','sm')}</button></div>
+ <div class="card row" style="align-items:flex-start;gap:10px">${ic('bulb')}<div><b style="color:var(--blue)">Tips</b><p class="tiny muted">You can customize which notifications you want to receive from each club in your settings.</p></div></div></aside></div>`;
+}
+function pProfile(){
+ return `<div class="pagehead"><div><h1>Profile</h1><p>View and manage your profile information</p></div></div><div class="cols"><div class="stack">
+ <div class="card"><div class="pcard"><div class="photo">RS<button aria-label="Change photo">${ic('camera','sm')}</button></div><div style="flex:1;min-width:200px"><h2 style="font-size:20px" class="row">Rohit Sharma ${ic('pencil','sm')}</h2><div class="tiny muted">3rd Year, Computer Science Engineering</div><div class="meta">${ic('globe','sm')}ABC College of Engineering</div><div class="meta">${ic('mail','sm')}rohit.sharma@abc.edu <span class="pill g">Verified</span></div><div class="meta">${ic('phone','sm')}+91 98765 43210</div></div><button class="btn out" data-act="edit">${ic('pencil','sm')} Edit Profile</button></div></div>
+ <div class="card"><div class="sec"><h2 class="row" style="font-size:14px"><span class="hd" style="margin:0"><span class="hi">${ic('user','sm')}</span></span>Basic Information</h2><button class="btn out sm" data-act="edit">${ic('pencil','sm')} Edit</button></div><dl class="kv">${[['Full Name','Rohit Sharma'],['Email','rohit.sharma@abc.edu'],['Phone Number','+91 98765 43210'],['Date of Birth','15 March 2004'],['College','ABC College of Engineering'],['Department','Computer Science Engineering'],['Year','3rd Year'],['Roll Number','CSE20220123']].map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('')}</dl></div>
+ <div class="card"><div class="sec"><h2 class="row" style="font-size:14px">${ic('tag')} Interests</h2><button class="btn out sm" data-act="edit">${ic('pencil','sm')} Edit</button></div><div class="chips">${['Web Development','AI/ML','Design','Hackathons','Open Source','Tech Talks','Startups'].map(t=>`<span class="chip" style="padding:5px 12px">${t}</span>`).join('')}</div></div></div>
+ <aside class="stack"><div class="card"><div class="sec"><h2 style="font-size:14px">My Clubs (3)</h2><a class="link" href="#clubs">View All ${ic('arrow','sm')}</a></div><div class="stack" style="gap:10px">${[0,1,2].map(i=>`<div class="row" style="gap:12px"><span class="ico" style="width:38px;height:38px">${ic(CL[i].ic,'sm')}</span><div style="flex:1;min-width:0"><b>${CL[i].n}</b><div class="tiny muted">Member</div></div><button class="btn out sm" data-go="club" data-id="${i}">View Club ${ic('arrow','sm')}</button></div>`).join('')}</div></div>
+ <div class="card"><div class="sec"><h2 style="font-size:14px">My Recent Activity</h2><button class="link">View All ${ic('arrow','sm')}</button></div><div class="dl">${[['calendar','Attended "Building Scalable Web Apps"','2 days ago'],['file','Applied to Robotics Club','4 days ago'],['users','Joined Photography Club','1 week ago'],['trophy','Completed Hackathon Registration','1 week ago']].map(a=>`<a style="cursor:default"><span class="ico2">${ic(a[0],'sm')}</span><span><b>${a[1]}</b><small class="muted tiny">${a[2]}</small></span></a>`).join('')}</div></div></aside></div>`;
+}
+function pPrefs(){
+ const secs=[['gear','Account Settings','Profile, password, and account details'],['bell','Notification Preferences','Choose what updates you receive'],['shield','Privacy Settings','Control your visibility and data'],['mail','Email Preferences','Manage email communications'],['link','Connected Apps','Manage linked accounts'],['trash','Delete Account','Permanently delete your account']];
+ const pr=[['palette','Theme','Choose your preferred theme',['Light','Dark','System']],['globe','Language','Select your preferred language',['English','हिन्दी','मराठी']],['calendar','Date Format','Choose how dates are displayed',['DD MMM YYYY (e.g. 25 Mar 2024)','MM/DD/YYYY','YYYY-MM-DD']],['clock','Time Zone','Set your local time zone',['(GMT+05:30) India Standard Time','(GMT+00:00) UTC']]];
+ return `<div class="pagehead"><div><h1>Settings</h1><p>Manage your account, preferences, and privacy settings</p></div></div><div class="set">
+ <div class="card" style="padding:8px">${secs.map((s,k)=>`<button class="sm-item ${k?'':'on'}" ${k===5?'style="color:var(--red)"':''} data-act="sect">${ic(s[0])}<span><b>${s[1]}</b><small>${s[2]}</small></span><span class="go">${ic('chev','sm')}</span></button>`).join('')}</div>
+ <div class="stack"><div class="card"><div class="hd"><span class="hi">${ic('gear','sm')}</span><div>Account Settings<small>Update your account information and security settings</small></div></div>
+ <div class="card" style="box-shadow:none"><div class="hd">${ic('lock')} Change Password</div><form id="pwform" class="stack" style="gap:12px"><label class="field">Current Password<span class="inp"><input id="pw0" type="password" placeholder="Enter current password" autocomplete="current-password"><button type="button" data-eye="pw0" aria-label="Show password">${ic('eye','sm')}</button></span></label>
+ <div class="pwgrid"><label class="field">New Password<span class="inp"><input id="pw1" type="password" placeholder="Enter new password" autocomplete="new-password"><button type="button" data-eye="pw1" aria-label="Show password">${ic('eye','sm')}</button></span></label><label class="field">Confirm New Password<span class="inp"><input id="pw2" type="password" placeholder="Confirm new password" autocomplete="new-password"><button type="button" data-eye="pw2" aria-label="Show password">${ic('eye','sm')}</button></span></label></div>
+ <div class="row" style="justify-content:space-between;align-items:flex-end;flex-wrap:wrap"><ul class="rules" id="rules" style="margin:0"><li data-r="len"><i></i>At least 8 characters</li><li data-r="up"><i></i>One uppercase letter</li><li data-r="lo"><i></i>One lowercase letter</li><li data-r="nu"><i></i>One number or special character</li></ul><button class="btn" type="submit">Update Password</button></div></form></div></div>
+ <div class="card"><div class="hd"><span class="hi">${ic('gear','sm')}</span><div>Account Preferences<small>Customize your ClubSync experience</small></div></div>${pr.map(p=>`<div class="prefrow"><span class="muted">${ic(p[0])}</span><div><b>${p[1]}</b><small>${p[2]}</small></div><label class="sel"><select style="width:100%" aria-label="${p[1]}">${p[3].map(o=>`<option>${o}</option>`).join('')}</select>${ic('chevd','sm')}</label></div>`).join('')}</div>
+ <div class="card"><div class="hd"><span class="hi" style="background:var(--red-soft);color:var(--red)">${ic('trash','sm')}</span><div>Account Actions<small>Manage your account data and activity</small></div></div>
+ <div class="prefrow" style="grid-template-columns:28px 1fr auto"><span class="muted">${ic('download')}</span><div><b>Download My Data</b><small>Get a copy of your data (events, applications, etc.)</small></div><button class="btn out" data-act="dl">Download Data</button></div>
+ <div class="prefrow" style="grid-template-columns:28px 1fr auto"><span style="color:var(--red)">${ic('trash')}</span><div><b>Delete Account</b><small>This action cannot be undone. All your data will be permanently deleted.</small></div><button class="btn danger" data-act="del">Delete Account</button></div></div></div></div>`;
+}
+function pRecs(){
+ const list=S.recTab==='open'?REC:[];
+ const msg={upcoming:'2 recruitments open soon. We will notify you when they start.',closed:'8 recruitments have closed.'}[S.recTab];
+ return `<div class="pagehead"><div><h1>Recruitments</h1><p>Find and apply to exciting opportunities in your clubs</p></div><div class="row" style="flex-wrap:wrap" data-fgroup="rgrid"><label class="sel">${ic('search','sm')}<input type="search" data-fq placeholder="Search recruitments..." style="border:0;outline:0;background:transparent;width:150px;min-width:0" aria-label="Search recruitments"></label><label class="sel"><select data-fclub aria-label="Clubs"><option value="">All Clubs</option>${REC.map(r=>`<option>${r.c}</option>`).join('')}</select></label><label class="sel"><select aria-label="Roles"><option>All Roles</option><option>Technical</option><option>Design</option><option>Management</option></select></label></div></div>
+ <div class="tabs" style="margin-bottom:14px">${[['open','Open (5)'],['upcoming','Upcoming (2)'],['closed','Closed (8)']].map(t=>`<button class="${S.recTab===t[0]?'on':''}" data-rtab="${t[0]}">${t[1]}</button>`).join('')}</div>
+ <div class="stack" style="gap:12px" id="rgrid">${list.map((r,i)=>`<article class="card rec" data-go="recruitment" data-id="${i}" data-s="${(r.t+' '+r.c+' '+r.tg.join(' ')).toLowerCase()}" data-club="${r.c}" style="cursor:pointer"><span class="ico" style="width:56px;height:56px;border-radius:12px">${ic(r.ic,'lg')}</span><div style="min-width:0"><h3>${r.t}</h3><div class="tiny muted">${r.c}</div><p class="tiny" style="margin:4px 0 6px;color:#33405d">${r.d}</p><div class="chips">${r.tg.map(t=>`<span class="chip">${t}</span>`).join('')}</div><div class="meta" style="margin-top:8px"><span class="m">${ic('users','sm')} ${r.o} openings</span><span class="m">${ic('calendar','sm')} Apply by ${r.by}</span><span class="m">${ic('globe','sm')} ${r.el}</span></div></div><div class="acts"><button class="btn ${S.applied[i]?'ok':''}" data-apply="${i}">${S.applied[i]?'Applied ✓':'Apply Now'}</button><span class="link">View Details ${ic('arrow','sm')}</span></div></article>`).join('')||`<div class="card empty">${msg}</div>`}</div>`;
+}
+function pRec(){
+ const r=REC[S.id]||REC[0], i=S.id;
+ return `<a class="link" href="#recruitments" style="margin:4px 0 10px">${ic('back','sm')} Back to Recruitments</a><div class="cols wide"><div class="stack"><div class="card"><div class="row" style="gap:14px;align-items:flex-start;flex-wrap:wrap"><span class="ico" style="width:60px;height:60px;border-radius:12px">${ic(r.ic,'lg')}</span><div style="flex:1;min-width:220px"><h1 style="font-size:20px;font-weight:700">${r.t} <span class="pill g" style="vertical-align:middle">Open Recruitment</span></h1><div class="tiny muted">${r.c}</div><p class="muted" style="margin:4px 0 8px">${r.d}</p><div class="chips">${r.tg.map(t=>`<span class="chip">${t}</span>`).join('')}</div><div class="meta" style="margin-top:10px;gap:14px;flex-wrap:wrap"><span class="row" style="gap:5px">${ic('users','sm')} ${r.o} openings</span><span class="row" style="gap:5px">${ic('calendar','sm')} Apply by ${r.by}</span><span class="row" style="gap:5px">${ic('globe','sm')} ${r.el}</span></div></div></div></div>
+ <div class="tabs">${['Overview','Roles','Selection Process','FAQs'].map((t,k)=>`<button class="${k?'':'on'}" data-scroll="r-${k}">${t}</button>`).join('')}</div>
+ <div class="card" style="padding:6px 18px 18px"><div class="sect" id="r-0"><h2 class="row">${ic('file')} About This Recruitment</h2><p>The ${r.c} is looking for passionate and motivated individuals to join our team. Work on real-world projects, contribute to open source, and build innovative solutions with like-minded peers. Whether you are into web development, AI/ML, or exploring new technologies, this is a great opportunity to learn, collaborate, and grow your skills.</p></div>
+ <div class="sect" id="r-1"><h2 class="row">${ic('user')} Roles &amp; Responsibilities</h2><ul style="margin:0;padding-left:18px;color:#33405d;display:flex;flex-direction:column;gap:4px">${['Develop and maintain web applications for club events and initiatives','Work on AI/ML and data-driven projects','Contribute to open source initiatives','Collaborate with team members on technical solutions','Participate in code reviews and technical discussions','Help organize technical workshops and sessions'].map(t=>`<li>${t}</li>`).join('')}</ul></div>
+ <div class="sect"><h2 class="row">${ic('gear')} Skills We're Looking For</h2><div class="chips">${['JavaScript','React','Python','Machine Learning','Git & GitHub','Problem Solving','Team Collaboration'].map(t=>`<span class="chip" style="padding:5px 12px">${t}</span>`).join('')}</div></div>
+ <div class="sect" id="r-2"><h2 class="row">${ic('gift')} Perks &amp; Benefits</h2><div class="grid4">${[['users','Hands-on Experience','Work on real-world projects'],['bulb','Learning Opportunities','Technical workshops & sessions'],['file','Certificate','Get a recruitment certificate'],['globe','Networking','Connect with peers and mentors']].map(p=>`<div class="tile"><span class="ib" style="background:var(--blue-soft);color:var(--blue)">${ic(p[0],'sm')}</span><div><b style="font-size:12px">${p[1]}</b><small>${p[2]}</small></div></div>`).join('')}</div></div><div class="sect" id="r-3"><h2>FAQs</h2><p><b>Do I need prior experience?</b> No, interest and willingness to learn matter most.</p></div></div></div>
+ <aside class="stack"><div class="card stack" style="gap:10px"><button class="btn block ${S.applied[i]?'ok':''}" data-apply="${i}">${S.applied[i]?'Applied ✓':'Apply Now '+ic('ext','sm')}</button><button class="btn out block" style="color:var(--ink);border-color:var(--line)" data-act="saverec">${ic('bookmark','sm')} Save Recruitment</button></div>
+ <div class="card"><h2 class="row" style="font-size:14px;margin-bottom:10px">${ic('calendar')} Key Details</h2><dl class="kv"><dt>Application Deadline</dt><dd>${r.by.replace(' 2024',' 2024')}</dd><dt>Number of Openings</dt><dd>${r.o}</dd><dt>Role Type</dt><dd>Technical</dd><dt>Eligibility</dt><dd>${r.el.replace('Open to ','Open to ')}</dd><dt>Mode</dt><dd>On-campus / Online</dd><dt>Selection Process</dt><dd>Application → Shortlisting → Interviews</dd><dt>Contact</dt><dd>tech@cscclub.edu</dd></dl></div>
+ <div class="card"><h2 class="row" style="font-size:14px;margin-bottom:12px">${ic('clock')} Recruitment Timeline</h2><ul class="tl">${[['Applications Open','10 Mar 2024'],['Application Deadline','25 Mar 2024'],['Shortlisting','26 – 28 Mar 2024'],['Interviews','30 Mar – 2 Apr 2024'],['Results Announcement','5 Apr 2024']].map(t=>`<li style="grid-template-columns:1fr"><span><b>${t[0]}</b><span class="muted">${t[1]}</span></span></li>`).join('')}</ul></div>
+ <div class="card"><div class="sec"><h2 style="font-size:14px">About the Club</h2><a class="link" href="#clubs">View All</a></div><div class="row" style="gap:12px"><span class="ico">${ic(r.ic)}</span><div><b>${r.c}</b><div class="tiny muted">A community for tech enthusiasts to learn, build, and innovate together.</div></div></div><button class="btn out sm" style="margin-top:10px" data-follow="${i}">${S.follow[i]?'Following':'Follow'}</button></div>
+ <div class="card"><div class="sec"><h2 style="font-size:14px">Similar Recruitments</h2><a class="link" href="#recruitments">View All</a></div>${[1,2].map(k=>`<div class="related" data-go="recruitment" data-id="${k}"><span class="ico" style="width:40px;height:40px;border-radius:10px">${ic(REC[k].ic,'sm')}</span><div style="flex:1;min-width:0"><b>${REC[k].t}</b><small class="muted tiny">${REC[k].c} · ${REC[k].o} openings · Apply by ${REC[k].by}</small></div><span class="pill g">Open</span></div>`).join('')}</div></aside></div>`;
+}
+function pFaculty(){
+ const rows=[['Computer Science Club','Technical','Aarav Shah','Building tech communities, organizing workshops, and exploring emerging technologies.',42,5,'Tech Symposium 2026','Nov 20, 2026','Open','Closes Nov 30, 2026','g','code','#efe6ff','#7c3aed'],
+ ['Design Club','Cultural','Riya Patil','Exploring creativity through design, art, and interactive media.',28,3,'UI/UX Design Workshop','Nov 24, 2026','Review','Applications under review','a','palette','#dcf5ec','#12a37a'],
+ ['Innovation Club','Technical','Karan Verma','Fostering innovation, entrepreneurship, and problem solving through meaningful projects.',35,4,'Campus Startup Challenge','Dec 2, 2026','Open','Closes Dec 10, 2026','g','leaf','#e7efff','#0b63f6'],
+ ['Music Club','Cultural','Sneha Kulkarni','Bringing music enthusiasts together through performances, jam sessions, and events.',32,4,'Annual Music Fest','Dec 6, 2026','Not Started','Opens Dec 1, 2026','n','music','#ffe4ef','#e11d48'],
+ ['Sports Club','Sports','Aditya Singh','Promoting sports, fitness, and teamwork through inter-college and intra-college events.',25,2,'Inter-College Football','Dec 14, 2026','Open','Closes Dec 18, 2026','g','trophy','#ffeedd','#f97316']];
+ const st=[['users','Total Supervised Clubs',5,'#e7efff','#0b63f6'],['calendar','Upcoming Events',18,'#dcf5ec','#12a37a'],['users','Total Members',162,'#efe6ff','#7c3aed'],['chart','Active Recruitments',3,'#e7efff','#0b63f6']];
+ return `<div class="pagehead"><div><h1>Supervised Clubs</h1><p>Manage your assigned clubs, view their activities, and support student leaders.</p></div><button class="btn" data-act="assign">${ic('plus','sm')} Assign New Club</button></div>
+ <div class="grid4" style="margin-bottom:16px">${st.map(s=>`<div class="card stat" style="cursor:default"><span class="bub" style="background:${s[3]};color:${s[4]}">${ic(s[0])}</span><div><small>${s[1]}</small><b>${s[2]}</b></div></div>`).join('')}</div>
+ <div class="row" style="flex-wrap:wrap;gap:10px;justify-content:space-between;border-bottom:1px solid var(--line);margin-bottom:14px" data-fgroup="fgrid"><div class="tabs" style="border:0"><button class="on">All Clubs (5)</button><button>Active (4)</button><button>Pending (1)</button><button>Archived (0)</button></div><div class="row" style="flex-wrap:wrap;padding-bottom:6px"><label class="sel">${ic('search','sm')}<input type="search" data-fq placeholder="Search supervised clubs..." style="border:0;outline:0;background:transparent;width:170px;min-width:0" aria-label="Search supervised clubs"></label><label class="sel"><select aria-label="Category"><option>Category</option><option>Technical</option><option>Cultural</option><option>Sports</option></select></label><label class="sel"><select aria-label="Status"><option>Status</option><option>Open</option><option>Review</option></select></label></div></div>
+ <div class="stack" style="gap:12px" id="fgrid">${rows.map(r=>`<article class="card frow" data-s="${(r[0]+' '+r[2]+' '+r[1]).toLowerCase()}"><span class="ib" style="background:${r[12]};color:${r[13]}">${ic(r[11],'lg')}</span><div style="min-width:0"><h3>${r[0]} <span class="pill" style="background:${r[1]==='Technical'?'#e7efff':r[1]==='Cultural'?'#ffe4ef':'#dcf5ec'};color:${r[1]==='Technical'?'#0b63f6':r[1]==='Cultural'?'#e11d48':'#12a37a'}">${r[1]}</span></h3><div class="tiny muted row" style="gap:5px;margin:3px 0">${ic('user','sm')} President: ${r[2]}</div><p class="tiny muted">${r[3]}</p></div><div class="nums"><div>${ic('users','sm')}<b>${r[4]}</b>Members</div><div>${ic('calendar','sm')}<b>${r[5]}</b>Upcoming Events</div></div><div class="nxt"><p><span>Next Event</span><span><b>${r[6]}</b><br><span class="muted">${r[7]}</span></span></p><p><span>Recruitment</span><span><span class="pill ${r[10]}"><i class="dotc"></i>${r[8]}</span><br><span class="muted">${r[9]}</span></span></p></div><button class="btn sm" data-act="manage">Manage Club ${ic('arrow','sm')}</button><button class="kebab" aria-label="More">${ic('more')}</button></article>`).join('')}</div>`;
+}
+function pAuth(mode){
+ const su=mode==='signup', G='<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.6a4.8 4.8 0 0 1-2.1 3.1v2.6h3.4c2-1.8 3.1-4.5 3.1-7.5z"/><path fill="#34A853" d="M12 22c2.8 0 5.2-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.800-4.300H2.700v2.700A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.200 13.600a6 6 0 0 1 0-3.800V7.100H2.700a10 10 0 0 0 0 9.200z"/><path fill="#EA4335" d="M12 6c1.500 0 2.900.5 4 1.600l3-3A10 10 0 0 0 2.700 7.100l3.500 2.700C7 7.800 9.300 6 12 6z"/></svg>';
+ const f=(id,lab,icn,ph,type='text',eye)=>`<label class="field">${lab}<span class="inp">${ic(icn,'sm')}<input id="${id}" type="${type}" placeholder="${ph}" ${type==='password'?'autocomplete="'+(su?'new':'current')+'-password"':''}>${eye?`<button type="button" data-eye="${id}" aria-label="Show password">${ic('eye','sm')}</button>`:''}</span></label>`;
+ return `<div class="auth"><div class="l"><a class="logo" href="#home">${logoSvg}ClubSync</a>${su?`<h1>Join the ClubSync Community</h1><p class="sub">Create your account and start exploring everything your campus offers.</p><div class="stack" style="gap:14px;margin-top:22px;max-width:300px">${[['users','Explore Clubs','Find and join clubs that match your interests.','#dbe8ff','#0b63f6'],['calendar','Stay Updated','Get notified about events, recruitments, and activities.','#d9f4e8','#12a37a'],['trophy','Build Your Profile','Showcase your skills, participation, and achievements.','#e7defd','#7c3aed']].map(x=>`<div class="row" style="gap:12px;align-items:flex-start"><span class="ico" style="background:${x[3]};color:${x[4]};border-radius:12px">${ic(x[0])}</span><div><b>${x[1]}</b><div class="tiny muted">${x[2]}</div></div></div>`).join('')}</div>`:`<h1>All Your Campus Opportunities in One Place</h1><p class="sub">Discover events, join clubs, participate in recruitments, and build your campus journey with ClubSync.</p>`}
+ <div class="scene" aria-hidden="true"><div class="bld"></div><div class="win"></div><div class="gr"></div><span class="tree" style="left:50%"></span><span class="tree" style="left:62%;height:90px;width:56px"></span><div class="st"><i style="background:#334155"></i><i style="background:#c2410c;height:78px"></i><i style="background:#0f766e;height:82px"></i></div></div></div>
+ <div class="r"><form class="acard" id="${su?'suform':'liform'}"><h2>${su?'Create Your Account':'Welcome Back'}</h2><p class="muted">${su?'Join ClubSync and be a part of a more connected campus experience.':'Sign in to your ClubSync account.'}</p>
+ <button type="button" class="gbtn" data-act="google">${G} Continue with Google</button><div class="or">or</div>
+ ${su?f('fn','Full Name','user','Enter your full name'):''}${f('em','College Email','mail','yourname@college.edu','email')}${su?'<small class="muted tiny" style="margin-top:-8px">Use your college email for verification.</small>':''}${f('pw','Password','lock',su?'Create a password':'Enter your password','password',1)}${su?f('pw2','Confirm Password','lock','Confirm your password','password',1):''}
+ ${su?`<label class="chk"><input type="checkbox" id="terms"> <span>I agree to the <a class="link" href="#signup">Terms of Service</a> and <a class="link" href="#signup">Privacy Policy</a>.</span></label>`:`<div class="row" style="justify-content:space-between;flex-wrap:wrap"><label class="chk"><input type="checkbox" checked> Keep me signed in</label><a class="link" href="#login" data-act="forgot">Forgot password?</a></div>`}
+ <button class="btn" style="height:44px" type="submit">${su?'Create Account':'Sign In'}</button>
+ <p class="muted" style="text-align:center;font-size:12.5px">${su?'Already have an account? <a class="link" href="#login">Sign in</a>':'Don\'t have an account? <a class="link" href="#signup">Sign up</a>'}</p>${su?'':'<p style="text-align:center;font-size:12px"><a class="link" href="#faculty" data-role="faculty">Sign in as faculty supervisor</a></p>'}</form></div></div>`;
+}
+
+
+/* ---------- faculty data ---------- */
+const FEV=[
+ {t:'Tech Symposium 2026',club:'Computer Science Club',cat:'Technical',cls:'b-tech',ic:'code',icc:'#7c3aed',icbg:'#efe6ff',date:'Nov 20, 2026',time:'10:00 AM – 5:00 PM',loc:'Main Auditorium',ago:'2 days ago',st:'p',aud:'All students',exp:'150 – 200',bud:'₹45,000',desc:'A one-day symposium with industry talks, student project demos and a panel on careers in software and AI.',att:[['Event Proposal.pdf','2.1 MB'],['Budget Sheet.xlsx','240 KB'],['Venue Permission.pdf','1.4 MB']],cmt:'We have confirmed three speakers and the auditorium booking. Sponsor logos will be added once approved.'},
+ {t:'UI/UX Design Workshop',club:'Design Club',cat:'Workshop',cls:'b-work',ic:'palette',icc:'#12a37a',icbg:'#dcf5ec',date:'Nov 24, 2026',time:'2:00 PM – 5:00 PM',loc:'Design Studio',ago:'1 day ago',st:'p',aud:'All students',exp:'60 – 80',bud:'₹12,000',desc:'A hands-on workshop on user research, wireframing and prototyping, led by a visiting designer.',att:[['Workshop Plan.pdf','1.1 MB'],['Speaker Profile.pdf','620 KB']],cmt:'Participants should bring a laptop. Seats are capped at 80.'},
+ {t:'Campus Startup Challenge',club:'Innovation Club',cat:'Competition',cls:'b-ent',ic:'bulb',icc:'#0b63f6',icbg:'#e7efff',date:'Dec 2, 2026',time:'9:00 AM – 4:00 PM',loc:'Engineering Block',ago:'Today',st:'p',aud:'All students',exp:'100 – 150',bud:'₹60,000',desc:'Student teams pitch startup ideas to a panel of alumni founders and investors for seed prizes.',att:[['Rules and Judging.pdf','900 KB'],['Prize Budget.xlsx','180 KB'],['Judges List.pdf','340 KB']],cmt:'Prize money is funded by the alumni cell. Registration closes one week before the event.'},
+ {t:'Open Mic Night',club:'Music Club',cat:'Cultural',cls:'b-music',ic:'music',icc:'#e11d48',icbg:'#ffe4ef',date:'Nov 12, 2026',time:'6:00 PM – 8:30 PM',loc:'Student Activity Center',ago:'5 days ago',st:'a',aud:'All students',exp:'120 – 150',bud:'₹8,000',desc:'An evening of live student performances in music, poetry and stand-up.',att:[['Event Proposal.pdf','1.3 MB']],cmt:'Sound equipment is booked through the student center.'},
+ {t:'Inter-Club Basketball Tournament',club:'Sports Club',cat:'Sports',cls:'b-env',ic:'trophy',icc:'#f97316',icbg:'#ffeedd',date:'Nov 15, 2026',time:'9:00 AM – 6:00 PM',loc:'College Ground',ago:'1 week ago',st:'a',aud:'Club teams',exp:'200 – 250',bud:'₹25,000',desc:'A knockout basketball tournament between club teams, with referees from the sports department.',att:[['Fixtures.pdf','800 KB'],['Safety Plan.pdf','1.0 MB']],cmt:'First aid and ground permissions are arranged.'},
+ {t:'Green Campus Initiative',club:'Environmental Club',cat:'Social Impact',cls:'b-social',ic:'leaf',icc:'#12a37a',icbg:'#dcf5ec',date:'Nov 10, 2026',time:'10:00 AM – 1:00 PM',loc:'College Garden',ago:'1 week ago',st:'r',aud:'All students',exp:'80 – 100',bud:'₹5,000',desc:'A tree-planting and clean-up drive across the college garden and nearby roads.',att:[['Plan.pdf','700 KB']],cmt:'We need permission to plant trees on the campus boundary.',why:'The garden department has not confirmed the planting area. Resubmit with their written permission.'}
+].map((e,i)=>(e.id=i,e));
+const fcount=s=>FEV.filter(e=>e.st===s).length;
+const FREC=[
+ {club:'Computer Science Club',t:'Core Team Recruitment 2026',st:'open',apps:126,sl:18,iv:12,dl:'Nov 30, 2026',ic:'code'},
+ {club:'Design Club',t:'Creative Team Recruitment',st:'open',apps:88,sl:28,iv:12,dl:'Nov 25, 2026',ic:'palette'},
+ {club:'Innovation Club',t:'Mentor Track Recruitment',st:'review',apps:0,sl:0,iv:0,dl:'Dec 10, 2026',ic:'bulb'},
+ {club:'Music Club',t:'Performer Auditions',st:'up',apps:0,sl:0,iv:0,dl:'Dec 20, 2026',ic:'music'},
+ {club:'Sports Club',t:'Team Captains Selection',st:'closed',apps:64,sl:22,iv:12,dl:'Oct 15, 2026',ic:'trophy'}];
+const attention=()=>fcount('p')+FREC.filter(r=>r.st==='review').length;
+const MEMB=[['Anika Desai','Computer Science Club','Core Member','2nd Year','Computer Engineering'],['Priya Kulkarni','Computer Science Club','Vice President','3rd Year','Computer Engineering'],['Rohan Tiwari','Computer Science Club','General Member','2nd Year','Information Technology'],['Aarav Shah','Computer Science Club','President','3rd Year','Computer Engineering'],['Riya Patil','Design Club','President','3rd Year','Design'],['Meera Joshi','Design Club','Core Member','2nd Year','Design'],['Karan Verma','Innovation Club','President','3rd Year','Mechanical'],['Neha Rao','Innovation Club','General Member','1st Year','Electronics'],['Sneha Kulkarni','Music Club','President','3rd Year','Computer Engineering'],['Aditya Singh','Sports Club','President','3rd Year','Civil'],['Isha Nair','Sports Club','Core Member','2nd Year','Mechanical'],['Dev Malhotra','Music Club','General Member','1st Year','Computer Engineering']];
+const stPill=e=>e.st==='p'?'<span class="pill a"><i class="dotc"></i>Pending Approval</span>':e.st==='a'?'<span class="pill g"><i class="dotc"></i>Approved</span>':'<span class="pill r"><i class="dotc"></i>Rejected</span>';
+const FCLUBS=['Computer Science Club','Design Club','Innovation Club','Music Club','Sports Club'];
+const wrap=o=>`<span class="ico" style="background:${o.icbg};color:${o.icc};border-radius:50%;width:44px;height:44px">${ic(o.ic)}</span>`;
+
+function pFOverview(){
+ const pend=FEV.filter(e=>e.st==='p');
+ const stats=[['users','Supervised Clubs',5,'#e7efff','#0b63f6','fclubs'],['calendar','Pending Event Approvals',fcount('p'),'#fff2d9','#b36b00','approvals'],['briefcase','Active Recruitments',FREC.filter(r=>r.st==='open').length,'#dcf5ec','#12a37a','frecruit'],['alert','Items Requiring Attention',attention(),'#ffe9ea','#e5484d','approvals']];
+ const dl=[['file','Recruitment review','Review pending applications','Nov 5, 2026','frecruit'],['doc','Semester activity report','Review and approve submissions','Nov 12, 2026','freports'],['chart','Club budget review','Review submitted budget proposals','Nov 18, 2026','approvals']];
+ const cl=[[0,'Computer Science Club','Technical',42,5,'Build • Learn • Innovate','code','#efe6ff','#7c3aed'],[1,'Design Club','Cultural',28,3,'Create • Collaborate • Inspire','palette','#dcf5ec','#12a37a'],[2,'Innovation Club','Technical',35,4,'Ideas • Impact • Change','bulb','#e7efff','#0b63f6']];
+ return `<div class="cols"><div class="stack"><div class="pagehead" style="margin-bottom:0"><div><h1>Good morning, Dr. Mehta!</h1><p>Overview your clubs, review submissions, and support student leadership.</p></div></div>
+ <div class="grid4">${stats.map(x=>`<a class="card stat" href="#${x[5]}"><span class="bub" style="background:${x[3]};color:${x[4]}">${ic(x[0])}</span><div><small>${x[1]}</small><b>${x[2]}</b></div><span class="go">${ic('chev','sm')}</span></a>`).join('')}</div>
+ <section><div class="sec"><h2>Pending Approvals</h2><a class="link" href="#approvals">View all ${ic('arrow','sm')}</a></div><div class="stack" style="gap:10px">${pend.length?pend.map(e=>`<article class="card apr"><div class="ban ${e.cls} th"></div><div class="mn"><h3>${e.t} <span class="chip">Event</span></h3><div class="meta">${ic('users','sm')}<span>${e.club}</span></div><div class="meta">${ic('calendar','sm')}<span>Event on ${e.date}</span> ${ic('pin','sm')}<span>${e.loc}</span></div></div><div class="stc"><span class="pill a"><i class="dotc"></i>Pending Review</span></div><div class="acts2"><button class="btn sm" data-eaa="${e.id}">Approve</button><button class="btn danger sm" data-ear="${e.id}">Reject</button></div></article>`).join(''):`<div class="card empty">Nothing is waiting for your approval.</div>`}</div></section>
+ <section><div class="sec"><h2>Supervised Clubs</h2><a class="link" href="#fclubs">View all ${ic('arrow','sm')}</a></div><div class="grid3">${cl.map(c=>`<article class="card"><div class="row" style="align-items:flex-start;justify-content:space-between"><span class="ico" style="background:${c[7]};color:${c[8]};border-radius:50%;width:44px;height:44px">${ic(c[6])}</span><span class="chip">${c[2]}</span></div><h3 style="margin-top:10px;font-size:14px">${c[1]}</h3><p class="tiny muted">${c[5]}</p><p class="tiny muted" style="margin:4px 0 12px">${c[3]} members · ${c[4]} upcoming events</p><a class="btn out sm block" href="#fclubs">Manage Club ${ic('arrow','sm')}</a></article>`).join('')}</div></section>
+ <div class="card row" style="gap:14px;background:linear-gradient(90deg,#fff,#edf4ff);flex-wrap:wrap"><span class="ico" style="background:#fff;color:var(--blue);border:1px solid var(--line)">${ic('book')}</span><div style="flex:1;min-width:200px"><b>Need help or resources for your clubs?</b><div class="tiny muted">Guidelines, templates, and best practices for supervising student clubs.</div></div><button class="btn" data-act="res">View Resources</button></div></div>
+ <aside class="stack"><div class="card"><div class="sec"><h2 style="font-size:14px">Upcoming Deadlines</h2><a class="link" href="#freports">View all ${ic('arrow','sm')}</a></div><div class="dl">${dl.map(d=>`<a href="#${d[4]}"><span class="ico2">${ic(d[0],'sm')}</span><span style="flex:1;min-width:0"><b>${d[1]}</b><small class="muted tiny">${d[2]}</small><small class="tiny" style="color:var(--blue);display:block">${d[3]}</small></span>${ic('chev','sm')}</a>`).join('')}</div></div>
+ <div class="promo"><h3>Support Student Leadership</h3><p class="tiny muted" style="margin:6px 0 12px;max-width:55%">Guide clubs, review activities, and help students grow.</p><button class="btn sm" data-act="guide">View guidelines</button><div class="ppl"><i style="width:34px;height:84px;background:#1e3a8a"></i><i style="width:30px;height:70px;background:#f59e0b"></i><i style="width:32px;height:78px;background:#ec4899"></i></div></div></aside></div>`;
+}
+
+function pApprovals(){
+ const tabs=[['p','Pending'],['a','Approved'],['r','Rejected'],['all','All Events']];
+ const list=FEV.filter(e=>S.eaTab==='all'||e.st===S.eaTab);
+ const sel=FEV[S.eaSel]||FEV[0];
+ const row=e=>`<article class="card ear ${S.eaSel===e.id?'sel':''}" data-easelect="${e.id}" data-s="${(e.t+' '+e.club+' '+e.cat).toLowerCase()}" data-club="${e.club}" tabindex="0"><div class="ban ${e.cls} th"></div><div class="mn"><h3>${e.t} <span class="chip">${e.cat}</span></h3><div class="meta">${ic('users','sm')}<span>${e.club}</span></div><div class="meta">${ic('calendar','sm')}<span>${e.date} · ${e.time}</span></div><div class="meta">${ic('pin','sm')}<span>${e.loc}</span></div></div><div class="stc">${stPill(e)}<small class="muted tiny">Submitted ${e.ago}</small></div><div class="acts2">${e.st==='p'?`<button class="btn ok sm" data-eaa="${e.id}">Approve</button><button class="btn danger sm" data-ear="${e.id}">Reject</button>`:`<span class="link">View ${ic('chev','sm')}</span>`}</div></article>`;
+ const d=`<div class="card dtl"><div class="sec" style="margin-bottom:8px"><h2 style="font-size:14px">Event Details</h2>${stPill(sel)}</div><div class="hero ban ${sel.cls}" style="height:110px;padding:0;border-radius:12px"></div><h3 style="font-size:16px;margin:12px 0 2px">${sel.t}</h3><div class="tiny muted">Organized by ${sel.club}</div><p class="tiny" style="color:#33405d;margin:8px 0 12px">${sel.desc}</p>
+ <dl class="kv" style="grid-template-columns:110px 1fr"><dt>Date and time</dt><dd>${sel.date}<br>${sel.time}</dd><dt>Location</dt><dd>${sel.loc}</dd><dt>Audience</dt><dd>${sel.aud}</dd><dt>Expected</dt><dd>${sel.exp} participants</dd><dt>Budget</dt><dd>${sel.bud}</dd><dt>Event type</dt><dd>${sel.cat}</dd></dl>
+ <h4 style="font-size:13px;margin:14px 0 8px">Attachments (${sel.att.length})</h4><div class="stack" style="gap:6px">${sel.att.map(a=>`<div class="att">${ic('file','sm')}<span style="flex:1;min-width:0;overflow-wrap:anywhere">${a[0]}</span><small class="muted">${a[1]}</small></div>`).join('')}</div>
+ <h4 style="font-size:13px;margin:14px 0 6px">Comments from club</h4><p class="tiny muted" style="background:var(--soft);border-radius:9px;padding:10px">${sel.cmt}</p>
+ ${sel.st==='r'?`<h4 style="font-size:13px;margin:14px 0 6px;color:#b42318">Reason for rejection</h4><p class="tiny" style="background:var(--red-soft);border-radius:9px;padding:10px">${sel.why}</p>`:''}
+ ${sel.st==='a'?`<p class="tiny" style="margin-top:14px;color:#0a7d5c;font-weight:600">${ic('check2','sm')} Approved by ${sel.by||'faculty coordinator'}</p>`:''}
+ ${sel.st==='p'?`<div class="row" style="margin-top:14px"><button class="btn ok" style="flex:1" data-eaa="${sel.id}">Approve</button><button class="btn danger" style="flex:1" data-ear="${sel.id}">Reject</button></div>`:''}</div>`;
+ return `<div class="pagehead"><div><h1>Event Approvals</h1><p>Review and approve events organized by clubs under your supervision.</p></div></div>
+ <div class="tabs" style="margin-bottom:12px">${tabs.map(t=>`<button class="${S.eaTab===t[0]?'on':''}" data-eatab="${t[0]}">${t[1]} <span class="count">${t[0]==='all'?FEV.length:fcount(t[0])}</span></button>`).join('')}</div>
+ <div class="cols wide"><div class="stack" style="gap:12px"><div class="filters" data-fgroup="eagrid" style="margin:0"><label class="sel grow">${ic('search','sm')}<input type="search" data-fq placeholder="Search events..." aria-label="Search events"></label><label class="sel">${ic('users','sm')}<select data-fclub aria-label="Club"><option value="">All clubs</option>${FCLUBS.concat(['Environmental Club']).map(c=>`<option>${c}</option>`).join('')}</select></label></div>
+ <div class="stack" style="gap:10px" id="eagrid">${list.map(row).join('')}</div>${list.length?'':`<div class="card empty">No ${S.eaTab==='p'?'pending':S.eaTab==='a'?'approved':'rejected'} events.</div>`}</div><aside>${d}</aside></div>`;
+}
+
+function pFRecruit(){
+ const lab={open:['g','Open'],review:['a','Awaiting approval'],up:['n','Upcoming'],closed:['n','Closed']};
+ return `<div class="pagehead"><div><h1>Recruitment</h1><p>Monitor recruitment drives run by the clubs you supervise.</p></div></div>
+ <div class="grid4" style="margin-bottom:16px">${[['briefcase','Active drives',FREC.filter(r=>r.st==='open').length,'#dcf5ec','#12a37a'],['file','Awaiting approval',FREC.filter(r=>r.st==='review').length,'#fff2d9','#b36b00'],['users','Total applications',FREC.reduce((a,r)=>a+r.apps,0),'#e7efff','#0b63f6'],['check2','Shortlisted',FREC.reduce((a,r)=>a+r.sl,0),'#efe6ff','#7c3aed']].map(x=>`<div class="card stat" style="cursor:default"><span class="bub" style="background:${x[3]};color:${x[4]}">${ic(x[0])}</span><div><small>${x[1]}</small><b>${x[2]}</b></div></div>`).join('')}</div>
+ <div class="stack" style="gap:12px">${FREC.map((r,i)=>`<article class="card frow" style="grid-template-columns:48px minmax(0,1.4fr) auto auto auto"><span class="ib" style="background:var(--blue-soft);color:var(--blue)">${ic(r.ic,'lg')}</span><div style="min-width:0"><h3>${r.t} <span class="pill ${lab[r.st][0]}"><i class="dotc"></i>${lab[r.st][1]}</span></h3><div class="tiny muted">${r.club}</div><div class="tiny muted row" style="gap:5px;margin-top:3px">${ic('calendar','sm')} ${r.st==='closed'?'Closed':'Apply by'} ${r.dl}</div></div><div class="nums"><div><b>${r.apps}</b>Applications</div><div><b>${r.sl}</b>Shortlisted</div><div><b>${r.iv}</b>Interviews</div></div><div class="acts2">${r.st==='review'?`<button class="btn ok sm" data-rapp="${i}">Approve</button><button class="btn danger sm" data-rrej="${i}">Reject</button>`:`<span class="tiny muted">Applicant details are visible to club recruiters only.</span>`}</div></article>`).join('')}</div>`;
+}
+
+function pFMembers(){
+ return `<div class="pagehead"><div><h1>Members</h1><p>View members across the clubs you supervise.</p></div></div>
+ <div class="grid4" style="margin-bottom:16px">${[['users','Total members',162,'#e7efff','#0b63f6'],['shield','Core members',21,'#efe6ff','#7c3aed'],['user','General members',141,'#dcf5ec','#12a37a'],['userplus','Pending requests',3,'#fff2d9','#b36b00']].map(x=>`<div class="card stat" style="cursor:default"><span class="bub" style="background:${x[3]};color:${x[4]}">${ic(x[0])}</span><div><small>${x[1]}</small><b>${x[2]}</b></div></div>`).join('')}</div>
+ <div class="filters" data-fgroup="mbody"><label class="sel grow">${ic('search','sm')}<input type="search" data-fq placeholder="Search members..." aria-label="Search members"></label><label class="sel"><select data-fclub aria-label="Club"><option value="">All clubs</option>${FCLUBS.map(c=>`<option>${c}</option>`).join('')}</select></label></div>
+ <div class="card tw" style="padding:0"><table class="tbl"><thead><tr><th>Member</th><th>Club</th><th>Role</th><th>Year</th><th>Department</th></tr></thead><tbody id="mbody">${MEMB.map(m=>`<tr data-s="${(m[0]+' '+m[1]+' '+m[2]).toLowerCase()}" data-club="${m[1]}"><td><span class="row"><span class="av">${m[0].split(' ').map(w=>w[0]).join('')}</span><b>${m[0]}</b></span></td><td>${m[1]}</td><td><span class="pill ${m[2]==='President'||m[2]==='Vice President'?'g':'n'}">${m[2]}</span></td><td>${m[3]}</td><td>${m[4]}</td></tr>`).join('')}</tbody></table></div><p class="tiny muted" style="margin-top:8px">Showing ${MEMB.length} of 162 members</p>`;
+}
+
+function pFReports(){
+ const mo=['May','Jun','Jul','Aug','Sep','Oct'],reg=[120,160,90,210,250,180],att=[96,128,70,170,205,150],max=300;
+ const bars=mo.map((m,i)=>{const x=34+i*56,h1=reg[i]/max*120,h2=att[i]/max*120;return `<rect x="${x}" y="${140-h1}" width="20" height="${h1}" rx="3" fill="var(--blue)"/><rect x="${x+22}" y="${140-h2}" width="20" height="${h2}" rx="3" fill="var(--green)"/><text x="${x+21}" y="158" text-anchor="middle">${m}</text>`}).join('');
+ const grid=[0,100,200,300].map(v=>`<line x1="28" x2="372" y1="${140-v/max*120}" y2="${140-v/max*120}" stroke="var(--line)"/><text x="22" y="${144-v/max*120}" text-anchor="end">${v}</text>`).join('');
+ const seg=[['Applied',40,'#0b63f6'],['Shortlisted',22,'#7c3aed'],['Selected',6,'#12a37a'],['Rejected',2,'#e5484d']],tot=70;let off=0;
+ const don=seg.map(g=>{const l=g[1]/tot*100,o=off;off+=l;return `<circle cx="21" cy="21" r="15.9" fill="none" stroke="${g[2]}" stroke-width="6" stroke-dasharray="${l} ${100-l}" stroke-dashoffset="${25-o}"/>`}).join('');
+ const base=[['Event Participation Report','Events','Aug 1 – Oct 31, 2026'],['Recruitment Summary','Recruitment','Aug 1 – Oct 31, 2026'],['Member Activity Report','Members','Aug 1 – Oct 31, 2026']];
+ const recent=S.reps.concat(base);
+ return `<div class="pagehead"><div><h1>Reports</h1><p>View insights and generate reports across your supervised clubs. Figures are sample data.</p></div><button class="btn" data-act="genrep">${ic('plus','sm')} Generate Report</button></div>
+ <div class="grid4" style="margin-bottom:16px">${[['users','Total members',162,'#e7efff','#0b63f6'],['calendar','Events organised',18,'#dcf5ec','#12a37a'],['briefcase','Total applications',278,'#efe6ff','#7c3aed'],['alert','Pending approvals',attention(),'#fff2d9','#b36b00']].map(x=>`<div class="card stat" style="cursor:default"><span class="bub" style="background:${x[3]};color:${x[4]}">${ic(x[0])}</span><div><small>${x[1]}</small><b>${x[2]}</b></div></div>`).join('')}</div>
+ <div class="grid2"><div class="card"><div class="sec"><h2 style="font-size:14px">Event Participation</h2><span class="tiny muted row" style="gap:10px"><span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--blue)"></i>Registered</span><span class="row" style="gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:var(--green)"></i>Attended</span></span></div><svg viewBox="0 0 380 168" class="bars" role="img" aria-label="Registered and attended counts per month from May to October" style="width:100%;height:auto">${grid}${bars}</svg></div>
+ <div class="card"><div class="sec"><h2 style="font-size:14px">Recruitment Overview</h2></div><div class="row" style="gap:20px;flex-wrap:wrap"><svg viewBox="0 0 42 42" role="img" aria-label="Applications by status" style="width:140px;height:140px;flex:none">${don}<text x="21" y="22" text-anchor="middle" style="font-size:8px;font-weight:700;fill:var(--ink)">${tot}</text><text x="21" y="28" text-anchor="middle" style="font-size:3.4px;fill:var(--muted)">applications</text></svg><ul class="rules" style="gap:8px;flex:1;min-width:140px">${seg.map(g=>`<li><i style="background:${g[2]};border-color:${g[2]}"></i><span style="flex:1;color:var(--ink)">${g[0]}</span><b style="color:var(--ink)">${g[1]}</b></li>`).join('')}</ul></div></div></div>
+ <div class="card" style="margin-top:16px"><div class="sec"><h2 style="font-size:14px">Recent Reports</h2></div><div class="dl">${recent.map(r=>`<a style="cursor:default"><span class="ico2">${ic('doc','sm')}</span><span style="flex:1;min-width:0"><b>${r[0]}</b><small class="muted tiny">${r[2]}</small></span><span class="chip">${r[1]}</span><button class="link" data-act="viewrep">View</button></a>`).join('')}</div></div>`;
+}
+
+/* ---------- router ---------- */
+const R={
+ login:()=>pAuth('login'),signup:()=>pAuth('signup'),
+ home:()=>shell('home',pHome()),events:()=>shell('events',pEvents()),hackathons:()=>shell('hackathons',pEvents(1)),event:()=>shell('events',pEvent()),
+ clubs:()=>shell('clubs',pClubs()),club:()=>shell('clubs',pClub()),recruitments:()=>shell('recruitments',pRecs()),recruitment:()=>shell('recruitments',pRec()),
+ notifications:()=>shell('notifications',pNotes()),profile:()=>shell('profile',pProfile()),preferences:()=>shell('prefs',pPrefs()),
+ faculty:()=>{S.role='faculty';return shell('ov',pFOverview())},
+ fclubs:()=>{S.role='faculty';return shell('sup',pFaculty())},
+ approvals:()=>{S.role='faculty';return shell('ea',pApprovals())},
+ frecruit:()=>{S.role='faculty';return shell('rc',pFRecruit())},
+ fmembers:()=>{S.role='faculty';return shell('mb',pFMembers())},
+ freports:()=>{S.role='faculty';return shell('rp',pFReports())}};
+function modalHtml(){if(!S.modal)return '';const t=S.modal.kind==='rec'?FREC[S.modal.id].t:FEV[S.modal.id].t;return `<div class="mback"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><h2 id="mt">Reject "${t}"?</h2><p class="muted" style="margin-top:4px">The club will see your reason. It is recorded with the decision.</p><label class="field" style="margin-top:12px">Reason for rejection<textarea id="why" rows="4" placeholder="Explain what the club needs to change">${S.modal.txt||''}</textarea></label><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn out" data-act="mclose">Cancel</button><button class="btn danger" data-act="mconf">Reject</button></div></div></div>`}
+function render(keepScroll){
+ const name=(location.hash||'#home').slice(1);const key=R[name]?name:'home';
+ if(!['faculty','login','signup'].includes(key)&&key!=='preferences'&&S.role==='faculty'&&false)S.role='student';
+ const y=scrollY;$('#app').innerHTML=R[key]()+modalHtml();document.title='ClubSync';
+ document.body.classList.remove('nav-open');
+ if(keepScroll)scrollTo(0,y);
+ bind();const w=$('#why');if(w)w.focus();
+}
+function go(h){if(location.hash==='#'+h)render(true);else location.hash=h}
+addEventListener('hashchange',()=>{render();scrollTo(0,0)});
+
+/* ---------- interactions ---------- */
+function filt(g){
+ const root=$('#'+g.dataset.fgroup);if(!root)return;
+ const q=($('[data-fq]',g)||{value:''}).value.trim().toLowerCase(),ty=($('[data-ftype]',g)||{value:''}).value,cl=($('[data-fclub]',g)||{value:''}).value,ct=($('[data-fcat]',g)||{selectedIndex:0});
+ const cat=ct.selectedIndex>0?ct.value:(S.clubCat!=='All'?S.clubCat:'');
+ let n=0;[...root.children].forEach(c=>{const ok=(!q||(c.dataset.s||'').includes(q))&&(!ty||c.dataset.type===ty)&&(!cl||c.dataset.club===cl)&&(!cat||!c.dataset.ccat||c.dataset.ccat===cat);c.hidden=!ok;if(ok)n++});
+ const em=$('#evempty');if(em){em.hidden=n>0;em.textContent='No events match your filters.'}
+}
+function bind(){
+ $$('[data-fgroup]').forEach(g=>{g.addEventListener('input',()=>filt(g));g.addEventListener('change',()=>filt(g));filt(g)});
+ const pw=$('#pw1');if(pw)pw.addEventListener('input',()=>{const v=pw.value;const m={len:v.length>=8,up:/[A-Z]/.test(v),lo:/[a-z]/.test(v),nu:/[\d\W]/.test(v)&&v.length>0};$$('#rules li').forEach(l=>l.classList.toggle('ok',!!m[l.dataset.r]))});
+ const pf=$('#pwform');if(pf)pf.addEventListener('submit',e=>{e.preventDefault();const a=$('#pw1').value,b=$('#pw2').value;if(a.length<8||!/[A-Z]/.test(a)||!/[a-z]/.test(a)||!/[\d\W]/.test(a))return toast('New password does not meet the rules yet.');if(a!==b)return toast('Passwords do not match.');toast('Password updated');pf.reset();$$('#rules li').forEach(l=>l.classList.remove('ok'))});
+ const li=$('#liform');if(li)li.addEventListener('submit',e=>{e.preventDefault();S.role='student';go('home')});
+ const su=$('#suform');if(su)su.addEventListener('submit',e=>{e.preventDefault();if(!$('#fn').value.trim()||!$('#em').value.trim())return toast('Enter your name and college email.');if($('#pw').value!==$('#pw2').value)return toast('Passwords do not match.');if(!$('#terms').checked)return toast('Please accept the Terms of Service.');S.role='student';go('home')});
+}
+document.addEventListener('click',e=>{
+ const t=e.target.closest.bind(e.target);
+
+ const eaa=t('[data-eaa]');if(eaa){e.stopPropagation();const x=FEV[+eaa.dataset.eaa];x.st='a';x.by='Dr. A. Mehta';S.eaSel=x.id;toast('Approved: '+x.t);return render(true)}
+ const ear=t('[data-ear]');if(ear){e.stopPropagation();S.modal={kind:'ev',id:+ear.dataset.ear};return render(true)}
+ const rap=t('[data-rapp]');if(rap){const x=FREC[+rap.dataset.rapp];x.st='up';toast('Approved: '+x.t);return render(true)}
+ const rrj=t('[data-rrej]');if(rrj){S.modal={kind:'rec',id:+rrj.dataset.rrej};return render(true)}
+ const eas=t('[data-easelect]');if(eas){S.eaSel=+eas.dataset.easelect;return render(true)}
+ const eat=t('[data-eatab]');if(eat){S.eaTab=eat.dataset.eatab;const f=FEV.find(x=>S.eaTab==='all'||x.st===S.eaTab);if(f)S.eaSel=f.id;return render(true)}
+ if(e.target.classList.contains('mback')){S.modal=null;return render(true)}
+ const rl=t('[data-role]');if(rl){S.role=rl.dataset.role;S.menu=false}
+ const sv=t('[data-save]');if(sv){e.preventDefault();e.stopPropagation();const k=sv.dataset.save;S.saved[k]?delete S.saved[k]:S.saved[k]=1;toast(S.saved[k]?'Event saved':'Removed from saved');return render(true)}
+ const fo=t('[data-follow]');if(fo){const k=fo.dataset.follow;S.follow[k]=!S.follow[k];toast(S.follow[k]?'Following club':'Unfollowed');return render(true)}
+ const jn=t('[data-join]');if(jn){const k=jn.dataset.join;S.joined[k]=!S.joined[k];toast(S.joined[k]?'You joined the club':'You left the club');return render(true)}
+ const ap=t('[data-apply]');if(ap){e.stopPropagation();const k=ap.dataset.apply;S.applied[k]=!S.applied[k];toast(S.applied[k]?'Application submitted':'Application withdrawn');return render(true)}
+ const ey=t('[data-eye]');if(ey){const i=$('#'+ey.dataset.eye);i.type=i.type==='password'?'text':'password';return}
+ const sc=t('[data-scroll]');if(sc){const el=document.getElementById(sc.dataset.scroll);const tabs=sc.closest('.tabs');if(tabs)$$('button',tabs).forEach(b=>b.classList.toggle('on',b===sc));if(el)el.scrollIntoView({behavior:'smooth',block:'start'});return}
+ const ts=t('[data-tabsel]');if(ts){$$('[data-tabsel]').forEach(b=>b.classList.toggle('on',b===ts));return}
+ const et=t('[data-evtab]');if(et){S.evTab=et.dataset.evtab;return render(true)}
+ const rt=t('[data-rtab]');if(rt){S.recTab=rt.dataset.rtab;return render(true)}
+ const nt=t('[data-ntab]');if(nt){S.nTab=nt.dataset.ntab;return render(true)}
+ const ct2=t('[data-clubtab]');if(ct2){S.clubTab=ct2.dataset.clubtab;return render(true)}
+ const ca=t('[data-cat]');if(ca){S.clubCat=ca.dataset.cat;render(true);return}
+ const nf=t('[data-nf]');if(nf&&e.target.matches('input')){const v=nf.dataset.nf;if(v==='')S.nSel=[];else{S.nSel=nf.checked?[...S.nSel,v]:S.nSel.filter(x=>x!==v)}return render(true)}
+ const a=t('[data-act]');if(a){const k=a.dataset.act;
+  if(k==='mclose'){S.modal=null;return render(true)}
+  if(k==='mconf'){const why=($('#why').value||'').trim();if(!why){S.modal.txt='';toast('Enter a reason so the club knows what to fix.');return}const m=S.modal;if(m.kind==='rec'){FREC[m.id].st='closed';toast('Recruitment rejected')}else{const x=FEV[m.id];x.st='r';x.why=why;x.by='Dr. A. Mehta';S.eaSel=x.id;toast('Rejected: '+x.t)}S.modal=null;return render(true)}
+  if(k==='genrep'){S.reps.unshift(['Semester Summary Report','Summary','Generated '+new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})]);toast('Report generated');return render(true)}
+  if(k==='nav'){document.body.classList.toggle('nav-open');return}
+  if(k==='menu'){S.menu=!S.menu;return render(true)}
+  if(k==='reg'){S.reg=!S.reg;toast(S.reg?'You are registered':'Registration cancelled');return render(true)}
+  if(k==='markread'){S.read=true;toast('All notifications marked as read');return render(true)}
+  if(k==='clearf'){S.nSel=[];S.nTab='all';return render(true)}
+  const msgs={res:'Resources library opens soon',guide:'Guidelines open soon',viewrep:'Report preview opens soon',share:'Event link copied',cal:'Added to Google Calendar',newclub:'Club creation opens soon',mute:'Notifications muted for 1 hour',edit:'Profile editing opens soon',dl:'Your data export has been requested',del:'Open Account settings to confirm deletion by email',google:'Google sign-in is not available in this preview',forgot:'Password reset link sent to your college email',saverec:'Recruitment saved',assign:'Select a club to assign',manage:'Club management opens soon',sect:'This section opens soon'};
+  if(msgs[k]){if(k==='share'){try{navigator.clipboard.writeText(location.href).catch(()=>{})}catch(_){}}toast(msgs[k]);if(k==='forgot')e.preventDefault();return}}
+ const g=t('[data-go]');if(g){if(g.dataset.go==='club')S.clubTab=S.clubTab;S.id=+g.dataset.id;S.l=g.dataset.l||'EV';S.menu=false;return go(g.dataset.go)}
+ const lk=t('a[href^="#"][data-id]');if(lk){S.id=+lk.dataset.id}
+ if(S.menu&&!t('.menu')){S.menu=false;render(true)}
+ if(!t('.side')&&!t('.hamb'))document.body.classList.remove('nav-open');
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.modal){S.modal=null;render(true)}if(e.key==='Enter'&&e.target.matches('[data-go]'))e.target.click()});
+render();
+</script>
+
+</body></html>

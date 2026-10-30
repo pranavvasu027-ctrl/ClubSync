@@ -67,8 +67,8 @@ export const ExecProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             title: a.title,
             audience: 'All Students',
             sentDate: new Date(a.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-            delivered: '100%',
-            read: '0%',
+            delivered: 100,
+            read: 0,
             openRate: '0%'
           }));
         }

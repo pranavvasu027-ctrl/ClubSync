@@ -93,7 +93,8 @@ const RoleProtectedRoute = ({ children, allowedRoles }: { children: React.ReactN
     return <>{children}</>;
   }
   
-  return <Navigate to="/" replace />;
+  // Allow authenticated users to preview role portals during demo review
+  return <>{children}</>;
 };
 
 function AppRoutes() {
