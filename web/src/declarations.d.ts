@@ -75,4 +75,6 @@ declare module '@tabler/icons-react' {
   export const IconTag: TablerIcon;
   export const IconBriefcase: TablerIcon;
   export const IconVideo: TablerIcon;
+  export const IconTicket: TablerIcon;
+  export const IconQrcode: TablerIcon;
 }

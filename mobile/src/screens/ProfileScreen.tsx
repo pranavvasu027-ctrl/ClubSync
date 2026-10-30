@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
-import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken, markAttendance, getUserTickets } from '../services/clubSyncService';
+import { CURRENT_USER, User, updateUserProfile, verifyGatePassToken, markAttendance, getUserTickets, getRuntimeTickets } from '../services/clubSyncService';
 import { pickAndUploadImage } from '../services/storageService';
 import { DigitalTicket, MY_TICKETS, CLUBS, COLLEGES } from '../data/mockData';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -18,7 +18,10 @@ export default function ProfileScreen() {
   const safeUser = user || CURRENT_USER;
   const [userProfile, setUserProfile] = useState<User>(safeUser);
   const [isLoadingTickets, setIsLoadingTickets] = useState(true);
-  const [ticketsList, setTicketsList] = useState<DigitalTicket[]>([]);
+  const [ticketsList, setTicketsList] = useState<DigitalTicket[]>(() => {
+    const r = getRuntimeTickets();
+    return r.length > 0 ? r : MY_TICKETS;
+  });
 
   useEffect(() => {
     let mounted = true;

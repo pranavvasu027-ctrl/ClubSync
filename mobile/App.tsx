@@ -26,7 +26,7 @@ import { ActivityIndicator } from 'react-native';
 type TabType = 'home' | 'events' | 'clubs' | 'tasks' | 'profile' | 'dashboard';
 
 
-import { getEvents } from './src/services/clubSyncService';
+import { getEvents, registerForEvent, unregisterFromEvent } from './src/services/clubSyncService';
 import { registerForPushNotificationsAsync } from './src/services/notificationService';
 
 function MainApp() {
@@ -64,12 +64,33 @@ function MainApp() {
     return () => { mounted = false; };
   }, [isAuthenticated]);
 
-  const handleRSVP = (eventId: string) => {
+  const handleRSVP = async (eventId: string) => {
+    const targetEvent = events.find((e) => e.id === eventId);
+    if (!targetEvent) return;
+
+    const willBeRegistered = !targetEvent.isRegistered;
+
     setEvents((prev) =>
       prev.map((e) =>
-        e.id === eventId ? { ...e, isRegistered: !e.isRegistered } : e
+        e.id === eventId
+          ? {
+              ...e,
+              isRegistered: willBeRegistered,
+              registeredCount: willBeRegistered ? e.registeredCount + 1 : Math.max(0, e.registeredCount - 1),
+            }
+          : e
       )
     );
+
+    try {
+      if (willBeRegistered) {
+        await registerForEvent(targetEvent);
+      } else {
+        unregisterFromEvent(eventId);
+      }
+    } catch (err) {
+      console.warn('handleRSVP registration error:', err);
+    }
   };
 
   const handleNavigateToClubs = (openHiring?: boolean) => {
