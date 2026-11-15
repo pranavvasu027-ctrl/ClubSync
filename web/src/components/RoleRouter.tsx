@@ -19,33 +19,16 @@ const RoleRouter: React.FC = () => {
     return <div style={{ padding: 50, textAlign: 'center', fontFamily: 'sans-serif' }}>Loading profile...</div>;
   }
 
-  // Route based on user_type
-  const role = profile.user_type?.toLowerCase();
+  // Route strictly to the 3 approved dashboards: President, Faculty, Student
+  const role = (profile.user_type || '').toLowerCase();
 
-  switch (role) {
-    case 'secretary':
-      return <Navigate to="/secretary" replace />;
-    case 'executive':
-      return <Navigate to="/executive" replace />;
-    case 'president':
-      return <Navigate to="/president" replace />;
-    case 'owner':
-      return <Navigate to="/owner" replace />;
-    case 'faculty':
-      return <Navigate to="/faculty" replace />;
-    case 'co-ordinator':
-      return <Navigate to="/coordinator" replace />;
-    case 'admin':
-      return <Navigate to="/admin" replace />;
-    case 'recruiter':
-      return <Navigate to="/recruiter" replace />;
-    case 'student':
-    case 'user':
-      return <Navigate to="/student" replace />;
-    default:
-      // Fallback dashboard if role is unknown
-      return <Navigate to="/dashboard" replace />;
+  if (role.includes('president') || role.includes('lead')) {
+    return <Navigate to="/president" replace />;
   }
+  if (role.includes('faculty') || role.includes('mentor') || role.includes('owner') || role.includes('dean') || role.includes('admin')) {
+    return <Navigate to="/faculty" replace />;
+  }
+  return <Navigate to="/student" replace />;
 };
 
 export default RoleRouter;

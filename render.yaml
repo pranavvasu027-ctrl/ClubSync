@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: clubsync-web
+    env: static
+    rootDir: web
+    buildCommand: npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SUPABASE_URL
+        value: https://havgcjhhflxcuxmshpnh.supabase.co
+      - key: VITE_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhhdmdjamhoZmx4Y3V4bXNocG5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5MDY1MTQsImV4cCI6MjEwMjQ4MjUxNH0.cFEEiIXT2Bp893Vn5zqUVGcHvBFBADJBPwQ5yodv0Fo

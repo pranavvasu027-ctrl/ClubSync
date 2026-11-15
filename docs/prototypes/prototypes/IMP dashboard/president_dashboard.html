@@ -451,15 +451,6 @@ tbody tr:hover td{background:var(--paper-deep);}
 
       <div class="nav-label">Operate</div>
       <div class="nav-item" data-target="pane-events"><i class="ti ti-calendar-event"></i> Events</div>
-      <div class="nav-item" data-target="pane-ledger"><i class="ti ti-receipt-2"></i> Ledger</div>
-      <div class="nav-item" data-target="pane-recruitment"><i class="ti ti-user-plus"></i> Recruitment</div>
-
-      <div class="nav-label">People</div>
-      <div class="nav-item" data-target="pane-team"><i class="ti ti-users-group"></i> Team</div>
-      <div class="nav-item" data-target="pane-reports"><i class="ti ti-file-text"></i> Reports</div>
-
-      <div class="nav-label">System</div>
-      <div class="nav-item"><i class="ti ti-settings"></i> Settings</div>
     </nav>
 
     <div class="rail-bottom">
@@ -497,7 +488,7 @@ tbody tr:hover td{background:var(--paper-deep);}
             <div>
               <div class="hero-eyebrow">Good morning, President</div>
               <h1>Kuldeep's desk</h1>
-              <p>4 events in motion · ₹4.85L balance on hand · 12 tasks open</p>
+              <p>4 events in motion · 2 in faculty review · 750+ expected attendees</p>
             </div>
             <div class="hero-date">
               <strong id="today-date">Monday, 24 Aug</strong>
@@ -510,25 +501,25 @@ tbody tr:hover td{background:var(--paper-deep);}
               <div class="stat-icon"><i class="ti ti-calendar-event"></i></div>
               <div class="stat-label">Active Events</div>
               <div class="stat-value">08</div>
-              <div class="stat-foot up"><i class="ti ti-arrow-up-right"></i> +3 this month</div>
+              <div class="stat-foot up"><i class="ti ti-arrow-up-right"></i> Live on Student Portal</div>
             </div>
             <div class="stat-card c-navy">
-              <div class="stat-icon"><i class="ti ti-users"></i></div>
-              <div class="stat-label">Team Members</div>
-              <div class="stat-value">42</div>
-              <div class="stat-foot flat">No change since June</div>
+              <div class="stat-icon"><i class="ti ti-clock"></i></div>
+              <div class="stat-label">Faculty Review</div>
+              <div class="stat-value">03</div>
+              <div class="stat-foot up"><i class="ti ti-alert-circle"></i> Awaiting Sanction</div>
             </div>
             <div class="stat-card c-green">
-              <div class="stat-icon"><i class="ti ti-wallet"></i></div>
-              <div class="stat-label">Budget Remaining</div>
-              <div class="stat-value">₹3.15L <small>/ ₹8.00L</small></div>
-              <div class="budget-track"><div class="budget-fill" style="width:39.4%"></div></div>
+              <div class="stat-icon"><i class="ti ti-users"></i></div>
+              <div class="stat-label">Expected Turnout</div>
+              <div class="stat-value">750+</div>
+              <div class="stat-foot up"><i class="ti ti-check"></i> Across scheduled events</div>
             </div>
             <div class="stat-card c-amber">
               <div class="stat-icon"><i class="ti ti-checklist"></i></div>
-              <div class="stat-label">Pending Tasks</div>
-              <div class="stat-value">12</div>
-              <div class="stat-foot up"><i class="ti ti-arrow-down-right"></i> −2 this week</div>
+              <div class="stat-label">Ready to Publish</div>
+              <div class="stat-value">02</div>
+              <div class="stat-foot up"><i class="ti ti-arrow-up-right"></i> Approved by Faculty</div>
             </div>
           </div>
 
@@ -539,7 +530,10 @@ tbody tr:hover td{background:var(--paper-deep);}
                   <div class="panel-title">This week's docket</div>
                   <div class="panel-sub">Events needing your sign-off or attention</div>
                 </div>
-                <button class="btn btn-ghost btn-sm" onclick="switchPane('pane-events')">Open events desk</button>
+                <div style="display:flex;gap:8px;">
+                  <button class="btn btn-stamp btn-sm" onclick="openModal('event-modal')"><i class="ti ti-plus"></i> New Proposal</button>
+                  <button class="btn btn-ghost btn-sm" onclick="switchPane('pane-events')">Open events desk</button>
+                </div>
               </div>
               <div class="panel-body" style="display:flex;flex-direction:column;gap:10px;">
                 <div class="event-card st-pending" style="border-radius:8px;">
@@ -557,24 +551,24 @@ tbody tr:hover td{background:var(--paper-deep);}
 
             <div class="panel">
               <div class="panel-head">
-                <div class="panel-title">Recent activity</div>
+                <div class="panel-title">Recent event activity</div>
               </div>
               <div class="panel-body" style="display:flex;flex-direction:column;gap:13px;">
                 <div style="display:flex;gap:10px;">
                   <div class="txn-cat in" style="width:28px;height:28px;font-size:12px;"><i class="ti ti-check"></i></div>
-                  <div><div style="font-size:12.5px;font-weight:600;">Budget approved — Code Sprint</div><div style="font-size:11px;color:var(--ink-faint);">2 hours ago</div></div>
+                  <div><div style="font-size:12.5px;font-weight:600;">Faculty sanction approved — DevFest 2026</div><div style="font-size:11px;color:var(--ink-faint);">2 hours ago</div></div>
                 </div>
                 <div style="display:flex;gap:10px;">
-                  <div class="txn-cat" style="background:var(--navy-soft);color:var(--navy);width:28px;height:28px;font-size:12px;"><i class="ti ti-file-text"></i></div>
-                  <div><div style="font-size:12.5px;font-weight:600;">Arnav submitted weekly report</div><div style="font-size:11px;color:var(--ink-faint);">5 hours ago</div></div>
+                  <div class="txn-cat in" style="width:28px;height:28px;font-size:12px;"><i class="ti ti-calendar-event"></i></div>
+                  <div><div style="font-size:12.5px;font-weight:600;">Registrations live on Student Portal</div><div style="font-size:11px;color:var(--ink-faint);">5 hours ago</div></div>
                 </div>
                 <div style="display:flex;gap:10px;">
                   <div class="txn-cat out" style="width:28px;height:28px;font-size:12px;"><i class="ti ti-alert-triangle"></i></div>
-                  <div><div style="font-size:12.5px;font-weight:600;">New proposal: AI/ML Bootcamp</div><div style="font-size:11px;color:var(--ink-faint);">1 day ago</div></div>
+                  <div><div style="font-size:12.5px;font-weight:600;">New proposal: AI/ML Bootcamp submitted</div><div style="font-size:11px;color:var(--ink-faint);">1 day ago</div></div>
                 </div>
                 <div style="display:flex;gap:10px;">
-                  <div class="txn-cat out" style="width:28px;height:28px;font-size:12px;"><i class="ti ti-receipt"></i></div>
-                  <div><div style="font-size:12.5px;font-weight:600;">Logistics invoice paid · ₹15,000</div><div style="font-size:11px;color:var(--ink-faint);">2 days ago</div></div>
+                  <div class="txn-cat" style="background:var(--navy-soft);color:var(--navy);width:28px;height:28px;font-size:12px;"><i class="ti ti-map-pin"></i></div>
+                  <div><div style="font-size:12.5px;font-weight:600;">Venue booked — Sharad Arena confirmed</div><div style="font-size:11px;color:var(--ink-faint);">2 days ago</div></div>
                 </div>
               </div>
             </div>
@@ -668,207 +662,6 @@ tbody tr:hover td{background:var(--paper-deep);}
           </div>
         </section>
 
-        <!-- ============ LEDGER ============ -->
-        <section class="section-panel" id="pane-ledger">
-          <div class="hero" style="border-bottom:2px solid var(--ink);">
-            <div>
-              <div class="hero-eyebrow">Operate</div>
-              <h1>The ledger</h1>
-              <p>Every rupee, dated and accounted for.</p>
-            </div>
-            <button class="btn btn-stamp" onclick="openModal('txn-modal')"><i class="ti ti-plus"></i> Log transaction</button>
-          </div>
-
-          <div class="ledger-summary">
-            <div class="ledger-box in"><div class="lbl">Total income</div><div class="val">₹4,85,000</div></div>
-            <div class="ledger-box out"><div class="lbl">Total expenses</div><div class="val">₹1,70,000</div></div>
-            <div class="ledger-box"><div class="lbl">Balance on hand</div><div class="val" style="color:var(--navy)">₹3,15,000</div></div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title">Income vs expenses, 2026</div></div>
-            <div class="panel-body"><canvas id="ledgerChart" height="72"></canvas></div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title">Recent transactions</div></div>
-            <div class="panel-body">
-              <div class="txn-row">
-                <div class="txn-cat in"><i class="ti ti-arrow-down-left"></i></div>
-                <div class="txn-info"><div class="txn-desc">TechFest sponsorship — TCS</div><div class="txn-date">22 Aug 2026</div></div>
-                <div class="txn-amt in">+ ₹50,000</div>
-              </div>
-              <div class="txn-row">
-                <div class="txn-cat out"><i class="ti ti-arrow-up-right"></i></div>
-                <div class="txn-info"><div class="txn-desc">Auditorium booking advance</div><div class="txn-date">20 Aug 2026</div></div>
-                <div class="txn-amt out">− ₹15,000</div>
-              </div>
-              <div class="txn-row">
-                <div class="txn-cat in"><i class="ti ti-arrow-down-left"></i></div>
-                <div class="txn-info"><div class="txn-desc">Workshop ticket sales</div><div class="txn-date">18 Aug 2026</div></div>
-                <div class="txn-amt in">+ ₹12,500</div>
-              </div>
-              <div class="txn-row">
-                <div class="txn-cat out"><i class="ti ti-arrow-up-right"></i></div>
-                <div class="txn-info"><div class="txn-desc">Social media ads</div><div class="txn-date">15 Aug 2026</div></div>
-                <div class="txn-amt out">− ₹5,000</div>
-              </div>
-              <div class="txn-row">
-                <div class="txn-cat out"><i class="ti ti-arrow-up-right"></i></div>
-                <div class="txn-info"><div class="txn-desc">Pizza — core team meeting</div><div class="txn-date">10 Aug 2026</div></div>
-                <div class="txn-amt out">− ₹2,500</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ RECRUITMENT ============ -->
-        <section class="section-panel" id="pane-recruitment">
-          <div class="hero" style="border-bottom:2px solid var(--ink);">
-            <div>
-              <div class="hero-eyebrow">Operate</div>
-              <h1>Recruitment pipeline</h1>
-              <p>26 applicants across five stages.</p>
-            </div>
-            <button class="btn btn-stamp" onclick="finalizeRecruitment()"><i class="ti ti-check"></i> Finalize intake</button>
-          </div>
-
-          <div class="stat-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
-            <div class="stat-card c-navy"><div class="stat-label">Total applicants</div><div class="stat-value">26</div></div>
-            <div class="stat-card c-amber"><div class="stat-label">In pipeline</div><div class="stat-value">16</div></div>
-            <div class="stat-card c-green"><div class="stat-label">Selected</div><div class="stat-value">06</div></div>
-          </div>
-
-          <div class="kanban" id="recruitment-board">
-            <div class="kcol">
-              <div class="kcol-head">Applied <span class="count">8</span></div>
-              <div class="kcard">
-                <div class="kcard-title">John Doe</div>
-                <div class="kcard-meta"><i class="ti ti-tag"></i> Web Dev · CGPA 8.5</div>
-              </div>
-              <div class="kcard">
-                <div class="kcard-title">Aditi Sharma</div>
-                <div class="kcard-meta"><i class="ti ti-tag"></i> Design · CGPA 9.1</div>
-              </div>
-            </div>
-            <div class="kcol">
-              <div class="kcol-head">Screening <span class="count">5</span></div>
-              <div class="kcard">
-                <div class="kcard-title">Mohit Kumar</div>
-                <div class="kcard-meta"><i class="ti ti-tag"></i> Marketing · CGPA 7.8</div>
-              </div>
-            </div>
-            <div class="kcol">
-              <div class="kcol-head">Interview <span class="count">3</span></div>
-            </div>
-            <div class="kcol">
-              <div class="kcol-head">Selected <span class="count">6</span></div>
-              <div class="kcard" style="border-left:3px solid var(--green);">
-                <div class="kcard-title">Rahul Patel</div>
-                <div class="kcard-meta"><i class="ti ti-tag"></i> Backend · Python</div>
-              </div>
-            </div>
-            <div class="kcol">
-              <div class="kcol-head">Onboarded <span class="count">4</span></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ TEAM ============ -->
-        <section class="section-panel" id="pane-team">
-          <div class="hero" style="border-bottom:2px solid var(--ink);">
-            <div>
-              <div class="hero-eyebrow">People</div>
-              <h1>Team &amp; permissions</h1>
-              <p>Who holds what authority on the desk.</p>
-            </div>
-            <button class="btn btn-stamp"><i class="ti ti-user-plus"></i> Invite member</button>
-          </div>
-
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title">Club hierarchy</div></div>
-            <div class="panel-body">
-              <div class="org">
-                <div class="org-node top">
-                  <div class="avatar-sm" style="background:var(--red);">KP</div>
-                  <div class="nm">Kuldeep Patil</div><div class="rl">President</div>
-                </div>
-                <div class="org-connector"></div>
-                <div class="org-row">
-                  <div class="org-node"><div class="avatar-sm">AJ</div><div class="nm">Arnav Joshi</div><div class="rl">Tech Lead</div></div>
-                  <div class="org-node"><div class="avatar-sm">SK</div><div class="nm">Sneha Kulkarni</div><div class="rl">Design Lead</div></div>
-                  <div class="org-node"><div class="avatar-sm">RM</div><div class="nm">Rohan Mehta</div><div class="rl">Marketing Lead</div></div>
-                </div>
-                <div class="org-connector"></div>
-                <div class="org-row">
-                  <div class="org-node" style="min-width:120px;"><div class="nm">4 Secretaries</div></div>
-                  <div class="org-node" style="min-width:120px;"><div class="nm">6 Coordinators</div></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="team-grid">
-            <div class="team-card" onclick="openPermissions('Arnav Joshi')">
-              <div class="avatar-md" style="background:var(--navy);">AJ</div>
-              <div><div style="font-size:13px;font-weight:700;">Arnav Joshi</div><div style="font-size:11px;color:var(--ink-faint);">Tech Lead</div></div>
-              <span class="badge-active">Active</span>
-            </div>
-            <div class="team-card" onclick="openPermissions('Sneha Kulkarni')">
-              <div class="avatar-md" style="background:var(--amber);">SK</div>
-              <div><div style="font-size:13px;font-weight:700;">Sneha Kulkarni</div><div style="font-size:11px;color:var(--ink-faint);">Design Lead</div></div>
-              <span class="badge-active">Active</span>
-            </div>
-            <div class="team-card" onclick="openPermissions('Rohan Mehta')">
-              <div class="avatar-md" style="background:var(--green);">RM</div>
-              <div><div style="font-size:13px;font-weight:700;">Rohan Mehta</div><div style="font-size:11px;color:var(--ink-faint);">Marketing Lead</div></div>
-              <span class="badge-active">Active</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ REPORTS ============ -->
-        <section class="section-panel" id="pane-reports">
-          <div class="hero" style="border-bottom:2px solid var(--ink);">
-            <div>
-              <div class="hero-eyebrow">People</div>
-              <h1>Progress reports</h1>
-              <p>Weekly notes from your leads, filed for the record.</p>
-            </div>
-            <button class="btn btn-ghost"><i class="ti ti-filter"></i> Filter</button>
-          </div>
-
-          <div class="report-card">
-            <div class="report-top">
-              <div class="report-who">
-                <div class="avatar-md" style="background:var(--navy);width:34px;height:34px;font-size:12px;">AJ</div>
-                <div><div style="font-size:13px;font-weight:700;">Arnav Joshi</div><div style="font-size:11px;color:var(--ink-faint);">Tech Lead</div></div>
-              </div>
-              <span style="font-size:11px;color:var(--ink-faint);">Today, 10:30 AM</span>
-            </div>
-            <div class="report-body">Completed the frontend integration for the TechFest landing page. Facing some issues with the payment gateway webhook — working on it with the backend team.</div>
-            <div class="report-foot">
-              <div style="display:flex;gap:6px;"><span class="pill done">4 done</span><span class="pill pend">1 pending</span></div>
-              <span style="font-size:11px;color:var(--navy);font-weight:600;">Viewed ✓✓</span>
-            </div>
-          </div>
-
-          <div class="report-card">
-            <div class="report-top">
-              <div class="report-who">
-                <div class="avatar-md" style="background:var(--amber);width:34px;height:34px;font-size:12px;">SK</div>
-                <div><div style="font-size:13px;font-weight:700;">Sneha Kulkarni</div><div style="font-size:11px;color:var(--ink-faint);">Design Lead</div></div>
-              </div>
-              <span style="font-size:11px;color:var(--ink-faint);">Yesterday, 4:15 PM</span>
-            </div>
-            <div class="report-body">Finalized social media posters for the Web3 workshop. All assets handed to Marketing. Starting design for the upcoming hackathon ID cards.</div>
-            <div class="report-foot">
-              <div style="display:flex;gap:6px;"><span class="pill done">3 done</span></div>
-              <span style="font-size:11px;color:var(--navy);font-weight:600;">Viewed ✓✓</span>
-            </div>
-          </div>
-        </section>
-
       </div>
     </div>
   </main>
@@ -916,74 +709,25 @@ tbody tr:hover td{background:var(--paper-deep);}
   </div>
 </div>
 
-<!-- TXN MODAL -->
-<div class="modal-overlay" id="txn-modal">
-  <div class="modal-box" style="width:420px;">
-    <div class="modal-head"><h3>Log transaction</h3><button class="modal-close" onclick="closeModal('txn-modal')"><i class="ti ti-x"></i></button></div>
-    <div class="modal-body">
-      <div class="chip-row" style="margin-bottom:14px;">
-        <span class="chip active">Income</span><span class="chip">Expense</span>
-      </div>
-      <div class="form-group"><label class="form-label">Description</label><input class="form-control" placeholder="e.g. Sponsorship from XYZ"></div>
-      <div class="form-group"><label class="form-label">Amount (₹)</label><input class="form-control" placeholder="10000"></div>
-      <div class="form-group"><label class="form-label">Category</label>
-        <select class="form-control"><option>Sponsorship</option><option>Ticket sales</option><option>Logistics</option><option>Marketing</option><option>Refreshments</option></select>
-      </div>
-    </div>
-    <div class="modal-foot" style="justify-content:flex-end;">
-      <button class="btn btn-stamp" onclick="closeModal('txn-modal');toast('Transaction logged')">Save entry</button>
-    </div>
-  </div>
-</div>
-
-<!-- PERMISSIONS MODAL -->
-<div class="modal-overlay" id="perm-modal">
-  <div class="modal-box" style="width:400px;">
-    <div class="modal-head"><h3 id="perm-name">Permissions</h3><button class="modal-close" onclick="closeModal('perm-modal')"><i class="ti ti-x"></i></button></div>
-    <div class="modal-body" style="display:flex;flex-direction:column;gap:0;">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);">
-        <span style="font-size:13px;">Can create events</span>
-        <input type="checkbox" checked>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);">
-        <span style="font-size:13px;">Can approve budget</span>
-        <input type="checkbox">
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);">
-        <span style="font-size:13px;">Can manage team</span>
-        <input type="checkbox">
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;">
-        <span style="font-size:13px;">Can post announcements</span>
-        <input type="checkbox" checked>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost" onclick="closeModal('perm-modal')">Cancel</button>
-      <button class="btn btn-stamp" onclick="closeModal('perm-modal');toast('Permissions updated')">Save changes</button>
-    </div>
-  </div>
-</div>
-
 <div class="toast-container" id="toast-container"></div>
 
 <script>
 // ===== NAV =====
 const titles = {
-  'pane-overview':'Desk Summary','pane-events':'Events','pane-ledger':'Ledger',
-  'pane-recruitment':'Recruitment','pane-team':'Team','pane-reports':'Reports'
+  'pane-overview':'Desk Summary',
+  'pane-events':'Events'
 };
 document.querySelectorAll('.nav-item[data-target]').forEach(item=>{
   item.addEventListener('click', ()=> switchPane(item.dataset.target, item));
 });
 function switchPane(id, el){
   document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const target = document.getElementById(id);
+  if(target) target.classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const navEl = el || document.querySelector(`.nav-item[data-target="${id}"]`);
   if(navEl) navEl.classList.add('active');
   document.getElementById('crumb-current').textContent = titles[id] || 'Desk';
-  if(id==='pane-ledger') setTimeout(renderLedgerChart, 50);
 }
 
 // ===== EVENT VIEW TOGGLE =====
@@ -995,12 +739,8 @@ function toggleEventView(view, btn){
 }
 
 // ===== MODALS =====
-function openModal(id){ document.getElementById(id).classList.add('active'); if(id==='event-modal') initWizard(); }
-function closeModal(id){ document.getElementById(id).classList.remove('active'); }
-function openPermissions(name){
-  document.getElementById('perm-name').textContent = name + ' — Permissions';
-  openModal('perm-modal');
-}
+function openModal(id){ const el = document.getElementById(id); if(el) { el.classList.add('active'); if(id==='event-modal') initWizard(); } }
+function closeModal(id){ const el = document.getElementById(id); if(el) el.classList.remove('active'); }
 
 // ===== WIZARD =====
 let wStep = 1;
@@ -1046,13 +786,6 @@ function toast(msg){
   setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); }, 2600);
 }
 
-function finalizeRecruitment(){
-  if(typeof confetti === 'function'){
-    confetti({ particleCount:100, spread:70, origin:{y:0.6}, colors:['#C7452C','#3D6B47','#1B2A4A','#B8791A'] });
-  }
-  toast('Recruitment finalized');
-}
-
 // chip toggles in modals
 document.addEventListener('click', e=>{
   if(e.target.classList.contains('chip')){
@@ -1062,41 +795,14 @@ document.addEventListener('click', e=>{
   }
 });
 
-// ===== SORTABLE =====
+// ===== SORTABLE & DATE =====
 document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelectorAll('.kcol').forEach(col=>{
     new Sortable(col, { group:'kanban', animation:150, ghostClass:'sortable-ghost' });
   });
-  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long', day:'numeric', month:'short'});
+  const dateEl = document.getElementById('today-date');
+  if(dateEl) dateEl.textContent = new Date().toLocaleDateString('en-US',{weekday:'long', day:'numeric', month:'short'});
 });
-
-// ===== CHART =====
-let ledgerChartInstance = null;
-function renderLedgerChart(){
-  const ctx = document.getElementById('ledgerChart');
-  if(!ctx) return;
-  if(ledgerChartInstance) ledgerChartInstance.destroy();
-  Chart.defaults.color = '#9AA1B3';
-  Chart.defaults.font.family = 'Inter, sans-serif';
-  ledgerChartInstance = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
-      datasets:[
-        { label:'Income', data:[45000,30000,80000,20000,100000,15000,120000,75000], backgroundColor:'#3D6B47', borderRadius:3 },
-        { label:'Expenses', data:[20000,15000,40000,10000,30000,5000,45000,5000], backgroundColor:'#C7452C', borderRadius:3 }
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ position:'top', align:'end', labels:{boxWidth:10,font:{size:11}} } },
-      scales:{
-        y:{ grid:{color:'#E4DDCB'}, ticks:{font:{size:10}} },
-        x:{ grid:{display:false}, ticks:{font:{size:10}} }
-      }
-    }
-  });
-}
 
 function toggleRail(){ document.getElementById('rail').classList.toggle('open'); }
 </script>

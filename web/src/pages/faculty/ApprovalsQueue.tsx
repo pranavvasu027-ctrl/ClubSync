@@ -1,455 +1,513 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { supabase } from '../../lib/supabase';
 import styles from './FacultyDashboard.module.css';
-import layoutStyles from '../../layouts/FacultyLayout.module.css';
-import { IconCheck, IconX, IconEye, IconFileText, IconAlertTriangle } from '@tabler/icons-react';
+import { 
+  IconCheck, 
+  IconX, 
+  IconFileText, 
+  IconAlertTriangle, 
+  IconCalendarEvent, 
+  IconMapPin, 
+  IconUsers,
+  IconArrowRight
+} from '@tabler/icons-react';
 import { useAuth } from '../../context/AuthContext';
+import { eventStore } from '../../services/eventStore';
+import type { EventRecord } from '../../services/eventStore';
+import SanctionNoteModal from '../../components/SanctionNoteModal';
 
 const ApprovalsQueue: React.FC = () => {
   const { profile, supervisedClubs } = useAuth();
   const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
-  const [pendingList, setPendingList] = useState<any[]>([]);
-  const [approvedList, setApprovedList] = useState<any[]>([]);
-  const [rejectedList, setRejectedList] = useState<any[]>([]);
+  const [pendingList, setPendingList] = useState<EventRecord[]>([]);
+  const [approvedList, setApprovedList] = useState<EventRecord[]>([]);
+  const [rejectedList, setRejectedList] = useState<EventRecord[]>([]);
 
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  
-  // Details for expanded view
-  const [eventBudgets, setEventBudgets] = useState<any[]>([]);
-  const [auditLog, setAuditLog] = useState<any[]>([]);
-  const [submittedBy, setSubmittedBy] = useState<string>('Unknown');
-  const [versionDetails, setVersionDetails] = useState<any>(null); // For history tabs
+  const [selectedEvent, setSelectedEvent] = useState<EventRecord | null>(null);
+  const [modalEvent, setModalEvent] = useState<EventRecord | null>(null);
 
   const [remarks, setRemarks] = useState('');
   const [actionMode, setActionMode] = useState<'none' | 'reject' | 'changes'>('none');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const isPlatformAdmin = ['owner', 'super_admin', 'platform_admin', 'admin'].includes((profile?.user_type || '').toLowerCase());
+  const isPlatformAdmin = ['owner', 'super_admin', 'platform_admin', 'admin', 'dean_admin'].some(r => (profile?.user_type || '').toLowerCase().includes(r));
 
-  const filterByPurview = useCallback((items: any[]) => {
-    if (isPlatformAdmin) return items;
-    return items.filter(item => {
-      const clubId = item?.events?.club_id;
-      return clubId && supervisedClubs.includes(clubId);
-    });
-  }, [isPlatformAdmin, supervisedClubs]);
+  const filterByPurview = useCallback((items: EventRecord[]) => {
+    const userType = (profile?.user_type || '').toLowerCase();
+    if (isPlatformAdmin || userType.includes('faculty') || userType.includes('mentor') || !supervisedClubs || supervisedClubs.length === 0) {
+      return items;
+    }
+    return items.filter(e => supervisedClubs.includes(e.club_id));
+  }, [isPlatformAdmin, profile, supervisedClubs]);
 
-  const fetchPending = useCallback(async () => {
-    const { data } = await supabase
-      .from('event_approvals')
-      .select('*, events(*)')
-      .eq('decision', 'PENDING')
-      .eq('approver_level', 'FACULTY_MENTOR');
-    if (data) setPendingList(filterByPurview(data));
-  }, [filterByPurview]);
+  const loadData = useCallback(() => {
+    const all = eventStore.getAllEvents();
+    
+    const pending = filterByPurview(all.filter(e => e.status === 'under_review' || (e.pending_version && e.pending_version.status === 'under_review')));
+    const approved = filterByPurview(all.filter(e => e.status === 'approved' || e.status === 'published' || e.status === 'live' || e.status === 'completed'));
+    const rejected = filterByPurview(all.filter(e => e.status === 'changes_requested' || e.status === 'rejected'));
 
-  const fetchApproved = useCallback(async () => {
-    const { data } = await supabase
-      .from('event_approvals')
-      .select('*, events(*)')
-      .eq('decision', 'APPROVED')
-      .eq('approver_level', 'FACULTY_MENTOR')
-      .order('decision_timestamp', { ascending: false });
-    if (data) setApprovedList(filterByPurview(data));
-  }, [filterByPurview]);
+    setPendingList(pending);
+    setApprovedList(approved);
+    setRejectedList(rejected);
 
-  const fetchRejected = useCallback(async () => {
-    const { data } = await supabase
-      .from('event_approvals')
-      .select('*, events(*)')
-      .in('decision', ['REJECTED', 'CHANGES_REQUESTED'])
-      .eq('approver_level', 'FACULTY_MENTOR')
-      .order('decision_timestamp', { ascending: false });
-    if (data) setRejectedList(filterByPurview(data));
-  }, [filterByPurview]);
+    // Auto-select first pending item if none selected
+    if (activeTab === 'pending' && pending.length > 0 && !selectedEvent) {
+      setSelectedEvent(pending[0]);
+    }
+  }, [activeTab, selectedEvent, filterByPurview]);
 
   useEffect(() => {
-    if (activeTab === 'pending') fetchPending();
-    if (activeTab === 'approved') fetchApproved();
-    if (activeTab === 'rejected') fetchRejected();
-    setSelectedEvent(null);
-    setActionMode('none');
-    setError('');
-    setSuccess('');
-  }, [activeTab, fetchPending, fetchApproved, fetchRejected]);
+    loadData();
+    eventStore.syncWithSupabase().then(() => loadData());
 
-  const fetchFullDetails = async (eventData: any) => {
-    // budgets
-    const { data: budgets } = await supabase.from('event_budgets').select('*').eq('event_id', eventData.event_id);
-    if (budgets) setEventBudgets(budgets);
+    const handleUpdate = () => {
+      loadData();
+    };
 
-    // submitter
-    const { data: creator } = await supabase.from('users').select('name').eq('user_id', eventData.created_by).single();
-    if (creator) setSubmittedBy(creator.name);
-    else setSubmittedBy('Unknown');
+    window.addEventListener('clubsync:event_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('clubsync:event_updated', handleUpdate);
+    };
+  }, [loadData]);
 
-    // audit log
-    const { data: audit } = await supabase.from('event_audit_log').select('*').eq('event_id', eventData.event_id).order('created_at', { ascending: true });
-    if (audit) setAuditLog(audit);
-  };
-
-  const handleSelectEvent = async (app: any) => {
-    setSelectedEvent(app);
+  const handleSelectEvent = (event: EventRecord) => {
+    setSelectedEvent(event);
     setActionMode('none');
     setError('');
     setSuccess('');
     setRemarks('');
-    setVersionDetails(null);
-    await fetchFullDetails(app.events);
-  };
-
-  const handleViewVersion = async (eventId: string, versionNumber: number) => {
-    const { data } = await supabase.from('event_versions').select('*').eq('event_id', eventId).eq('version_number', versionNumber).single();
-    if (data) setVersionDetails(data);
   };
 
   const handleApprove = async () => {
-    const eventClubId = selectedEvent?.events?.club_id;
-    if (!isPlatformAdmin && (!eventClubId || !supervisedClubs.includes(eventClubId))) {
-      setError('Unauthorized: You are not authorized to review events outside your supervised club purview.');
+    if (!selectedEvent) return;
+
+    // Check if event date has passed
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (selectedEvent.event_date < todayStr) {
+      setError(`Cannot sanction an event with a past date (${selectedEvent.event_date}). Please use 'Request Changes' to ask the club to reschedule.`);
+      return;
+    }
+
+    // Check venue clash before approving
+    const venueClash = eventStore.checkVenueConflict(selectedEvent.venue_name, selectedEvent.event_date, selectedEvent.event_id);
+    if (venueClash.hasConflict) {
+      setError(`Cannot sanction: ${venueClash.message}`);
       return;
     }
 
     try {
-      const { error: rpcError } = await supabase.rpc('process_event_approval', {
-        p_event_id: selectedEvent.events.event_id,
-        p_level: 'FACULTY_MENTOR',
-        p_decision: 'APPROVED',
-        p_remarks: remarks || 'Approved by Faculty Mentor'
-      });
-      if (rpcError) throw rpcError;
+      const facultyName = profile?.name || 'Dr. S. K. Kulkarni';
+      const facultyRemarks = remarks.trim() || 'Approved by Faculty Mentor. Official Sanction Granted.';
       
-      setSuccess('Event successfully approved.');
+      await eventStore.approveEvent(selectedEvent.event_id, facultyRemarks, facultyName);
+      setSuccess(`Proposal "${selectedEvent.title}" successfully sanctioned & approved!`);
       setSelectedEvent(null);
-      fetchPending();
+      setRemarks('');
+      setActionMode('none');
+      loadData();
     } catch (err: any) {
       setError(err.message || 'Error approving event');
     }
   };
 
   const handleReject = async () => {
+    if (!selectedEvent) return;
     if (actionMode !== 'reject') {
       setActionMode('reject');
       return;
     }
     
     if (!remarks.trim()) {
-      setError('Rejection reason is required.');
-      return;
-    }
-
-    const eventClubId = selectedEvent?.events?.club_id;
-    if (!isPlatformAdmin && (!eventClubId || !supervisedClubs.includes(eventClubId))) {
-      setError('Unauthorized: You are not authorized to review events outside your supervised club purview.');
+      setError('Please provide a reason for rejecting the event proposal.');
       return;
     }
 
     try {
-      const { error: rpcError } = await supabase.rpc('process_event_approval', {
-        p_event_id: selectedEvent.events.event_id,
-        p_level: 'FACULTY_MENTOR',
-        p_decision: 'REJECTED',
-        p_remarks: remarks
-      });
-      if (rpcError) throw rpcError;
-
-      setSuccess('Event successfully rejected.');
+      await eventStore.rejectEvent(selectedEvent.event_id, remarks.trim());
+      setSuccess(`Event proposal "${selectedEvent.title}" rejected.`);
       setSelectedEvent(null);
       setActionMode('none');
       setRemarks('');
-      fetchPending();
+      loadData();
     } catch (err: any) {
       setError(err.message || 'Error rejecting event');
     }
   };
 
   const handleRequestChanges = async () => {
+    if (!selectedEvent) return;
     if (actionMode !== 'changes') {
       setActionMode('changes');
       return;
     }
     
     if (!remarks.trim()) {
-      setError('Remarks are required when requesting changes.');
-      return;
-    }
-
-    const eventClubId = selectedEvent?.events?.club_id;
-    if (!isPlatformAdmin && (!eventClubId || !supervisedClubs.includes(eventClubId))) {
-      setError('Unauthorized: You are not authorized to review events outside your supervised club purview.');
+      setError('Remarks are mandatory when requesting revisions from the President.');
       return;
     }
 
     try {
-      const { error: rpcError } = await supabase.rpc('process_event_approval', {
-        p_event_id: selectedEvent.events.event_id,
-        p_level: 'FACULTY_MENTOR',
-        p_decision: 'CHANGES_REQUESTED',
-        p_remarks: remarks
-      });
-      if (rpcError) throw rpcError;
-
-      setSuccess('Changes successfully requested.');
+      await eventStore.requestChanges(selectedEvent.event_id, remarks.trim());
+      setSuccess(`Revision requested for "${selectedEvent.title}". Returned to President.`);
       setSelectedEvent(null);
       setActionMode('none');
       setRemarks('');
-      fetchPending();
+      loadData();
     } catch (err: any) {
       setError(err.message || 'Error requesting changes');
     }
   };
 
-  const renderTabButton = (tab: 'pending'|'approved'|'rejected', label: string) => (
-    <button
-      onClick={() => setActiveTab(tab)}
-      style={{
-        padding: '8px 16px',
-        border: 'none',
-        borderBottom: activeTab === tab ? '2px solid var(--fac-navy)' : '2px solid transparent',
-        background: 'transparent',
-        color: activeTab === tab ? 'var(--fac-navy)' : 'var(--fac-ink-soft)',
-        fontWeight: activeTab === tab ? 600 : 400,
-        cursor: 'pointer',
-        fontSize: 14
-      }}
-    >
-      {label}
-    </button>
-  );
+  const currentList = activeTab === 'pending' ? pendingList : activeTab === 'approved' ? approvedList : rejectedList;
 
   return (
     <>
-      <div className={layoutStyles.viewHeader}>
+      {modalEvent && (
+        <SanctionNoteModal 
+          event={modalEvent} 
+          onClose={() => setModalEvent(null)} 
+        />
+      )}
+
+      {/* Header */}
+      <div className={styles.hero}>
         <div>
-          <h1>Approvals Queue</h1>
-          <div className={layoutStyles.sub}>Review and sign off on proposals submitted by the executive committee.</div>
+          <div className={styles.heroEyebrow}>Faculty Mentor Purview</div>
+          <h1>Approvals & Sanctions Queue</h1>
+          <p>Official institutional review of event proposals submitted by Club Presidents.</p>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20, borderBottom: '1px solid var(--fac-rule)' }}>
-        {renderTabButton('pending', 'Pending')}
-        {renderTabButton('approved', 'Approved History')}
-        {renderTabButton('rejected', 'Rejected / Changes Requested')}
+      {success && (
+        <div style={{ background: 'var(--green-soft)', border: '1px solid #86efac', color: 'var(--green)', padding: '12px 16px', borderRadius: 10, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
+          <IconCheck size={18} color="var(--green)" />
+          <span>{success}</span>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ background: 'var(--red-soft)', border: '1px solid #fca5a5', color: 'var(--red)', padding: '12px 16px', borderRadius: 10, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600 }}>
+          <IconAlertTriangle size={18} color="var(--red)" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Modern Navigation Tabs (Student UI pill style) */}
+      <div style={{ display: 'flex', background: '#e9f0fb', borderRadius: 12, padding: 4, gap: 4, marginBottom: 20, width: 'fit-content' }}>
+        <button
+          onClick={() => { setActiveTab('pending'); setSelectedEvent(pendingList[0] || null); }}
+          style={{
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: 9,
+            background: activeTab === 'pending' ? 'var(--surface)' : 'transparent',
+            color: activeTab === 'pending' ? 'var(--blue)' : 'var(--muted)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: activeTab === 'pending' ? 'var(--shadow)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span>Pending Review</span>
+          <span style={{ background: 'var(--amber-soft)', color: 'var(--amber)', fontSize: 11, padding: '2px 7px', borderRadius: 999, fontWeight: 700 }}>
+            {pendingList.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('approved'); setSelectedEvent(approvedList[0] || null); }}
+          style={{
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: 9,
+            background: activeTab === 'approved' ? 'var(--surface)' : 'transparent',
+            color: activeTab === 'approved' ? 'var(--blue)' : 'var(--muted)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: activeTab === 'approved' ? 'var(--shadow)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span>Sanctioned History</span>
+          <span style={{ background: 'var(--green-soft)', color: 'var(--green)', fontSize: 11, padding: '2px 7px', borderRadius: 999, fontWeight: 700 }}>
+            {approvedList.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('rejected'); setSelectedEvent(rejectedList[0] || null); }}
+          style={{
+            padding: '8px 16px',
+            border: 'none',
+            borderRadius: 9,
+            background: activeTab === 'rejected' ? 'var(--surface)' : 'transparent',
+            color: activeTab === 'rejected' ? 'var(--blue)' : 'var(--muted)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            boxShadow: activeTab === 'rejected' ? 'var(--shadow)' : 'none',
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <span>Returned / Rejected</span>
+          <span style={{ background: 'var(--red-soft)', color: 'var(--red)', fontSize: 11, padding: '2px 7px', borderRadius: 999, fontWeight: 700 }}>
+            {rejectedList.length}
+          </span>
+        </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-        <div className={styles.panel} style={{ flex: 1 }}>
-          <div className={styles.panelTitle}>
-            {activeTab === 'pending' && 'Pending Events'}
-            {activeTab === 'approved' && 'Approved Events'}
-            {activeTab === 'rejected' && 'Rejected Events'}
-          </div>
-          
-          {activeTab === 'pending' && pendingList.length === 0 && <div style={{ color: 'var(--fac-ink-soft)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No events pending approval.</div>}
-          {activeTab === 'approved' && approvedList.length === 0 && <div style={{ color: 'var(--fac-ink-soft)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No approved history.</div>}
-          {activeTab === 'rejected' && rejectedList.length === 0 && <div style={{ color: 'var(--fac-ink-soft)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No rejected history.</div>}
+      {/* Main 2-Pane Review Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '360px minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
+        {/* Left List Pane */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {currentList.length === 0 ? (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
+              No proposals in this queue.
+            </div>
+          ) : (
+            currentList.map(ev => {
+              const isSelected = selectedEvent?.event_id === ev.event_id;
+              return (
+                <div 
+                  key={ev.event_id}
+                  onClick={() => handleSelectEvent(ev)}
+                  style={{
+                    background: isSelected ? '#f0f6ff' : 'var(--surface)',
+                    border: isSelected ? '2px solid var(--blue)' : '1px solid var(--line)',
+                    borderRadius: 12,
+                    padding: '14px 16px',
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? '0 4px 14px rgba(11,99,246,0.1)' : 'var(--shadow)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--blue)' }}>
+                      {ev.club_name || ev.club_id}
+                    </span>
+                    <span style={{ 
+                      fontSize: 10.5, 
+                      fontWeight: 600, 
+                      padding: '2px 8px', 
+                      borderRadius: 999,
+                      background: ev.status === 'under_review' ? 'var(--amber-soft)' : ev.status === 'approved' || ev.status === 'published' ? 'var(--green-soft)' : 'var(--red-soft)',
+                      color: ev.status === 'under_review' ? 'var(--amber)' : ev.status === 'approved' || ev.status === 'published' ? 'var(--green)' : 'var(--red)'
+                    }}>
+                      {ev.status === 'under_review' ? 'PENDING' : ev.status.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
 
-          {((activeTab === 'pending' && pendingList.length > 0) || 
-            (activeTab === 'approved' && approvedList.length > 0) || 
-            (activeTab === 'rejected' && rejectedList.length > 0)) && (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', fontWeight: 600, color: 'var(--fac-ink-faint)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', padding: '0 10px 10px', borderBottom: '1px solid var(--fac-rule)' }}>Proposal</th>
-                  <th style={{ textAlign: 'left', fontWeight: 600, color: 'var(--fac-ink-faint)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', padding: '0 10px 10px', borderBottom: '1px solid var(--fac-rule)' }}>Type</th>
-                  {activeTab !== 'pending' && <th style={{ textAlign: 'left', fontWeight: 600, color: 'var(--fac-ink-faint)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', padding: '0 10px 10px', borderBottom: '1px solid var(--fac-rule)' }}>Timestamp</th>}
-                  <th style={{ textAlign: 'left', fontWeight: 600, color: 'var(--fac-ink-faint)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.07em', padding: '0 10px 10px', borderBottom: '1px solid var(--fac-rule)' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(activeTab === 'pending' ? pendingList : activeTab === 'approved' ? approvedList : rejectedList).map(app => {
-                  const ev = app.events;
-                  if (!ev) return null;
-                  return (
-                    <tr key={app.approval_id} style={{ borderBottom: '1px solid var(--fac-rule)', background: selectedEvent?.approval_id === app.approval_id ? 'var(--fac-parchment-deep)' : 'transparent' }}>
-                      <td style={{ padding: '11px 10px', fontWeight: 600, color: 'var(--fac-navy)' }}>
-                        {ev.title}
-                        <div style={{ fontSize: 11, color: 'var(--fac-ink-soft)', fontWeight: 400 }}>{ev.club_name} | {new Date(ev.event_date).toLocaleDateString()}</div>
-                      </td>
-                      <td style={{ padding: '11px 10px', color: 'var(--fac-ink)' }}>{ev.event_type}</td>
-                      {activeTab !== 'pending' && <td style={{ padding: '11px 10px', color: 'var(--fac-ink-soft)' }}>{new Date(app.decision_timestamp).toLocaleDateString()}</td>}
-                      <td style={{ padding: '11px 10px' }}>
-                        <button onClick={() => handleSelectEvent(app)} className={styles.btn} style={{ background: 'var(--fac-card)', border: '1px solid var(--fac-rule)', color: 'var(--fac-ink)' }}>
-                          <IconEye size={14}/> {activeTab === 'pending' ? 'View Full Proposal' : 'Details'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  <div style={{ fontWeight: 600, fontSize: 14.5, color: 'var(--ink)', marginBottom: 6, lineHeight: 1.3 }}>
+                    {ev.title}
+                  </div>
+
+                  <div style={{ fontSize: 12, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <IconCalendarEvent size={13} /> {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD'}
+                    <span>·</span>
+                    <IconMapPin size={13} /> {ev.venue_name || 'Campus'}
+                  </div>
+
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', marginTop: 8, borderTop: '1px dashed var(--line)', paddingTop: 6 }}>
+                    <span>Capacity: {ev.expected_count} students</span>
+                    {ev.budget && <span>₹{ev.budget.expenditure?.toLocaleString()}</span>}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 
-        {selectedEvent && (
-          <div className={styles.panel} style={{ flex: 1.2 }}>
-            <div className={styles.panelTitle}>Proposal Details</div>
-            
-            {success && <div style={{ padding: 12, background: 'var(--fac-green-soft)', color: 'var(--fac-green)', borderRadius: 6, marginBottom: 16, fontSize: 13, fontWeight: 500 }}>{success}</div>}
-            {error && <div style={{ padding: 12, background: 'var(--fac-red-soft)', color: 'var(--fac-red)', borderRadius: 6, marginBottom: 16, fontSize: 13, fontWeight: 500 }}>{error}</div>}
-
-            <div style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 16, color: 'var(--fac-ink)' }}>
-              <div>
-                <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Title</strong>
-                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--fac-navy)' }}>{selectedEvent.events.title}</div>
-              </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Club</strong><div>{selectedEvent.events.club_name}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Type</strong><div>{selectedEvent.events.event_type}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Scope</strong><div>{selectedEvent.events.scope}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Target Audience</strong><div>{selectedEvent.events.target_audience}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Expected Participants</strong><div>{selectedEvent.events.expected_count}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Venue</strong><div>{selectedEvent.events.venue_name}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Date</strong><div>{new Date(selectedEvent.events.event_date).toLocaleDateString()}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Time</strong><div>{selectedEvent.events.start_time} - {selectedEvent.events.end_time}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Submitted By</strong><div>{submittedBy}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Submission Date</strong><div>{new Date(selectedEvent.events.created_at).toLocaleDateString()}</div></div>
-                <div><strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Compliance Status</strong><div>{selectedEvent.events.compliance_verified ? 'Verified' : 'Pending'}</div></div>
-              </div>
-
-              <div>
-                <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Description</strong>
-                <div style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{selectedEvent.events.description || 'N/A'}</div>
-              </div>
-
-              <div>
-                <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Objectives</strong>
-                <div style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{selectedEvent.events.objectives || 'N/A'}</div>
-              </div>
-
-              <div>
-                <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Expected Outcomes</strong>
-                <div style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{selectedEvent.events.expected_outcomes || 'N/A'}</div>
-              </div>
-
-              {selectedEvent.events.guest_details && (
-                 <div>
-                   <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Guest Details</strong>
-                   <pre style={{ whiteSpace: 'pre-wrap', marginTop: 4, fontFamily: 'inherit', fontSize: 13 }}>{typeof selectedEvent.events.guest_details === 'string' ? selectedEvent.events.guest_details : JSON.stringify(selectedEvent.events.guest_details, null, 2)}</pre>
-                 </div>
-              )}
-
-              {selectedEvent.events.resource_requirements && (
-                 <div>
-                   <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Resource Requirements</strong>
-                   <pre style={{ whiteSpace: 'pre-wrap', marginTop: 4, fontFamily: 'inherit', fontSize: 13 }}>{typeof selectedEvent.events.resource_requirements === 'string' ? selectedEvent.events.resource_requirements : JSON.stringify(selectedEvent.events.resource_requirements, null, 2)}</pre>
-                 </div>
-              )}
-
-              {eventBudgets.length > 0 && (
+        {/* Right Detail & Decision Pane */}
+        <div>
+          {selectedEvent ? (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, padding: 24, boxShadow: 'var(--shadow)' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--line)', paddingBottom: 16, marginBottom: 18 }}>
                 <div>
-                   <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase' }}>Budget Items</strong>
-                   <ul style={{ margin: 0, paddingLeft: 20 }}>
-                     {eventBudgets.map(b => (
-                       <li key={b.budget_id}>{b.category}: {b.description} - ₹{b.amount} (Max: ₹{b.max_approved_amount})</li>
-                     ))}
-                   </ul>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase', marginBottom: 4, letterSpacing: '0.04em' }}>
+                    Proposal Document & Official Sanction File
+                  </div>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 6px 0', color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+                    {selectedEvent.title}
+                  </h2>
+                  <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                    Submitted by: <strong>{selectedEvent.created_by_name || 'Club President'}</strong> ({selectedEvent.club_name || selectedEvent.club_id})
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setModalEvent(selectedEvent)}
+                  className={`${styles.btn} ${styles.btnGhost}`}
+                  title="Inspect Official Formatted Collegiate Document"
+                >
+                  <IconFileText size={16} color="var(--blue)" /> Inspect Sanction Note
+                </button>
+              </div>
+
+              {/* Event Parameters Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 18, background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid var(--line)' }}>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Type & Scope</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
+                    {selectedEvent.event_type} · {selectedEvent.scope || 'Intra-Collegiate'}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Date & Venue</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
+                    {selectedEvent.event_date ? new Date(selectedEvent.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD'} ({selectedEvent.venue_name || 'Sharad Arena'})
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Expected Attendance</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>
+                    {selectedEvent.expected_count} Delegates / Students
+                  </div>
+                </div>
+              </div>
+
+              {/* Description & NAAC Objectives */}
+              <div style={{ marginBottom: 18 }}>
+                <h4 style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--ink)', marginBottom: 6, fontWeight: 700 }}>
+                  Event Overview & Scope
+                </h4>
+                <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.5, margin: '0 0 12px 0' }}>
+                  {selectedEvent.description || 'No description provided.'}
+                </p>
+
+                {selectedEvent.objectives && (
+                  <div style={{ background: 'var(--green-soft)', border: '1px solid #bbf7d0', padding: '12px 14px', borderRadius: 9, marginBottom: 12 }}>
+                    <strong style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--green)', display: 'block', marginBottom: 3 }}>
+                      NAAC Objective / Academic Outcome:
+                    </strong>
+                    <span style={{ fontSize: 13, color: '#14532d' }}>{selectedEvent.objectives}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Tabulated Budget Ledger */}
+              {selectedEvent.budget && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <h4 style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--ink)', margin: 0, fontWeight: 700 }}>
+                      Financial Estimates & Fund Source
+                    </h4>
+                    {selectedEvent.budget.expenditure > 50000 && (
+                      <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 999, background: 'var(--amber-soft)', color: 'var(--amber)', border: '1px solid #fcd34d' }}>
+                        🏛️ High-Value Sanction (&gt; ₹50,000 · Dean Co-Signatory Rule)
+                      </span>
+                    )}
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--line)' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--line)', textAlign: 'left' }}>
+                        <th style={{ padding: '8px 12px', color: 'var(--muted)', fontWeight: 600 }}>Head</th>
+                        <th style={{ padding: '8px 12px', color: 'var(--muted)', fontWeight: 600 }}>Source / Category</th>
+                        <th style={{ padding: '8px 12px', color: 'var(--muted)', fontWeight: 600, textAlign: 'right' }}>Amount (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid var(--line)' }}>
+                        <td style={{ padding: '9px 12px' }}>Estimated Income</td>
+                        <td style={{ padding: '9px 12px', color: 'var(--muted)' }}>Delegate Fee / Sponsorships</td>
+                        <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600 }}>₹{selectedEvent.budget.income?.toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '9px 12px' }}>Sanction Expenditure</td>
+                        <td style={{ padding: '9px 12px', color: 'var(--muted)' }}>{selectedEvent.budget.source_of_funds || 'Club Fund'}</td>
+                        <td style={{ padding: '9px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--red)' }}>₹{selectedEvent.budget.expenditure?.toLocaleString()}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               )}
 
-              {/* Audit Log */}
-              {auditLog.length > 0 && (
-                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--fac-rule)' }}>
-                  <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase', marginBottom: 8, display: 'block' }}>Audit Trail</strong>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {auditLog.map(log => (
-                      <div key={log.log_id} style={{ display: 'flex', gap: 12, fontSize: 12 }}>
-                        <div style={{ color: 'var(--fac-ink-soft)', width: 120 }}>{new Date(log.created_at).toLocaleString()}</div>
-                        <div>
-                           <strong>{log.action}</strong> by {log.performer_role}
-                           {log.reason && <div style={{ color: 'var(--fac-ink-soft)' }}>Reason: {log.reason}</div>}
-                        </div>
+              {/* Faculty Decision Panel */}
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 18 }}>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>
+                  Faculty Advisor Decision & Endorsement
+                </h3>
+
+                {selectedEvent.status === 'under_review' ? (
+                  <>
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginBottom: 5 }}>
+                        Faculty Remarks / Sanction Notes (Mandatory for Revisions/Rejection):
+                      </label>
+                      <textarea
+                        value={remarks}
+                        onChange={(e) => setRemarks(e.target.value)}
+                        placeholder="e.g. Approved. Budget allocation sanctioned from Club Operating Fund. Ensure Sharad Arena reservation."
+                        rows={3}
+                        className={styles.inputField}
+                        style={{ width: '100%', resize: 'vertical' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={handleApprove}
+                        className={`${styles.btn} ${styles.btnPrimary}`}
+                        style={{ background: 'var(--green)' }}
+                      >
+                        <IconCheck size={16} /> Grant Sanction & Approve
+                      </button>
+
+                      <button
+                        onClick={handleRequestChanges}
+                        className={`${styles.btn} ${styles.btnGhost}`}
+                        style={{ border: '1px solid #f59e0b', color: '#92400e', background: 'var(--amber-soft)' }}
+                      >
+                        <IconAlertTriangle size={16} /> Request Revisions
+                      </button>
+
+                      <button
+                        onClick={handleReject}
+                        className={`${styles.btn} ${styles.btnGhost}`}
+                        style={{ border: '1px solid #f87171', color: 'var(--red)', background: 'var(--red-soft)' }}
+                      >
+                        <IconX size={16} /> Reject Proposal
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px solid var(--line)' }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                      Status: {selectedEvent.status === 'approved' ? '✅ Sanctioned & Approved by Faculty Advisor' : selectedEvent.status === 'published' ? '🚀 Sanctioned & Published by President' : selectedEvent.status.toUpperCase()}
+                    </div>
+                    {selectedEvent.faculty_remarks && (
+                      <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 5 }}>
+                        <strong>Recorded Remarks:</strong> "{selectedEvent.faculty_remarks}"
                       </div>
-                    ))}
+                    )}
+                    <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 8 }}>
+                      Sign-off: {selectedEvent.faculty_name || 'Dr. S. K. Kulkarni'} · {selectedEvent.decision_timestamp ? new Date(selectedEvent.decision_timestamp).toLocaleString() : 'Official Audit Trail'}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-
-            {/* Actions for Pending */}
-            {activeTab === 'pending' && (
-              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--fac-rule)' }}>
-                {(actionMode !== 'none' || remarks) && (
-                  <textarea 
-                    value={remarks} 
-                    onChange={(e) => setRemarks(e.target.value)}
-                    placeholder="Add remarks (Required for rejection/changes, optional for approval)"
-                    rows={3}
-                    style={{ width: '100%', padding: '8px 10px', background: 'var(--fac-parchment-deep)', border: '1px solid var(--fac-rule)', borderRadius: 6, color: 'var(--fac-ink)', fontSize: 13, marginBottom: 12, fontFamily: 'inherit' }}
-                  />
-                )}
-
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {actionMode === 'none' && (
-                    <>
-                      <button onClick={handleApprove} className={styles.btn} style={{ flex: 1, background: 'var(--fac-green-soft)', color: 'var(--fac-green)', justifyContent: 'center' }}>
-                        <IconCheck size={16}/> Approve Proposal
-                      </button>
-                      <button onClick={handleRequestChanges} className={styles.btn} style={{ flex: 1, background: '#fef08a', color: '#854d0e', justifyContent: 'center' }}>
-                        <IconAlertTriangle size={16}/> Request Changes
-                      </button>
-                      <button onClick={handleReject} className={styles.btn} style={{ flex: 1, background: 'var(--fac-red-soft)', color: 'var(--fac-red)', justifyContent: 'center' }}>
-                        <IconX size={16}/> Reject Proposal
-                      </button>
-                    </>
-                  )}
-                  {actionMode === 'reject' && (
-                    <>
-                      <button onClick={handleReject} className={styles.btn} style={{ flex: 1, background: 'var(--fac-red-soft)', color: 'var(--fac-red)', justifyContent: 'center' }}>
-                        <IconX size={16}/> Confirm Rejection
-                      </button>
-                      <button onClick={() => setActionMode('none')} className={styles.btn} style={{ background: 'var(--fac-card)', border: '1px solid var(--fac-rule)', color: 'var(--fac-ink)', justifyContent: 'center' }}>
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                  {actionMode === 'changes' && (
-                    <>
-                      <button onClick={handleRequestChanges} className={styles.btn} style={{ flex: 1, background: '#fef08a', color: '#854d0e', justifyContent: 'center' }}>
-                        <IconAlertTriangle size={16}/> Confirm Changes Requested
-                      </button>
-                      <button onClick={() => setActionMode('none')} className={styles.btn} style={{ background: 'var(--fac-card)', border: '1px solid var(--fac-rule)', color: 'var(--fac-ink)', justifyContent: 'center' }}>
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Actions for Approved/Rejected History */}
-            {activeTab !== 'pending' && (
-              <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--fac-rule)' }}>
-                <strong style={{ color: 'var(--fac-ink-faint)', fontSize: 11, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Decision Details</strong>
-                <div style={{ fontSize: 13, color: 'var(--fac-ink)' }}>
-                  <div><strong>Decision Date:</strong> {new Date(selectedEvent.decision_timestamp).toLocaleString()}</div>
-                  <div><strong>Remarks:</strong> {selectedEvent.remarks || 'None'}</div>
-                  <div><strong>Current Event Status:</strong> {selectedEvent.events.status}</div>
-                </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <button onClick={() => handleViewVersion(selectedEvent.events.event_id, selectedEvent.events.current_version || 1)} className={styles.btn} style={{ background: 'var(--fac-card)', border: '1px solid var(--fac-rule)', color: 'var(--fac-ink)' }}>
-                    <IconFileText size={16} /> View {activeTab === 'approved' ? 'Approved' : 'Reviewed'} Version
-                  </button>
-                </div>
-
-                {versionDetails && (
-                  <div style={{ marginTop: 16, padding: 12, background: 'var(--fac-parchment-deep)', borderRadius: 6, fontSize: 12 }}>
-                    <strong style={{ display: 'block', marginBottom: 8 }}>Version {versionDetails.version_number} Content:</strong>
-                    <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', margin: 0 }}>
-                      Title: {versionDetails.title}{'\n'}
-                      Description: {versionDetails.description}{'\n'}
-                      Type: {versionDetails.event_type}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+          ) : (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 14, padding: 40, textAlign: 'center', color: 'var(--muted)' }}>
+              Select a proposal from the left pane to view sanction details and grant approval.
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

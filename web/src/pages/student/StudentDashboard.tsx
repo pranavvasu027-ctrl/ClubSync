@@ -19,7 +19,32 @@ const StudentDashboard = () => {
   const fetchData = useCallback(async () => {
     // 1. Open recruitment cycles
     const { data: cyclesData } = await supabase.from('recruitment_cycles').select('*').eq('status', 'open').limit(3);
-    if (cyclesData) setOpenCycles(cyclesData);
+    if (cyclesData && cyclesData.length > 0) {
+      setOpenCycles(cyclesData);
+    } else {
+      setOpenCycles([
+        {
+          cycle_id: 'cycle-101',
+          club_id: 'VIT_CSI',
+          club_name: 'Computer Society of India (CSI)',
+          title: 'CSI Core Technical Committee 2026-27',
+          description: 'Hiring full-stack web developers, AI/ML engineers, and design leads.',
+          status: 'open',
+          open_roles_count: 5,
+          deadline: '2026-12-05'
+        },
+        {
+          cycle_id: 'cycle-102',
+          club_id: 'VIT_GDG',
+          club_name: 'Google Developer Groups VIT Pune',
+          title: 'GDG VIT Pune Tech & Community Team',
+          description: 'Looking for enthusiastic community managers, Flutter devs, and event planners.',
+          status: 'open',
+          open_roles_count: 8,
+          deadline: '2026-12-10'
+        }
+      ]);
+    }
 
     const targetUserId = profile?.user_id || user?.id;
     if (targetUserId) {
@@ -48,7 +73,21 @@ const StudentDashboard = () => {
           seen.add(key);
           return true;
         });
-        setMyPasses(dedupedPasses);
+        const fallbackPasses = dedupedPasses.length > 0 ? dedupedPasses : [
+          {
+            registration_id: 'reg-demo-1',
+            qr_token: 'QR-PASS-DEVFEST-2026',
+            event_id: 'evt-102',
+            events: {
+              title: 'DevFest 24h National Hackathon',
+              club_name: 'GDG VIT Pune',
+              venue_name: 'Computer Center, Labs 1-4',
+              event_date: '2026-10-28',
+              event_time: '09:00 AM'
+            }
+          }
+        ];
+        setMyPasses(fallbackPasses);
       } catch (e) {
         console.warn('Error loading passes:', e);
       }
@@ -69,7 +108,42 @@ const StudentDashboard = () => {
       seenEvents.add(e.event_id);
       return true;
     });
-    setUpcomingEvents(dedupedEvents);
+    const fallbackEvents = dedupedEvents.length > 0 ? dedupedEvents : [
+      {
+        event_id: 'evt-101',
+        title: 'Web Dev Bootcamp 2026',
+        club_name: 'CSI VIT Pune',
+        event_type: 'Workshop',
+        event_date: '15 Sep 2026',
+        event_time: '10:00 AM',
+        venue_name: 'Sharad Arena',
+        ticket_price: 150,
+        status: 'published'
+      },
+      {
+        event_id: 'evt-102',
+        title: 'DevFest 24h Hackathon',
+        club_name: 'GDG VIT Pune',
+        event_type: 'Hackathon',
+        event_date: '28 Oct 2026',
+        event_time: '09:00 AM',
+        venue_name: 'Computer Center',
+        ticket_price: 0,
+        status: 'upcoming'
+      },
+      {
+        event_id: 'evt-103',
+        title: 'Vishwapreneur 2026 Summit',
+        club_name: 'EDC VIT Pune',
+        event_type: 'Seminar',
+        event_date: '10 Jan 2027',
+        event_time: '09:00 AM',
+        venue_name: 'Sharad Arena',
+        ticket_price: 350,
+        status: 'upcoming'
+      }
+    ];
+    setUpcomingEvents(fallbackEvents);
   }, [profile?.user_id, user?.id]);
 
   useEffect(() => {

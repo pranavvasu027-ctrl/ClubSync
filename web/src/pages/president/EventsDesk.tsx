@@ -1,258 +1,436 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import styles from './PresidentDashboard.module.css';
-import { IconCalendarEvent, IconMapPin, IconUsers, IconLayoutGrid, IconLayoutKanban, IconPlus } from '@tabler/icons-react';
+import { 
+  IconCalendarEvent, 
+  IconMapPin, 
+  IconUsers, 
+  IconLayoutGrid, 
+  IconLayoutKanban, 
+  IconPlus, 
+  IconFileText, 
+  IconCheck,
+  IconQrcode,
+  IconReceipt2
+} from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-
-type EventData = {
-  event_id: string;
-  title: string;
-  event_date: string;
-  venue_name: string;
-  expected_count: number;
-  status: string;
-  [key: string]: any;
-};
+import { eventStore } from '../../services/eventStore';
+import type { EventRecord } from '../../services/eventStore';
+import SanctionNoteModal from '../../components/SanctionNoteModal';
+import GateScannerModal from '../../components/GateScannerModal';
+import SettlementModal from '../../components/SettlementModal';
 
 const EventsDesk: React.FC = () => {
   const { club } = useAuth();
-  const [events, setEvents] = useState<EventData[]>([]);
+  const [events, setEvents] = useState<EventRecord[]>([]);
   const [view, setView] = useState<'cards' | 'kanban'>('kanban');
+  const [selectedNoteEvent, setSelectedNoteEvent] = useState<EventRecord | null>(null);
+  const [scannerEvent, setScannerEvent] = useState<EventRecord | null>(null);
+  const [settlementEvent, setSettlementEvent] = useState<EventRecord | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const loadEvents = () => {
+    const list = eventStore.getAllEvents();
+    setEvents(list);
+  };
+
   useEffect(() => {
-    if (club?.club_id) {
-      fetchEvents();
-    }
+    loadEvents();
+    eventStore.syncWithSupabase().then(() => loadEvents());
+
+    const handleUpdate = () => {
+      loadEvents();
+    };
+
+    window.addEventListener('clubsync:event_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('clubsync:event_updated', handleUpdate);
+    };
   }, [club]);
 
-  const fetchEvents = async () => {
-    const clubId = club?.club_id || 'VIT_EDC';
-    let { data, error } = await supabase.from('events')
-      .select('*')
-      .eq('club_id', clubId)
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: false });
+  const showToast = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 4000);
+  };
 
-    if (error) {
-      // Fallback if is_deleted column is not present
-      const retry = await supabase.from('events')
-        .select('*')
-        .eq('club_id', clubId)
-        .order('created_at', { ascending: false });
-      data = retry.data;
-    }
-      
-    const localEvents = JSON.parse(localStorage.getItem('clubsync_demo_events') || '[]');
-    const combined = [...localEvents, ...(data || [])];
-    const seen = new Set();
-    const dedupedData = combined.filter(e => {
-      if (!e || !e.event_id || seen.has(e.event_id)) return false;
-      seen.add(e.event_id);
-      return true;
-    });
-    setEvents(dedupedData);
-
-    if (data) {
-      // Fetch latest remarks for changes_requested or rejected events
-      const targetIds = data.filter(e => e.status === 'changes_requested' || e.status === 'rejected').map(e => e.event_id);
-      
-      let remarksMap: Record<string, string> = {};
-      if (targetIds.length > 0) {
-        const { data: auditData } = await supabase.from('event_audit_log')
-          .select('event_id, reason, created_at')
-          .in('event_id', targetIds)
-          .in('new_status', ['changes_requested', 'rejected'])
-          .order('created_at', { ascending: false });
-          
-        if (auditData) {
-          auditData.forEach(log => {
-            if (!remarksMap[log.event_id] && log.reason) {
-              remarksMap[log.event_id] = log.reason;
-            }
-          });
-        }
-      }
-
-      const enriched = data.map(e => ({
-        ...e,
-        remarks: remarksMap[e.event_id] || ''
-      }));
-      setEvents(enriched);
+  const handlePublish = async (eventId: string, title: string) => {
+    const published = await eventStore.publishEvent(eventId);
+    if (published) {
+      showToast(`🚀 "${title}" is now PUBLISHED and live on the Student Portal!`);
+      loadEvents();
+    } else {
+      showToast(`⚠️ Cannot publish: Event must be faculty-sanctioned and date must not be in the past.`);
     }
   };
 
   const submitForApproval = async (eventId: string) => {
-    try {
-      const { error } = await supabase.rpc('submit_event_for_approval', { p_event_id: eventId });
-      if (error) throw error;
-      alert('Event submitted for approval!');
-      fetchEvents();
-    } catch (err: any) {
-      await supabase.from('events').update({ status: 'under_review' }).eq('event_id', eventId);
-      alert('Event submitted for approval!');
-      fetchEvents();
-    }
+    await eventStore.updateEvent(eventId, {}, true);
+    showToast('Event submitted for Faculty Review & Sanction!');
+    loadEvents();
   };
-
-  const completeEvent = async (eventId: string) => {
-    try {
-      const { error } = await supabase.rpc('complete_event', { p_event_id: eventId });
-      if (error) throw error;
-      alert('Event marked as completed!');
-      fetchEvents();
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
-    }
-  };
-
-  if (!club?.club_id) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center' }}>
-        <h2>No club assigned</h2>
-      </div>
-    );
-  }
 
   const columns = [
     { id: 'draft', title: 'Draft' },
+    { id: 'under_review', title: 'Faculty Review Queue' },
     { id: 'changes_requested', title: 'Changes Requested' },
-    { id: 'under_review', title: 'In Approval Queue' },
-    { id: 'approved', title: 'Approved (Setup)' },
-    { id: 'published', title: 'Published / Open' },
-    { id: 'live', title: 'Live Event Day' },
-    { id: 'rejected', title: 'Rejected' },
+    { id: 'approved', title: 'Approved (Ready to Publish)' },
+    { id: 'published', title: 'Published / Live' },
     { id: 'completed', title: 'Completed / Past' },
   ];
 
-  const renderActions = (ev: EventData) => {
-    switch (ev.status) {
-      case 'draft':
-        return (
-          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-            <button onClick={() => navigate(`/president/events/new?edit=${ev.event_id}`)} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-rule)', background: 'var(--pres-paper)' }}>Edit</button>
-            <button onClick={() => submitForApproval(ev.event_id)} style={{ flex: 2, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'var(--pres-ink)', color: 'white' }}>Submit for Approval</button>
+  const renderActions = (ev: EventRecord) => {
+    return (
+      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {/* Sanction Note Document Action */}
+        <button
+          onClick={() => setSelectedNoteEvent(ev)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '6px 10px',
+            fontSize: 12,
+            fontWeight: 600,
+            borderRadius: 8,
+            border: '1px solid var(--line)',
+            background: 'var(--soft)',
+            color: 'var(--ink)',
+            cursor: 'pointer',
+            transition: 'background 0.15s ease'
+          }}
+          title="Inspect Official Collegiate Sanction Note"
+        >
+          <IconFileText size={14} color="var(--blue)" /> View Sanction Note
+        </button>
+
+        {ev.status === 'draft' && (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button 
+              onClick={() => navigate(`/president/new-event?edit=${ev.event_id}`)} 
+              style={{ flex: 1, padding: '6px 10px', fontSize: 12, cursor: 'pointer', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface)', color: 'var(--ink)' }}
+            >
+              Edit
+            </button>
+            <button 
+              onClick={() => submitForApproval(ev.event_id)} 
+              style={{ flex: 2, padding: '6px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderRadius: 8, border: 'none', background: 'var(--blue)', color: 'white' }}
+            >
+              Submit for Sanction
+            </button>
           </div>
-        );
-      case 'changes_requested':
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
-            {ev.remarks && (
-              <div style={{ fontSize: 11, background: '#fef9c3', color: '#854d0e', padding: '6px 8px', borderRadius: 4, border: '1px solid #fde047' }}>
-                <strong>Faculty Remarks:</strong> {ev.remarks}
+        )}
+
+        {ev.status === 'under_review' && (
+          <div style={{ background: 'var(--amber-soft)', border: '1px solid #fde68a', borderRadius: 8, padding: '7px 10px', fontSize: 11.5, color: '#92400e' }}>
+            ⏳ <strong>Pending Faculty Sanction</strong>
+            <div style={{ fontSize: 10.5, color: '#b45309', marginTop: 2 }}>Faculty Advisor reviewing budget & objectives</div>
+          </div>
+        )}
+
+        {ev.status === 'changes_requested' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11.5, background: 'var(--amber-soft)', color: '#854d0e', padding: '7px 10px', borderRadius: 8, border: '1px solid #fde047' }}>
+              <strong>Faculty Remarks:</strong> {ev.faculty_remarks || 'Revisions requested by faculty mentor.'}
+            </div>
+            <button 
+              onClick={() => navigate(`/president/new-event?edit=${ev.event_id}`)} 
+              style={{ padding: '7px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderRadius: 8, border: '1px solid #f59e0b', background: '#fef3c7', color: '#92400e' }}
+            >
+              ✏️ Edit & Resubmit Proposal
+            </button>
+          </div>
+        )}
+
+        {ev.status === 'approved' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ background: 'var(--green-soft)', border: '1px solid #bbf7d0', borderRadius: 8, padding: '7px 10px', fontSize: 11.5, color: 'var(--green)' }}>
+              ✅ <strong>Sanction Approved!</strong>
+              {ev.faculty_remarks && <div style={{ fontSize: 10.5, marginTop: 2 }}>"{ev.faculty_remarks}"</div>}
+            </div>
+            <button 
+              onClick={() => handlePublish(ev.event_id, ev.title)}
+              style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '8px 12px', 
+                fontSize: 12.5, 
+                fontWeight: 600, 
+                cursor: 'pointer', 
+                borderRadius: 8, 
+                border: 'none', 
+                background: 'var(--blue)', 
+                color: 'white',
+                boxShadow: '0 2px 6px rgba(11, 99, 246, 0.25)'
+              }}
+            >
+              🚀 Publish Event to Students
+            </button>
+          </div>
+        )}
+
+        {(ev.status === 'published' || ev.status === 'live') && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 11.5, padding: '6px 10px', background: 'var(--green-soft)', color: 'var(--green)', border: '1px solid #bbf7d0', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <IconCheck size={14} color="var(--green)" /> Live on Student Portal
+            </div>
+            {ev.pending_version && (
+              <div style={{ fontSize: 10.5, padding: '4px 8px', background: 'var(--amber-soft)', color: '#b45309', border: '1px solid #fde68a', borderRadius: 6 }}>
+                ℹ️ Revision Under Review
               </div>
             )}
-            <button onClick={() => navigate(`/president/events/new?edit=${ev.event_id}`)} style={{ padding: '6px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-rule)', background: 'var(--pres-paper)' }}>Edit & Resubmit</button>
+            <button
+              onClick={() => setScannerEvent(ev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '7px 10px',
+                fontSize: 12,
+                fontWeight: 600,
+                borderRadius: 8,
+                border: 'none',
+                background: 'var(--ink)',
+                color: '#fff',
+                cursor: 'pointer'
+              }}
+              title="Launch Live Door QR Gate Scanner"
+            >
+              <IconQrcode size={14} /> ⚡ Live Gate Scanner
+            </button>
+            <button
+              onClick={() => setSettlementEvent(ev)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '6px 10px',
+                fontSize: 11.5,
+                fontWeight: 600,
+                borderRadius: 8,
+                border: '1px solid var(--line)',
+                background: 'var(--surface)',
+                color: 'var(--ink)',
+                cursor: 'pointer'
+              }}
+              title="Post-Event Bill Settlement & Audit"
+            >
+              <IconReceipt2 size={14} /> Settle Financial Expenses
+            </button>
           </div>
-        );
-      case 'rejected':
-        return (
-          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ fontSize: 11, padding: '4px 8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 4, display: 'inline-block', width: 'fit-content' }}>Rejected</span>
-            {ev.remarks && (
-              <div style={{ fontSize: 11, color: '#7f1d1d' }}>
-                <strong>Reason:</strong> {ev.remarks}
+        )}
+
+        {ev.status === 'completed' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 11.5, padding: '5px 10px', background: '#f1f5f9', color: '#334155', border: '1px solid var(--line)', borderRadius: 8, display: 'inline-block', fontWeight: 600 }}>
+              ✅ COMPLETED & SETTLED
+            </span>
+            {ev.settlement && (
+              <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 600 }}>
+                Audited: ₹{ev.settlement.actual_expenditure.toLocaleString()} ({ev.settlement.invoices_count} bills)
               </div>
             )}
           </div>
-        );
-      case 'under_review':
-        return (
-          <div style={{ marginTop: 10 }}>
-            <span style={{ fontSize: 11, padding: '4px 8px', background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 4, display: 'inline-block' }}>In Multi-tier Review</span>
+        )}
+
+        {ev.status === 'rejected' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 11.5, padding: '5px 10px', background: 'var(--red-soft)', color: 'var(--red)', border: '1px solid #fecaca', borderRadius: 8, display: 'inline-block', fontWeight: 600 }}>
+              Proposal Rejected
+            </span>
+            {ev.faculty_remarks && (
+              <div style={{ fontSize: 11, color: 'var(--red)' }}>
+                <strong>Reason:</strong> {ev.faculty_remarks}
+              </div>
+            )}
           </div>
-        );
-      case 'approved':
-        return (
-          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-            <button onClick={async () => {
-              try {
-                const { error } = await supabase.rpc('publish_event', { p_event_id: ev.event_id });
-                if (error) throw error;
-                alert('Event Published! Registrations are now open.');
-                fetchEvents();
-              } catch(err: any) {
-                await supabase.from('events').update({ status: 'published' }).eq('event_id', ev.event_id);
-                alert('Event Published! Registrations are now open.');
-                fetchEvents();
-              }
-            }} style={{ flex: 1, padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: 'none', background: 'var(--pres-green)', color: 'white' }}>Publish Event</button>
-          </div>
-        );
-      case 'published':
-        return (
-          <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
-            <span style={{ fontSize: 11, padding: '4px 8px', background: '#dbeafe', color: '#1e40af', border: '1px solid #93c5fd', borderRadius: 4, display: 'inline-block' }}>✓ Published — Registrations Open</span>
-          </div>
-        );
-      case 'live':
-        return (
-          <div style={{ marginTop: 10 }}>
-            <button onClick={() => completeEvent(ev.event_id)} style={{ padding: '4px 8px', fontSize: 11, cursor: 'pointer', borderRadius: 4, border: '1px solid var(--pres-green)', background: 'var(--pres-green-soft)', color: 'var(--pres-green)', width: '100%' }}>Mark Completed</button>
-          </div>
-        );
-      case 'completed':
-      case 'settled':
-        return (
-          <div style={{ marginTop: 10 }}>
-            <span style={{ fontSize: 11, padding: '4px 8px', background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 4, display: 'inline-block' }}>{ev.status.toUpperCase()}</span>
-          </div>
-        );
-      default:
-        return null;
-    }
+        )}
+      </div>
+    );
   };
 
   return (
     <>
-      <div className={styles.hero} style={{ borderBottom: '2px solid var(--pres-ink)' }}>
-        <div>
-          <div className={styles.heroEyebrow}>Operate</div>
-          <h1>Events desk</h1>
-          <p>Every proposal, live run, and archive — one paper trail.</p>
+      {/* Toast Notification */}
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: 20,
+          right: 20,
+          background: 'var(--ink)',
+          color: '#ffffff',
+          padding: '12px 18px',
+          borderRadius: 10,
+          fontSize: 13,
+          fontWeight: 600,
+          zIndex: 9999,
+          boxShadow: '0 8px 24px rgba(10,20,49,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10
+        }}>
+          <span>{notification}</span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ display: 'flex', background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', borderRadius: 8, padding: 3, gap: 2 }}>
+      )}
+
+      {/* Sanction Note Document Modal */}
+      {selectedNoteEvent && (
+        <SanctionNoteModal 
+          event={selectedNoteEvent} 
+          onClose={() => setSelectedNoteEvent(null)} 
+        />
+      )}
+
+      {/* Live Gate Scanner Modal */}
+      {scannerEvent && (
+        <GateScannerModal
+          event={scannerEvent}
+          onClose={() => setScannerEvent(null)}
+        />
+      )}
+
+      {/* Financial Settlement Modal */}
+      {settlementEvent && (
+        <SettlementModal
+          event={settlementEvent}
+          onClose={() => setSettlementEvent(null)}
+          onSettled={() => {
+            showToast('✅ Financial settlement audited and event marked completed!');
+            loadEvents();
+          }}
+        />
+      )}
+
+      {/* Hero Bar */}
+      <div className={styles.hero}>
+        <div>
+          <div className={styles.heroEyebrow}>President Event Desk</div>
+          <h1>Events Cycle Desk</h1>
+          <p>Every sanction note, faculty sign-off, and student release in one place.</p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {/* View Toggle */}
+          <div style={{ display: 'flex', background: '#e9f0fb', borderRadius: 10, padding: 3, gap: 2 }}>
             <button 
               onClick={() => setView('cards')}
-              style={{ border: 'none', background: view === 'cards' ? 'var(--pres-card)' : 'none', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, color: view === 'cards' ? 'var(--pres-ink)' : 'var(--pres-ink-soft)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: view === 'cards' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+              style={{ 
+                border: 'none', 
+                background: view === 'cards' ? 'var(--surface)' : 'transparent', 
+                padding: '6px 12px', 
+                borderRadius: 8, 
+                fontSize: 12.5, 
+                fontWeight: 600, 
+                color: view === 'cards' ? 'var(--blue)' : 'var(--muted)', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 5,
+                boxShadow: view === 'cards' ? 'var(--shadow)' : 'none'
+              }}
             >
-              <IconLayoutGrid size={14}/> Cards
+              <IconLayoutGrid size={15}/> Cards
             </button>
-            <button onClick={() => setView('kanban')} style={{ border: 'none', background: view === 'kanban' ? 'var(--pres-card)' : 'none', padding: '6px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, color: view === 'kanban' ? 'var(--pres-ink)' : 'var(--pres-ink-soft)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: view === 'kanban' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
-              <IconLayoutKanban size={14}/> Board
+            <button 
+              onClick={() => setView('kanban')} 
+              style={{ 
+                border: 'none', 
+                background: view === 'kanban' ? 'var(--surface)' : 'transparent', 
+                padding: '6px 12px', 
+                borderRadius: 8, 
+                fontSize: 12.5, 
+                fontWeight: 600, 
+                color: view === 'kanban' ? 'var(--blue)' : 'var(--muted)', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 5,
+                boxShadow: view === 'kanban' ? 'var(--shadow)' : 'none'
+              }}
+            >
+              <IconLayoutKanban size={15}/> Board
             </button>
           </div>
-          <button onClick={() => navigate('/president/events/new')} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 15px', borderRadius: 7, fontSize: 12.5, fontWeight: 600, border: '1px solid transparent', cursor: 'pointer', background: 'var(--pres-red)', color: '#fff', boxShadow: '0 2px 0 #9C3620' }}>
-            <IconPlus size={16}/> New event
+
+          <button 
+            onClick={() => navigate('/president/new-event')} 
+            className={`${styles.btn} ${styles.btnPrimary}`}
+          >
+            <IconPlus size={16}/> New Proposal
           </button>
         </div>
       </div>
 
+      {/* Kanban Board View */}
       {view === 'kanban' && (
-        <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 20 }}>
           {columns.map(col => {
             const colEvents = events.filter(e => {
-              if (col.id === 'completed') return e.status === 'completed' || e.status === 'settled';
+              if (col.id === 'completed') return e.status === 'completed';
               return e.status === col.id;
             });
             return (
-              <div key={col.id} style={{ flex: '0 0 250px', background: 'var(--pres-paper-deep)', border: '1px solid var(--pres-rule)', borderRadius: 9, padding: 12, display: 'flex', flexDirection: 'column', minHeight: 400 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, marginBottom: 10, padding: '0 2px' }}>
-                  {col.title} <span style={{ background: 'var(--pres-card)', border: '1px solid var(--pres-rule-strong)', borderRadius: 10, padding: '1px 7px', fontSize: 10.5, color: 'var(--pres-ink-soft)' }}>{colEvents.length}</span>
+              <div 
+                key={col.id} 
+                style={{ 
+                  flex: '0 0 280px', 
+                  background: '#f8fafc', 
+                  border: '1px solid var(--line)', 
+                  borderRadius: 14, 
+                  padding: 14, 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  minHeight: 480 
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, fontWeight: 700, marginBottom: 12, padding: '0 2px', color: 'var(--ink)' }}>
+                  {col.title} 
+                  <span style={{ background: 'var(--blue-soft)', color: 'var(--blue)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+                    {colEvents.length}
+                  </span>
                 </div>
                 
                 <div style={{ flex: 1, minHeight: 50 }}>
-                  {colEvents.map(ev => (
-                    <div key={ev.event_id} style={{ background: 'var(--pres-card)', border: '1px solid var(--pres-rule)', borderRadius: 7, padding: '11px 12px', marginBottom: 9, fontSize: 12.5, boxShadow: 'var(--pres-shadow-card)' }}>
-                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{ev.title}</div>
-                      <div style={{ fontSize: 10.5, color: 'var(--pres-ink-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <IconCalendarEvent size={12}/> {ev.event_date && !isNaN(new Date(ev.event_date).getTime()) ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'Date TBD'}
-                      </div>
-                      {renderActions(ev)}
+                  {colEvents.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--muted)', fontSize: 12 }}>
+                      No events in this stage
                     </div>
-                  ))}
+                  ) : (
+                    colEvents.map(ev => (
+                      <div 
+                        key={ev.event_id} 
+                        style={{ 
+                          background: 'var(--surface)', 
+                          border: '1px solid var(--line)', 
+                          borderRadius: 12, 
+                          padding: 14, 
+                          marginBottom: 10, 
+                          boxShadow: 'var(--shadow)' 
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 6 }}>
+                          <span style={{ fontWeight: 600, color: 'var(--ink)', fontSize: 13.5, lineHeight: 1.3 }}>{ev.title}</span>
+                          <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 999, background: 'var(--soft)', color: 'var(--muted)', fontWeight: 600 }}>
+                            v{ev.current_version || 1}.0
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                          <IconCalendarEvent size={13}/> {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Date TBD'} · {ev.venue_name || 'Campus'}
+                        </div>
+                        {ev.budget && ev.budget.expenditure > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>
+                            Budget: ₹{ev.budget.expenditure.toLocaleString()} ({ev.budget.source_of_funds || 'Club Fund'})
+                          </div>
+                        )}
+                        {renderActions(ev)}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             );
@@ -260,23 +438,26 @@ const EventsDesk: React.FC = () => {
         </div>
       )}
 
+      {/* Cards View */}
       {view === 'cards' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '16px' }}>
           {events.map(ev => {
-            let statusClass = '';
-            if (ev.status === 'live') statusClass = styles.stLive;
-            if (ev.status === 'under_review') statusClass = styles.stPending;
-            if (ev.status === 'draft') statusClass = styles.stDraft;
-            if (ev.status === 'changes_requested') statusClass = styles.stDraft;
-
             return (
-              <div key={ev.event_id} className={`${styles.eventCard} ${statusClass}`}>
-                <span className={`${styles.stamp} ${statusClass}`}>{ev.status}</span>
-                <div className={styles.eventTitle}>{ev.title}</div>
-                <div className={styles.eventMeta}>
-                  <span><IconCalendarEvent size={14}/> {ev.event_date && !isNaN(new Date(ev.event_date).getTime()) ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'Date TBD'}</span>
+              <div key={ev.event_id} className={styles.eventCard}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span className={`${styles.pillBadge} ${styles[ev.status] || styles.draft}`}>
+                    {ev.status.replace('_', ' ')}
+                  </span>
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>v{ev.current_version || 1}.0</span>
+                </div>
+                <div className={styles.eventTitle} style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>{ev.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 12, lineHeight: 1.45 }}>
+                  {ev.description?.slice(0, 110)}{ev.description?.length > 110 ? '...' : ''}
+                </div>
+                <div className={styles.eventMeta} style={{ fontSize: 12, marginBottom: 12 }}>
+                  <span><IconCalendarEvent size={14}/> {ev.event_date ? new Date(ev.event_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD'}</span>
                   <span><IconMapPin size={14}/> {ev.venue_name || 'TBD'}</span>
-                  <span><IconUsers size={14}/> {ev.expected_count || 0}</span>
+                  <span><IconUsers size={14}/> {ev.expected_count || 0} Capacity</span>
                 </div>
                 {renderActions(ev)}
               </div>

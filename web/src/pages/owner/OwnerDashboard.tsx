@@ -26,15 +26,15 @@ const OwnerDashboard: React.FC = () => {
       <div className={layoutStyles.viewHeader}>
         <div>
           <h1><span style={{ background: 'var(--own-accent-grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Global Analytics</span></h1>
-          <div className={layoutStyles.sub}>Platform-wide oversight across all 47 colleges</div>
+          <div className={layoutStyles.sub}>Campus-wide governance and event oversight across VIT Pune</div>
         </div>
       </div>
 
       <div className={styles.statGrid}>
         <div className={styles.stat}>
-          <div className={styles.statLabel}><IconBuilding size={16}/> Colleges onboarded</div>
-          <div className={styles.statValue}>47</div>
-          <div className={`${styles.delta} ${styles.up}`}>+3 this month</div>
+          <div className={styles.statLabel}><IconBuilding size={16}/> Institutional Campus</div>
+          <div className={styles.statValue}>VIT Pune</div>
+          <div className={`${styles.delta} ${styles.up}`}>Autonomous</div>
         </div>
         <div className={styles.stat}>
           <div className={styles.statLabel}><IconUsers size={16}/> Active users</div>

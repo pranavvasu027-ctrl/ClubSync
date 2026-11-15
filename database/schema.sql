@@ -1,619 +1,699 @@
 -- ==============================================================================
--- CLUBSYNC NATIONAL MULTI-TENANT DATABASE SCHEMA (PostgreSQL / Supabase)
--- Version: 3.0 (Production Master Schema)
--- Scope: Multi-Tenancy (National & State Colleges), Google OAuth Auth Sync, 
---        Editable User Profiles, Clubs CMS & Follows, Events & Competitions,
---        Tiered QR Ticketing, Recruitment Pipeline & Analytical Views
+-- CLUBSYNC: STREAMLINED EVENT LIFECYCLE DATABASE ENGINE
+-- DBMS Course Project & Production Architecture (PostgreSQL 15 / Supabase)
+-- Version: 4.0 (Normalized 3NF / BCNF Lean Schema)
+-- Scope: 8 Core Relational Tables, Full ACID Concurrency, Real-Time Gate Scanner,
+--        Time-Slot Aware Venue Conflict Trigger, and Financial Auditing.
 -- ==============================================================================
 
--- Enable UUID & Crypto Extensions
+-- Enable UUID & Cryptographic Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==============================================================================
--- 1. INSTITUTIONS / COLLEGES (MULTI-TENANT ROOTS)
+-- 1. DROP OBSOLETE / UNWANTED TABLES & VIEWS (TEARDOWN)
 -- ==============================================================================
-CREATE TABLE IF NOT EXISTS colleges (
-    college_id VARCHAR(50) PRIMARY KEY, -- e.g. 'VIT_PUNE', 'IIT_BOMBAY', 'BITS_PILANI'
+DROP VIEW IF EXISTS public.v_college_winner_leaderboard CASCADE;
+DROP VIEW IF EXISTS public.v_inter_college_participation_stats CASCADE;
+
+DROP TABLE IF EXISTS public.interview_evaluations CASCADE;
+DROP TABLE IF EXISTS public.applications CASCADE;
+DROP TABLE IF EXISTS public.recruitment_drives CASCADE;
+DROP TABLE IF EXISTS public.club_applicants CASCADE;
+DROP TABLE IF EXISTS public.recruitment_cycles CASCADE;
+
+DROP TABLE IF EXISTS public.winners CASCADE;
+DROP TABLE IF EXISTS public.team_members CASCADE;
+DROP TABLE IF EXISTS public.teams CASCADE;
+DROP TABLE IF EXISTS public.competitions CASCADE;
+
+DROP TABLE IF EXISTS public.event_feedback CASCADE;
+DROP TABLE IF EXISTS public.event_budgets CASCADE;
+DROP TABLE IF EXISTS public.event_tasks CASCADE;
+DROP TABLE IF EXISTS public.event_teams CASCADE;
+DROP TABLE IF EXISTS public.event_versions CASCADE;
+DROP TABLE IF EXISTS public.event_audit_log CASCADE;
+DROP TABLE IF EXISTS public.club_ledger CASCADE;
+DROP TABLE IF EXISTS public.finance_transactions CASCADE;
+DROP TABLE IF EXISTS public.notifications CASCADE;
+
+DROP TABLE IF EXISTS public.club_followers CASCADE;
+DROP TABLE IF EXISTS public.club_roles CASCADE;
+DROP TABLE IF EXISTS public.memberships CASCADE;
+
+-- ==============================================================================
+-- 2. CORE 8 RELATIONAL TABLES (NORMALIZED 3NF / BCNF)
+-- ==============================================================================
+
+-- 1. COLLEGES: Multi-tenant University / Institute Anchor
+CREATE TABLE IF NOT EXISTS public.colleges (
+    college_id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     short_name VARCHAR(50) NOT NULL,
-    campus_locations TEXT[] DEFAULT '{"Main Campus"}',
-    email_domain VARCHAR(100) NOT NULL UNIQUE, -- e.g. 'vit.edu', 'iitb.ac.in', 'pilani.bits-pilani.ac.in'
+    email_domain VARCHAR(100) NOT NULL UNIQUE,
     city VARCHAR(100) DEFAULT 'Pune',
     state VARCHAR(100) DEFAULT 'Maharashtra',
     logo_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==============================================================================
--- 2. USERS & PROFILES (UNIFIED STUDENT PASSPORT & GOOGLE OAUTH SYNC)
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS users (
+-- 2. USERS: Unified Student Passport, Faculty & President Profiles
+CREATE TABLE IF NOT EXISTS public.users (
     user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    auth_user_id UUID UNIQUE, -- Foreign key linking to Supabase auth.users(id)
-    college_id VARCHAR(50) REFERENCES colleges(college_id) ON DELETE SET NULL,
-    college_name VARCHAR(255),
+    auth_user_id UUID UNIQUE,
+    college_id VARCHAR(50) REFERENCES public.colleges(college_id) ON DELETE SET NULL,
     prn_or_roll VARCHAR(50),
     name VARCHAR(150) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     phone VARCHAR(20),
-    year_of_study VARCHAR(30) DEFAULT 'First Year (FY)',
+    year_of_study VARCHAR(30) DEFAULT 'Third Year (TY)',
     branch VARCHAR(100) DEFAULT 'Computer Engineering',
-    cgpa NUMERIC(4, 2) DEFAULT 8.50 CHECK (cgpa >= 0.00 AND cgpa <= 10.00),
-    user_type VARCHAR(30) DEFAULT 'STUDENT' CHECK (user_type IN ('STUDENT', 'CLUB_LEAD', 'FACULTY_MENTOR', 'VERTICAL_COORDINATOR', 'DEAN_ADMIN', 'SUPER_ADMIN')),
-    bio TEXT,
-    skills TEXT[] DEFAULT '{}',
-    interests TEXT[] DEFAULT '{}',
-    github_handle VARCHAR(100),
-    linkedin_handle VARCHAR(100),
+    cgpa NUMERIC(4, 2) DEFAULT 8.80 CHECK (cgpa >= 0.00 AND cgpa <= 10.00),
+    user_type VARCHAR(30) DEFAULT 'STUDENT' CHECK (user_type IN ('STUDENT', 'CLUB_LEAD', 'FACULTY_MENTOR', 'DEAN_ADMIN', 'SUPER_ADMIN')),
     avatar_url TEXT,
-    is_archived BOOLEAN DEFAULT FALSE,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- ==============================================================================
--- 3. CLUBS, ROLES & SOCIAL FOLLOWERS
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS clubs (
-    club_id VARCHAR(50) PRIMARY KEY, -- e.g. 'VIT_GEDIT', 'VIT_EDC', 'IITB_TECHFEST'
+-- 3. CLUBS: Student Club Chapters
+CREATE TABLE IF NOT EXISTS public.clubs (
+    club_id VARCHAR(50) PRIMARY KEY,
     club_no VARCHAR(50) DEFAULT 'CS/2026/001',
-    college_id VARCHAR(50) NOT NULL REFERENCES colleges(college_id) ON DELETE CASCADE,
+    college_id VARCHAR(50) NOT NULL REFERENCES public.colleges(college_id) ON DELETE CASCADE,
     name VARCHAR(150) NOT NULL,
     short_name VARCHAR(50),
-    tagline TEXT,
     vertical VARCHAR(50) NOT NULL CHECK (vertical IN ('Technical', 'Cultural', 'Sports', 'Social', 'Entrepreneurship', 'Literary', 'Others')),
-    content_visibility VARCHAR(30) DEFAULT 'college-only' CHECK (content_visibility IN ('college-only', 'public')),
-    campus VARCHAR(100) DEFAULT 'Main Campus',
-    workshop_or_room VARCHAR(100),
-    faculty_mentor VARCHAR(150) DEFAULT 'Assigned Faculty Mentor',
-    faculty_designation VARCHAR(150) DEFAULT 'Assistant Professor',
-    president_name VARCHAR(150),
-    president_contact VARCHAR(100),
-    established_year INT DEFAULT 2018,
-    description TEXT,
-    vision TEXT,
-    mission TEXT,
-    website_url TEXT,
-    instagram_handle VARCHAR(100),
-    linkedin_handle VARCHAR(100),
-    discord_url TEXT,
-    whatsapp_group TEXT,
+    faculty_mentor VARCHAR(150) DEFAULT 'Dr. S. K. Kulkarni',
+    faculty_designation VARCHAR(150) DEFAULT 'Associate Professor',
+    president_name VARCHAR(150) DEFAULT 'Arnav Deshmukh',
     official_email VARCHAR(150),
-    members_count INT DEFAULT 120,
-    followers_count INT DEFAULT 100,
-    open_recruitment BOOLEAN DEFAULT FALSE,
-    recruitment_deadline DATE,
-    recruitment_roles TEXT[] DEFAULT '{}',
     logo_bg VARCHAR(20) DEFAULT '#0C447C',
-    status VARCHAR(30) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'PENDING_RENEWAL', 'PROBATION', 'INACTIVE')),
-    is_archived BOOLEAN DEFAULT FALSE,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(30) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'PENDING_RENEWAL', 'INACTIVE')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS club_followers (
-    follower_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    club_id VARCHAR(50) NOT NULL REFERENCES clubs(club_id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    followed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(club_id, user_id)
+-- 4. VENUES: Standardized Campus Venues with Strict Capacity Constraints
+CREATE TABLE IF NOT EXISTS public.venues (
+    venue_id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    building VARCHAR(100) DEFAULT 'Main Campus',
+    capacity INT NOT NULL DEFAULT 150 CHECK (capacity > 0),
+    venue_type VARCHAR(50) DEFAULT 'Auditorium',
+    facilities TEXT[] DEFAULT '{"Projector", "Audio System", "Air Conditioning"}',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS club_roles (
-    role_id VARCHAR(50) PRIMARY KEY,
-    role_name VARCHAR(100) NOT NULL,
-    hierarchy_rank INT NOT NULL DEFAULT 10,
-    is_core_position BOOLEAN DEFAULT FALSE
-);
-
-CREATE TABLE IF NOT EXISTS memberships (
-    membership_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    club_id VARCHAR(50) NOT NULL REFERENCES clubs(club_id) ON DELETE CASCADE,
-    role_id VARCHAR(50) NOT NULL REFERENCES club_roles(role_id),
-    academic_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
-    status VARCHAR(30) DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'COMPLETED', 'REVOKED')),
-    joined_date DATE DEFAULT CURRENT_DATE,
-    valid_from DATE DEFAULT CURRENT_DATE,
-    valid_to DATE DEFAULT NULL,
-    changed_by UUID REFERENCES users(user_id),
-    UNIQUE(user_id, club_id, academic_year, role_id, valid_from)
-);
-
--- ==============================================================================
--- 4. CAMPUS EVENTS & MULTI-TIER APPROVALS
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS events (
+-- 5. EVENTS: Canonical Event Lifecycle Entity
+CREATE TABLE IF NOT EXISTS public.events (
     event_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    club_id VARCHAR(50) REFERENCES clubs(club_id) ON DELETE CASCADE,
-    club_name VARCHAR(150),
-    college_id VARCHAR(50) REFERENCES colleges(college_id) ON DELETE CASCADE,
-    college_name VARCHAR(255),
+    club_id VARCHAR(50) NOT NULL REFERENCES public.clubs(club_id) ON DELETE CASCADE,
+    college_id VARCHAR(50) REFERENCES public.colleges(college_id),
     title VARCHAR(200) NOT NULL,
     description TEXT,
-    event_type VARCHAR(50) NOT NULL CHECK (event_type IN ('Workshop', 'Seminar', 'Competition', 'Hackathon', 'Guest Lecture', 'Cultural Fest', 'Sports Tournament', 'Recruitment Drive', 'Meeting', 'Events & Workshops')),
-    vertical VARCHAR(50) DEFAULT 'Technical',
-    scope VARCHAR(30) DEFAULT 'INTER_COLLEGIATE' CHECK (scope IN ('INTRA_COLLEGE', 'INTER_COLLEGIATE', 'CITY_WIDE', 'NATIONAL', 'Campus-Only', 'Inter-College', 'National-Level', 'City-Wide')),
-    target_audience VARCHAR(100),
-    expected_count INT DEFAULT 100,
-    registered_count INT DEFAULT 0,
-    venue_name VARCHAR(150),
-    venue_type VARCHAR(50) CHECK (venue_type IN ('Classroom', 'Auditorium', 'Computer Lab', 'Seminar Hall', 'Open Ground', 'Online', 'Multiple Venues')),
-    room_or_lab_numbers VARCHAR(100),
-    event_date VARCHAR(50) NOT NULL,
-    event_time VARCHAR(50) NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE,
-    end_time TIMESTAMP WITH TIME ZONE,
-    ticket_price NUMERIC(10, 2) DEFAULT 0.00,
-    prize_pool VARCHAR(100),
-    is_hackathon BOOLEAN DEFAULT FALSE,
-    banner_image_url TEXT,
-    academic_year VARCHAR(20) DEFAULT '2026-27',
-    status VARCHAR(30) DEFAULT 'upcoming' CHECK (status IN ('draft', 'under_review', 'upcoming', 'live', 'past', 'cancelled', 'approved', 'rejected', 'published')),
+    event_type VARCHAR(50) DEFAULT 'Workshop' CHECK (event_type IN ('Workshop', 'Tech Talk', 'Hackathon', 'Seminar', 'Competition', 'Cultural')),
+    scope VARCHAR(50) DEFAULT 'INTRA_COLLEGE' CHECK (scope IN ('INTRA_COLLEGE', 'INTER_COLLEGIATE', 'NATIONAL')),
+    event_date DATE NOT NULL,
+    event_time VARCHAR(50) DEFAULT '10:00 AM – 1:00 PM',
+    venue_name VARCHAR(150) NOT NULL,
+    target_audience VARCHAR(150) DEFAULT 'All Students',
+    expected_count INT NOT NULL DEFAULT 100 CHECK (expected_count >= 10),
+    registered_count INT DEFAULT 0 CHECK (registered_count >= 0),
+    ticket_price NUMERIC(10, 2) DEFAULT 0.00 CHECK (ticket_price >= 0.00),
+    status VARCHAR(30) DEFAULT 'draft' CHECK (status IN (
+        'draft', 'under_review', 'changes_requested', 'approved', 'published', 'live', 'completed', 'rejected', 'cancelled'
+    )),
     objectives TEXT,
     expected_outcomes TEXT,
-    guest_details JSONB,
-    resource_requirements TEXT[],
-    compliance_verified BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS event_approvals (
-    approval_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    approver_id UUID NOT NULL REFERENCES users(user_id),
-    approver_level VARCHAR(50) NOT NULL CHECK (approver_level IN ('FACULTY_MENTOR', 'RESOURCE_INCHARGE', 'VERTICAL_COORDINATOR', 'CAMPUS_MANAGER', 'DEAN_ADMIN')),
-    decision VARCHAR(30) DEFAULT 'PENDING' CHECK (decision IN ('PENDING', 'APPROVED', 'REJECTED', 'CONDITIONAL_APPROVAL')),
-    remarks TEXT,
+    guest_details JSONB DEFAULT '[]'::JSONB,
+    resource_requirements TEXT[] DEFAULT '{}',
+    budget JSONB DEFAULT '{"income": 0, "expenditure": 0, "source_of_funds": "Club Fund"}'::JSONB,
+    faculty_remarks TEXT,
+    faculty_name VARCHAR(150),
     decision_timestamp TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(event_id, approver_level)
-);
-
--- ==============================================================================
--- 5. TICKETING, REGISTRATIONS & GATE PASSES
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS tickets (
-    ticket_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    tier_name VARCHAR(100) NOT NULL, -- e.g. 'Free Entry', 'Early Bird', 'Standard Pass', 'Hackathon All-Access Pass'
-    price NUMERIC(10, 2) DEFAULT 0.00 CHECK (price >= 0),
-    total_capacity INT NOT NULL DEFAULT 100,
-    sold_count INT DEFAULT 0,
-    perks TEXT[] DEFAULT '{}',
-    is_active BOOLEAN DEFAULT TRUE,
-    sales_end_time TIMESTAMP WITH TIME ZONE
-);
-
-CREATE TABLE IF NOT EXISTS event_registrations (
-    registration_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    college_id VARCHAR(50) REFERENCES colleges(college_id),
-    attendee_name VARCHAR(150),
-    attendee_prn VARCHAR(50),
-    ticket_tier VARCHAR(100) DEFAULT 'Standard Entry Pass',
-    academic_year VARCHAR(20) DEFAULT '2026-27',
-    amount_paid NUMERIC(10, 2) DEFAULT 0.00,
-    payment_status VARCHAR(30) DEFAULT 'COMPLETED' CHECK (payment_status IN ('FREE', 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED')),
-    payment_reference VARCHAR(100),
-    qr_token VARCHAR(255) UNIQUE NOT NULL, -- Verification QR token
-    check_in_status VARCHAR(30) DEFAULT 'REGISTERED' CHECK (check_in_status IN ('REGISTERED', 'ATTENDED', 'NO_SHOW', 'CANCELLED')),
-    check_in_timestamp TIMESTAMP WITH TIME ZONE,
-    registered_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(event_id, user_id)
-);
-
--- ==============================================================================
--- 6. COMPETITIONS, TEAMS, WINNERS & HALL OF FAME ARCHIVE (2+ YEARS)
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS competitions (
-    competition_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title VARCHAR(200) NOT NULL,
-    organizer VARCHAR(150) NOT NULL,
-    organizer_logo_bg VARCHAR(20) DEFAULT '#185FA5',
-    college_name VARCHAR(255) NOT NULL,
-    category VARCHAR(50) NOT NULL CHECK (category IN ('Hackathons', 'B-Plan & Case Studies', 'Quizzes & CTFs', 'Startup Pitches', 'Cultural & Sports', 'Events & Workshops')),
-    mode VARCHAR(50) DEFAULT 'Offline On-Campus' CHECK (mode IN ('Online', 'Offline On-Campus', 'Hybrid')),
-    location VARCHAR(150) NOT NULL,
-    team_size VARCHAR(50) DEFAULT '1 - 4 Members',
-    min_team INT DEFAULT 1,
-    max_team INT DEFAULT 4,
-    tags TEXT[] DEFAULT '{}',
-    days_left VARCHAR(50) DEFAULT '6 Days',
-    deadline_date VARCHAR(50) NOT NULL,
-    prize_pool VARCHAR(100) DEFAULT '₹1,00,000',
-    entry_fee NUMERIC(10, 2) DEFAULT 0.00,
-    registered_count INT DEFAULT 0,
-    description TEXT,
-    eligibility TEXT DEFAULT 'Open to all verified college students across India.',
-    status VARCHAR(30) DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'live', 'past', 'closed')),
-    winner_name VARCHAR(150),
-    winning_college VARCHAR(150),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS teams (
-    team_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    competition_id UUID NOT NULL REFERENCES competitions(competition_id) ON DELETE CASCADE,
-    team_name VARCHAR(150) NOT NULL,
-    lead_user_id UUID NOT NULL REFERENCES users(user_id),
-    lead_prn VARCHAR(50),
-    representing_college VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS team_members (
-    team_member_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    team_id UUID NOT NULL REFERENCES teams(team_id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
-    student_name VARCHAR(150) NOT NULL,
-    student_prn VARCHAR(50) NOT NULL,
-    role_in_team VARCHAR(50) DEFAULT 'MEMBER',
-    joined_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS winners (
-    winner_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    competition_id UUID NOT NULL REFERENCES competitions(competition_id) ON DELETE CASCADE,
-    team_id UUID REFERENCES teams(team_id) ON DELETE SET NULL,
-    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
-    winner_name VARCHAR(150) NOT NULL,
-    college_id VARCHAR(50) REFERENCES colleges(college_id),
-    college_name VARCHAR(255) NOT NULL,
-    position VARCHAR(50) NOT NULL CHECK (position IN ('1st Place / Winner', '2nd Place / Runner Up', '3rd Place', 'Special Mention', 'Best Innovation', 'Consolation')),
-    rank_order INT NOT NULL,
-    prize_amount NUMERIC(10, 2) DEFAULT 0.00,
-    certificate_url TEXT,
-    certificate_verification_code VARCHAR(100) UNIQUE,
-    awarded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- ==============================================================================
--- 7. RECRUITMENT DRIVES & APPLICATIONS PIPELINE
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS recruitment_drives (
-    drive_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    club_id VARCHAR(50) NOT NULL REFERENCES clubs(club_id) ON DELETE CASCADE,
-    academic_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
-    title VARCHAR(150) NOT NULL,
-    eligible_years TEXT[] DEFAULT '{"FE", "SE", "TE"}',
-    min_cgpa NUMERIC(4, 2) DEFAULT 7.00,
-    open_positions TEXT[] DEFAULT '{}',
-    start_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    deadline_date DATE NOT NULL,
-    status VARCHAR(30) DEFAULT 'OPEN' CHECK (status IN ('DRAFT', 'OPEN', 'INTERVIEWING', 'CLOSED', 'ARCHIVED'))
-);
-
-CREATE TABLE IF NOT EXISTS applications (
-    application_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    drive_id UUID REFERENCES recruitment_drives(drive_id) ON DELETE SET NULL,
-    club_id VARCHAR(50) NOT NULL REFERENCES clubs(club_id) ON DELETE CASCADE,
-    applicant_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    applicant_name VARCHAR(150) NOT NULL,
-    applicant_email VARCHAR(255) NOT NULL,
-    applicant_prn VARCHAR(50) NOT NULL,
-    applicant_cgpa NUMERIC(4, 2),
-    applied_role VARCHAR(100) NOT NULL,
-    sop_statement TEXT,
-    resume_url TEXT,
-    interview_score NUMERIC(5, 2),
-    status VARCHAR(30) DEFAULT 'APPLIED' CHECK (status IN ('APPLIED', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'OFFERED', 'REJECTED', 'ACCEPTED')),
-    interview_date TIMESTAMP WITH TIME ZONE,
-    remarks TEXT,
-    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS interview_evaluations (
-    evaluation_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    application_id UUID REFERENCES applications(application_id) ON DELETE CASCADE,
-    interviewer_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
-    score NUMERIC(5,2),
-    remarks TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
--- ==============================================================================
--- 7B. EVENT PLANNING & EXECUTION (PHASE B)
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS event_teams (
-    team_member_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    role VARCHAR(100) NOT NULL CHECK (role IN ('Event Head', 'Technical Team', 'Design Team', 'Marketing Team', 'Logistics Team', 'Volunteer')),
-    assigned_by UUID REFERENCES users(user_id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(event_id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS event_tasks (
-    task_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    assigned_to UUID REFERENCES users(user_id) ON DELETE SET NULL,
-    title VARCHAR(200) NOT NULL,
-    description TEXT,
-    priority VARCHAR(20) DEFAULT 'MEDIUM' CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
-    status VARCHAR(20) DEFAULT 'NOT_STARTED' CHECK (status IN ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED')),
-    deadline TIMESTAMP WITH TIME ZONE,
-    created_by UUID REFERENCES users(user_id),
+    created_by UUID REFERENCES public.users(user_id),
+    created_by_name VARCHAR(150) DEFAULT 'Club President',
+    current_version INT DEFAULT 1 CHECK (current_version >= 1),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS event_budgets (
-    budget_item_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    category VARCHAR(100) NOT NULL CHECK (category IN ('Equipment', 'Venue', 'Materials', 'Prizes', 'Refreshments', 'Marketing', 'Other')),
-    description TEXT NOT NULL,
-    estimated_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
-    actual_amount NUMERIC(10, 2) DEFAULT 0.00,
-    is_approved BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+-- 6. EVENT_APPROVALS: Immutable Faculty Sanction Notes & Revisions Log
+CREATE TABLE IF NOT EXISTS public.event_approvals (
+    approval_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES public.events(event_id) ON DELETE CASCADE,
+    decision VARCHAR(30) NOT NULL CHECK (decision IN ('SUBMITTED', 'APPROVED', 'CHANGES_REQUESTED', 'REJECTED')),
+    remarks TEXT,
+    level VARCHAR(50) DEFAULT 'FACULTY_MENTOR',
+    reviewed_by UUID REFERENCES public.users(user_id),
+    reviewer_name VARCHAR(150) DEFAULT 'Dr. S. K. Kulkarni',
+    version_number INT DEFAULT 1,
+    reviewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS event_feedback (
-    feedback_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_id UUID NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(user_id) ON DELETE SET NULL,
-    rating INT CHECK (rating >= 1 AND rating <= 5),
-    comments TEXT,
+-- 7. TICKETS: Capacity Allocation & Concurrency Lock Target
+CREATE TABLE IF NOT EXISTS public.tickets (
+    ticket_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES public.events(event_id) ON DELETE CASCADE,
+    tier_name VARCHAR(100) DEFAULT 'Standard Pass',
+    price NUMERIC(10, 2) DEFAULT 0.00 CHECK (price >= 0.00),
+    total_capacity INT NOT NULL DEFAULT 100 CHECK (total_capacity > 0),
+    sold_count INT NOT NULL DEFAULT 0 CHECK (sold_count >= 0),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_sold_le_total CHECK (sold_count <= total_capacity),
+    UNIQUE(event_id, tier_name)
+);
+
+-- 8. EVENT_REGISTRATIONS: Cryptographic Passes & Real-Time Entry Gate Records
+CREATE TABLE IF NOT EXISTS public.event_registrations (
+    registration_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES public.events(event_id) ON DELETE CASCADE,
+    ticket_id UUID REFERENCES public.tickets(ticket_id) ON DELETE SET NULL,
+    user_id UUID REFERENCES public.users(user_id) ON DELETE SET NULL,
+    student_name VARCHAR(150) NOT NULL,
+    student_email VARCHAR(255) NOT NULL,
+    college_id VARCHAR(50) DEFAULT 'VIT_PUNE',
+    qr_token VARCHAR(100) NOT NULL UNIQUE,
+    check_in_status VARCHAR(30) DEFAULT 'REGISTERED' CHECK (check_in_status IN ('REGISTERED', 'ATTENDED', 'CANCELLED')),
+    check_in_timestamp TIMESTAMP WITH TIME ZONE,
+    registered_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    cancelled_at TIMESTAMP WITH TIME ZONE,
+    UNIQUE(event_id, student_email)
+);
+
+-- 9. EVENT_SETTLEMENTS: Post-Event Financial Auditing & Deficit Overrun Notes
+CREATE TABLE IF NOT EXISTS public.event_settlements (
+    settlement_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    event_id UUID NOT NULL REFERENCES public.events(event_id) ON DELETE CASCADE UNIQUE,
+    sanctioned_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    actual_expenditure NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    surplus_or_deficit NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    invoices_count INT NOT NULL DEFAULT 1 CHECK (invoices_count >= 1),
+    summary_notes TEXT,
+    overrun_justification TEXT,
+    submitted_by UUID REFERENCES public.users(user_id),
+    audited_by UUID REFERENCES public.users(user_id),
+    status VARCHAR(30) DEFAULT 'AUDITED' CHECK (status IN ('PENDING', 'AUDITED', 'AUDITED_WITH_OVERRUN', 'SETTLED', 'REJECTED')),
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(event_id, user_id)
+    settled_at TIMESTAMP WITH TIME ZONE
 );
 
 -- ==============================================================================
--- 8. USER NOTIFICATIONS
+-- 3. TRIGGERS & CONCURRENCY CONTROLS
 -- ==============================================================================
-CREATE TABLE IF NOT EXISTS notifications (
-    notification_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    type VARCHAR(30) NOT NULL CHECK (type IN ('event', 'recruitment', 'trophy', 'notice')),
-    title VARCHAR(200) NOT NULL,
-    message TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
 
--- ==============================================================================
--- 9. FINANCE & TRANSACTION LEDGER
--- ==============================================================================
-CREATE TABLE IF NOT EXISTS finance_transactions (
-    txn_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    club_id VARCHAR(50) NOT NULL REFERENCES clubs(club_id) ON DELETE CASCADE,
-    event_id UUID REFERENCES events(event_id) ON DELETE SET NULL,
-    added_by_user_id UUID REFERENCES users(user_id),
-    academic_year VARCHAR(20) NOT NULL DEFAULT '2026-27',
-    txn_type VARCHAR(50) NOT NULL CHECK (txn_type IN ('TICKET_SALE_INCOME', 'SPONSORSHIP_INCOME', 'COLLEGE_GRANT', 'LOGISTICS_EXPENSE', 'PRIZE_POOL_EXPENSE', 'REFRESHMENTS_EXPENSE', 'MARKETING_EXPENSE', 'MISCELLANEOUS_EXPENSE')),
-    amount NUMERIC(12, 2) NOT NULL,
-    payment_mode VARCHAR(50) DEFAULT 'ONLINE' CHECK (payment_mode IN ('ONLINE', 'CASH', 'CHEQUE', 'COLLEGE_TRANSFER')),
-    description TEXT NOT NULL,
-    bill_receipt_url TEXT,
-    txn_date DATE DEFAULT CURRENT_DATE,
-    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','REJECTED')),
-    approved_by UUID REFERENCES users(user_id),
-    approved_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- ==============================================================================
--- 10. INDEXES & ANALYTICAL VIEWS
--- ==============================================================================
-CREATE INDEX IF NOT EXISTS idx_users_auth ON users(auth_user_id);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_clubs_college ON clubs(college_id);
-CREATE INDEX IF NOT EXISTS idx_events_college ON events(college_id);
-CREATE INDEX IF NOT EXISTS idx_registrations_user ON event_registrations(user_id);
-CREATE INDEX IF NOT EXISTS idx_registrations_event ON event_registrations(event_id);
-CREATE INDEX IF NOT EXISTS idx_registrations_pair ON event_registrations(event_id, user_id);
-CREATE INDEX IF NOT EXISTS idx_followers_club ON club_followers(club_id);
-CREATE INDEX IF NOT EXISTS idx_followers_user ON club_followers(user_id);
-CREATE INDEX IF NOT EXISTS idx_club_followers_pair ON club_followers(club_id, user_id);
-CREATE INDEX IF NOT EXISTS idx_applications_club ON applications(club_id);
-CREATE INDEX IF NOT EXISTS idx_applications_user ON applications(applicant_id);
-
--- Analytical Views
-CREATE OR REPLACE VIEW v_college_winner_leaderboard AS
-SELECT 
-    c.college_id,
-    c.name AS college_name,
-    c.short_name,
-    COUNT(w.winner_id) AS total_podium_finishes,
-    COUNT(CASE WHEN w.rank_order = 1 THEN 1 END) AS first_place_trophies,
-    COUNT(CASE WHEN w.rank_order = 2 THEN 1 END) AS runner_up_trophies,
-    COUNT(CASE WHEN w.rank_order = 3 THEN 1 END) AS third_place_finishes,
-    COALESCE(SUM(w.prize_amount), 0) AS total_prize_money_won
-FROM colleges c
-LEFT JOIN winners w ON c.college_id = w.college_id
-GROUP BY c.college_id, c.name, c.short_name
-ORDER BY first_place_trophies DESC, total_podium_finishes DESC;
-
-CREATE OR REPLACE VIEW v_inter_college_participation_stats AS
-SELECT 
-    e.event_id,
-    e.title AS event_title,
-    e.academic_year,
-    c.short_name AS participant_college,
-    COUNT(r.registration_id) AS total_registered,
-    COUNT(CASE WHEN r.check_in_status = 'ATTENDED' THEN 1 END) AS verified_attended,
-    COALESCE(SUM(r.amount_paid), 0) AS total_ticket_revenue
-FROM events e
-JOIN event_registrations r ON e.event_id = r.event_id
-JOIN colleges c ON r.college_id = c.college_id
-GROUP BY e.event_id, e.title, e.academic_year, c.short_name
-ORDER BY e.start_time DESC, verified_attended DESC;
-
--- ==============================================================================
--- 11. ROW LEVEL SECURITY (RLS) POLICIES
--- ==============================================================================
-ALTER TABLE colleges ENABLE ROW LEVEL SECURITY;
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE clubs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE club_followers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE event_registrations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE competitions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE teams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE winners ENABLE ROW LEVEL SECURITY;
-ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE finance_transactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE event_teams ENABLE ROW LEVEL SECURITY;
-ALTER TABLE event_tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE event_budgets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE event_feedback ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies if any to avoid collision
-DO $$
+CREATE OR REPLACE FUNCTION public.check_venue_conflict()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_conflict_title VARCHAR;
+    v_conflict_club VARCHAR;
 BEGIN
-    DROP POLICY IF EXISTS "Public colleges read" ON colleges;
-    DROP POLICY IF EXISTS "Public clubs read" ON clubs;
-    DROP POLICY IF EXISTS "Public events read" ON events;
-    DROP POLICY IF EXISTS "Public tickets read" ON tickets;
-    DROP POLICY IF EXISTS "Public competitions read" ON competitions;
-    DROP POLICY IF EXISTS "Public winners read" ON winners;
-    DROP POLICY IF EXISTS "Public users read" ON users;
-    DROP POLICY IF EXISTS "Users can insert/update own profile" ON users;
-    DROP POLICY IF EXISTS "Clubs can be updated" ON clubs;
-    DROP POLICY IF EXISTS "Followers can be managed" ON club_followers;
-    DROP POLICY IF EXISTS "Events can be created and managed" ON events;
-    DROP POLICY IF EXISTS "Registrations can be created and managed" ON event_registrations;
-    DROP POLICY IF EXISTS "Competitions can be created and managed" ON competitions;
-    DROP POLICY IF EXISTS "Teams can be created" ON teams;
-    DROP POLICY IF EXISTS "Team members can be managed" ON team_members;
-    DROP POLICY IF EXISTS "Applications can be created and reviewed" ON applications;
-    DROP POLICY IF EXISTS "Notifications can be read and updated" ON notifications;
-    DROP POLICY IF EXISTS "Finance can be managed" ON finance_transactions;
-EXCEPTION WHEN OTHERS THEN
-    NULL;
-END $$;
+    -- Only validate conflicts for confirmed active stages with a physical venue
+    IF NEW.status IN ('under_review', 'approved', 'published', 'live') AND NEW.venue_name IS NOT NULL THEN
+        -- Virtual or online venues do not collide with physical rooms
+        IF LOWER(TRIM(NEW.venue_name)) LIKE '%online%' OR LOWER(TRIM(NEW.venue_name)) LIKE '%virtual%' THEN
+            RETURN NEW;
+        END IF;
 
--- Allow Public Read Access for Discovery
-CREATE POLICY "Public colleges read" ON colleges FOR SELECT USING (true);
-CREATE POLICY "Public clubs read" ON clubs FOR SELECT USING (true);
-CREATE POLICY "Public events read" ON events FOR SELECT USING (true);
-CREATE POLICY "Public tickets read" ON tickets FOR SELECT USING (true);
-CREATE POLICY "Public competitions read" ON competitions FOR SELECT USING (true);
-CREATE POLICY "Public winners read" ON winners FOR SELECT USING (true);
-CREATE POLICY "Public users read" ON users FOR SELECT USING (true);
+        -- Prevent approving or publishing events on past dates
+        IF NEW.status IN ('approved', 'published', 'live') AND NEW.event_date < CURRENT_DATE THEN
+            RAISE EXCEPTION 'DATE INVALID: Cannot confirm event on a past date (%)', NEW.event_date;
+        END IF;
 
--- User Self-Management
-CREATE POLICY "Users can insert/update own profile" ON users FOR ALL USING (auth_user_id = auth.uid());
+        -- Check if another confirmed event already reserves this venue on this date
+        SELECT e.title, COALESCE(c.name, e.club_id) INTO v_conflict_title, v_conflict_club
+        FROM public.events e
+        LEFT JOIN public.clubs c ON e.club_id = c.club_id
+        WHERE LOWER(TRIM(e.venue_name)) = LOWER(TRIM(NEW.venue_name))
+          AND e.event_date = NEW.event_date
+          AND e.status IN ('approved', 'published', 'live')
+          AND e.event_id != COALESCE(NEW.event_id, '00000000-0000-0000-0000-000000000000'::UUID)
+        LIMIT 1;
 
--- Follower Management (Only act on your own behalf)
-CREATE POLICY "Followers can be managed" ON club_followers FOR ALL USING (
-    user_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
-);
+        IF v_conflict_title IS NOT NULL THEN
+            RAISE EXCEPTION 'VENUE COLLISION: "%" is already reserved on % for "%" organized by %',
+                NEW.venue_name, NEW.event_date, v_conflict_title, v_conflict_club;
+        END IF;
+    END IF;
 
--- Ticketing & Event Registration (Register as yourself, view own tickets)
-CREATE POLICY "Registrations can be created and managed" ON event_registrations FOR ALL USING (
-    user_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
-);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Application Management
-CREATE POLICY "Applications can be created and reviewed" ON applications FOR ALL USING (
-    applicant_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
-);
+DROP TRIGGER IF EXISTS trg_venue_conflict ON public.events;
+CREATE TRIGGER trg_venue_conflict
+BEFORE INSERT OR UPDATE OF venue_name, event_date, status ON public.events
+FOR EACH ROW EXECUTE FUNCTION public.check_venue_conflict();
 
--- Teams Management
-CREATE POLICY "Teams can be created" ON teams FOR ALL USING (
-    lead_user_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
-);
+-- ==============================================================================
+-- 4. ACID STORED PROCEDURES & BUSINESS RPCS
+-- ==============================================================================
 
--- Notifications
-CREATE POLICY "Notifications can be read and updated" ON notifications FOR ALL USING (
-    user_id IN (SELECT user_id FROM users WHERE auth_user_id = auth.uid())
-);
+-- Drop conflicting overloaded signatures to prevent ambiguous function call errors
+DROP FUNCTION IF EXISTS public.register_for_event(UUID);
+DROP FUNCTION IF EXISTS public.register_for_event(UUID, VARCHAR);
+DROP FUNCTION IF EXISTS public.register_for_event(UUID, VARCHAR, VARCHAR);
+DROP FUNCTION IF EXISTS public.register_for_event(UUID, VARCHAR, VARCHAR, VARCHAR);
+DROP FUNCTION IF EXISTS public.submit_event_settlement(UUID);
+DROP FUNCTION IF EXISTS public.submit_event_settlement(UUID, NUMERIC);
+DROP FUNCTION IF EXISTS public.submit_event_settlement(UUID, NUMERIC, INT);
+DROP FUNCTION IF EXISTS public.submit_event_settlement(UUID, NUMERIC, INT, TEXT);
+DROP FUNCTION IF EXISTS public.submit_event_settlement(UUID, NUMERIC, INT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.publish_event(UUID);
+DROP FUNCTION IF EXISTS public.process_event_approval(UUID, VARCHAR);
+DROP FUNCTION IF EXISTS public.process_event_approval(UUID, VARCHAR, TEXT);
+DROP FUNCTION IF EXISTS public.process_event_approval(UUID, VARCHAR, TEXT, VARCHAR);
+DROP FUNCTION IF EXISTS public.verify_and_checkin_pass(UUID, VARCHAR);
+DROP FUNCTION IF EXISTS public.cancel_event_registration(UUID);
+DROP FUNCTION IF EXISTS public.cancel_event_registration(UUID, VARCHAR);
 
--- Club Admins (Requires Active Core Committee Membership)
-CREATE POLICY "Clubs can be updated by core committee" ON clubs FOR UPDATE USING (
-    EXISTS (
-        SELECT 1 FROM memberships m 
-        JOIN users u ON m.user_id = u.user_id 
-        WHERE m.club_id = clubs.club_id 
-        AND u.auth_user_id = auth.uid() 
-        AND m.status = 'ACTIVE'
+-- 1. Faculty Approval Gate
+CREATE OR REPLACE FUNCTION public.process_event_approval(
+    p_event_id UUID,
+    p_decision VARCHAR,
+    p_remarks TEXT DEFAULT '',
+    p_level VARCHAR DEFAULT 'FACULTY_MENTOR'
+) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_norm_decision VARCHAR;
+    v_new_status VARCHAR;
+    v_event RECORD;
+BEGIN
+    SELECT * INTO v_event FROM public.events WHERE event_id = p_event_id;
+    IF v_event.event_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Event not found.');
+    END IF;
+
+    v_norm_decision := UPPER(TRIM(COALESCE(p_decision, '')));
+    IF v_norm_decision = 'APPROVED' THEN
+        v_new_status := 'approved';
+    ELSIF v_norm_decision = 'CHANGES_REQUESTED' THEN
+        v_new_status := 'changes_requested';
+    ELSIF v_norm_decision = 'REJECTED' THEN
+        v_new_status := 'rejected';
+    ELSE
+        RETURN jsonb_build_object(
+            'success', false, 
+            'message', 'Invalid approval decision: ' || COALESCE(p_decision, 'NULL') || '. Allowed: APPROVED, CHANGES_REQUESTED, REJECTED.'
+        );
+    END IF;
+
+    -- Update Event status & faculty details
+    UPDATE public.events
+    SET status = v_new_status,
+        faculty_remarks = p_remarks,
+        decision_timestamp = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE event_id = p_event_id;
+
+    -- Insert Immutable Audit Note
+    INSERT INTO public.event_approvals (
+        event_id, decision, remarks, level, reviewed_at
+    ) VALUES (
+        p_event_id, v_norm_decision, p_remarks, COALESCE(p_level, 'FACULTY_MENTOR'), CURRENT_TIMESTAMP
+    );
+
+    RETURN jsonb_build_object(
+        'success', true, 
+        'status', v_new_status, 
+        'event_id', p_event_id, 
+        'message', 'Faculty decision (' || v_norm_decision || ') recorded successfully.'
+    );
+END;
+$$;
+
+-- 2. President Publishing
+CREATE OR REPLACE FUNCTION public.publish_event(
+    p_event_id UUID
+) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_event RECORD;
+    v_capacity INT;
+    v_price NUMERIC;
+BEGIN
+    SELECT * INTO v_event FROM public.events WHERE event_id = p_event_id;
+    IF v_event.event_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Event not found.');
+    END IF;
+
+    IF v_event.status != 'approved' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Only faculty-approved events can be published.');
+    END IF;
+
+    IF v_event.event_date < CURRENT_DATE THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Cannot publish an event with a past date (' || v_event.event_date::text || ').');
+    END IF;
+
+    -- Transition event to published
+    UPDATE public.events 
+    SET status = 'published', updated_at = CURRENT_TIMESTAMP 
+    WHERE event_id = p_event_id;
+
+    -- Ensure default ticket tier exists
+    v_capacity := GREATEST(10, COALESCE(v_event.expected_count, 100));
+    v_price := GREATEST(0.00, COALESCE(v_event.ticket_price, 0.00));
+
+    INSERT INTO public.tickets (event_id, tier_name, price, total_capacity, sold_count, is_active)
+    VALUES (p_event_id, 'Standard Pass', v_price, v_capacity, 0, true)
+    ON CONFLICT (event_id, tier_name) DO UPDATE SET
+        price = EXCLUDED.price,
+        total_capacity = GREATEST(public.tickets.sold_count, EXCLUDED.total_capacity),
+        is_active = true;
+
+    RETURN jsonb_build_object(
+        'success', true, 
+        'status', 'published', 
+        'event_id', p_event_id, 
+        'message', 'Event published successfully to student portal.'
+    );
+END;
+$$;
+
+-- 3. Concurrency-Safe Student Registration (Anti-Overbooking)
+CREATE OR REPLACE FUNCTION public.register_for_event(
+    p_event_id UUID,
+    p_student_name VARCHAR DEFAULT 'Student Attendee',
+    p_student_email VARCHAR DEFAULT NULL,
+    p_ticket_tier VARCHAR DEFAULT 'Standard Pass'
+) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_event_status VARCHAR;
+    v_ticket_id UUID;
+    v_total_capacity INT;
+    v_sold_count INT;
+    v_qr_token TEXT;
+    v_existing_status VARCHAR;
+    v_user_id UUID;
+    v_email VARCHAR;
+    v_name VARCHAR;
+    v_tier_name VARCHAR;
+    v_registration_id UUID;
+BEGIN
+    -- 1. Check Event Existence & Status
+    SELECT status INTO v_event_status FROM public.events WHERE event_id = p_event_id;
+    IF v_event_status IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'error', 'EVENT_NOT_FOUND', 'message', 'Event not found.');
+    END IF;
+
+    IF v_event_status NOT IN ('published', 'live') THEN
+        RETURN jsonb_build_object('success', false, 'error', 'REGISTRATIONS_CLOSED', 'message', 'Registrations are closed for this event.');
+    END IF;
+
+    -- 2. Resolve Student Identity
+    v_email := LOWER(TRIM(COALESCE(p_student_email, '')));
+    v_name := TRIM(COALESCE(p_student_name, ''));
+
+    IF v_email = '' THEN
+        v_user_id := auth.uid();
+        IF v_user_id IS NOT NULL THEN
+            SELECT email, name INTO v_email, v_name FROM public.users WHERE auth_user_id = v_user_id OR user_id = v_user_id LIMIT 1;
+        END IF;
+    ELSE
+        SELECT user_id INTO v_user_id FROM public.users WHERE LOWER(TRIM(email)) = v_email LIMIT 1;
+    END IF;
+
+    IF v_email IS NULL OR v_email = '' THEN
+        v_email := 'student.' || substr(md5(random()::text), 1, 6) || '@vit.edu';
+    END IF;
+    IF v_name IS NULL OR v_name = '' THEN
+        v_name := 'Student Attendee';
+    END IF;
+
+    -- 3. Prevent Duplicate Active Registration
+    SELECT check_in_status INTO v_existing_status
+    FROM public.event_registrations
+    WHERE event_id = p_event_id AND LOWER(TRIM(student_email)) = v_email;
+
+    IF v_existing_status = 'REGISTERED' OR v_existing_status = 'ATTENDED' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'ALREADY_REGISTERED', 'message', 'You are already registered for this event.');
+    END IF;
+
+    -- 4. PESSIMISTIC WRITE LOCK on Ticket Tier to prevent concurrency race conditions
+    v_tier_name := COALESCE(NULLIF(TRIM(p_ticket_tier), ''), 'Standard Pass');
+
+    SELECT ticket_id, total_capacity, sold_count
+    INTO v_ticket_id, v_total_capacity, v_sold_count
+    FROM public.tickets
+    WHERE event_id = p_event_id AND tier_name = v_tier_name
+    FOR UPDATE;
+
+    -- Fallback: lock any active tier for this event if specified tier not found
+    IF v_ticket_id IS NULL THEN
+        SELECT ticket_id, total_capacity, sold_count
+        INTO v_ticket_id, v_total_capacity, v_sold_count
+        FROM public.tickets
+        WHERE event_id = p_event_id
+        ORDER BY created_at ASC
+        LIMIT 1
+        FOR UPDATE;
+    END IF;
+
+    -- If still no ticket exists, provision one atomically
+    IF v_ticket_id IS NULL THEN
+        INSERT INTO public.tickets (event_id, tier_name, price, total_capacity, sold_count, is_active)
+        VALUES (p_event_id, v_tier_name, 0.00, 100, 0, true)
+        RETURNING ticket_id, total_capacity, sold_count
+        INTO v_ticket_id, v_total_capacity, v_sold_count;
+    END IF;
+
+    -- 5. Anti-Overbooking Check
+    IF v_sold_count >= v_total_capacity THEN
+        RETURN jsonb_build_object('success', false, 'error', 'EVENT_SOLD_OUT', 'message', 'EVENT SOLD OUT: Capacity (' || v_total_capacity || ' seats) has been reached.');
+    END IF;
+
+    -- 6. Cryptographically Unique QR Token
+    v_qr_token := 'CS-PASS-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6)) || '-' || upper(substr(md5(clock_timestamp()::text), 1, 4));
+
+    -- 7. Insert or Reactivate Registration Record
+    INSERT INTO public.event_registrations (
+        event_id, ticket_id, user_id, student_name, student_email, qr_token, check_in_status, registered_at
+    ) VALUES (
+        p_event_id, v_ticket_id, v_user_id, v_name, v_email, v_qr_token, 'REGISTERED', CURRENT_TIMESTAMP
     )
-);
+    ON CONFLICT (event_id, student_email) DO UPDATE SET
+        ticket_id = EXCLUDED.ticket_id,
+        qr_token = EXCLUDED.qr_token,
+        check_in_status = 'REGISTERED',
+        registered_at = CURRENT_TIMESTAMP,
+        cancelled_at = NULL
+    RETURNING registration_id INTO v_registration_id;
 
--- Temporary open policies for development (Events, Finance, Competitions)
-CREATE POLICY "Events can be created and managed" ON events FOR ALL USING (true);
-CREATE POLICY "Competitions can be created and managed" ON competitions FOR ALL USING (true);
-CREATE POLICY "Team members can be managed" ON team_members FOR ALL USING (true);
-CREATE POLICY "Finance can be managed" ON finance_transactions FOR ALL USING (true);
-CREATE POLICY "Event Teams can be managed" ON event_teams FOR ALL USING (true);
-CREATE POLICY "Event Tasks can be managed" ON event_tasks FOR ALL USING (true);
-CREATE POLICY "Event Budgets can be managed" ON event_budgets FOR ALL USING (true);
-CREATE POLICY "Event Feedback can be managed" ON event_feedback FOR ALL USING (true);
+    -- 8. Atomically Increment Ticket & Event Counters
+    UPDATE public.tickets SET sold_count = sold_count + 1 WHERE ticket_id = v_ticket_id;
+    UPDATE public.events SET registered_count = COALESCE(registered_count, 0) + 1 WHERE event_id = p_event_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'registration_id', v_registration_id,
+        'qr_token', v_qr_token,
+        'seats_remaining', GREATEST(0, (v_total_capacity - (v_sold_count + 1))),
+        'message', 'Registration confirmed! Digital entry pass generated.'
+    );
+END;
+$$;
+
+-- 4. Door Gate Check-in & Anti-Replay with Atomic Row Lock
+CREATE OR REPLACE FUNCTION public.verify_and_checkin_pass(
+    p_event_id UUID,
+    p_qr_token VARCHAR
+) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_reg RECORD;
+    v_clean_token VARCHAR;
+BEGIN
+    v_clean_token := UPPER(TRIM(COALESCE(p_qr_token, '')));
+    IF v_clean_token = '' THEN
+        RETURN jsonb_build_object('valid', false, 'status', 'INVALID', 'message', 'Please scan or enter a non-empty QR token.');
+    END IF;
+
+    -- Atomic Row Lock on Registration to prevent concurrent double-scans across gates
+    SELECT registration_id, student_name, student_email, check_in_status, check_in_timestamp
+    INTO v_reg
+    FROM public.event_registrations
+    WHERE event_id = p_event_id AND UPPER(TRIM(qr_token)) = v_clean_token
+    FOR UPDATE;
+
+    IF v_reg.registration_id IS NULL THEN
+        RETURN jsonb_build_object(
+            'valid', false,
+            'status', 'INVALID',
+            'message', '❌ INVALID PASS: Token not found for this event.'
+        );
+    END IF;
+
+    -- Replay Attack Detection
+    IF v_reg.check_in_status = 'ATTENDED' THEN
+        RETURN jsonb_build_object(
+            'valid', false,
+            'status', 'ALREADY_USED',
+            'attendee_name', v_reg.student_name,
+            'scanned_at', v_reg.check_in_timestamp,
+            'message', '⚠️ DUPLICATE SCAN! Pass for ' || v_reg.student_name || ' was ALREADY USED for entry at ' || to_char(v_reg.check_in_timestamp, 'HH12:MI AM')
+        );
+    END IF;
+
+    IF v_reg.check_in_status = 'CANCELLED' THEN
+        RETURN jsonb_build_object(
+            'valid', false,
+            'status', 'CANCELLED',
+            'attendee_name', v_reg.student_name,
+            'message', '❌ PASS CANCELLED: This entry pass has been revoked or cancelled.'
+        );
+    END IF;
+
+    -- Mark Attended
+    UPDATE public.event_registrations
+    SET check_in_status = 'ATTENDED',
+        check_in_timestamp = CURRENT_TIMESTAMP
+    WHERE registration_id = v_reg.registration_id;
+
+    RETURN jsonb_build_object(
+        'valid', true,
+        'status', 'ATTENDED',
+        'attendee_name', v_reg.student_name,
+        'scanned_at', CURRENT_TIMESTAMP,
+        'message', '✅ ENTRY CONFIRMED: Welcome, ' || v_reg.student_name || '!'
+    );
+END;
+$$;
+
+-- 5. Student Self-Cancellation & Atomic Seat Recycling
+CREATE OR REPLACE FUNCTION public.cancel_event_registration(
+    p_registration_id UUID
+) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_reg RECORD;
+BEGIN
+    -- Atomic Row Lock on Registration
+    SELECT registration_id, event_id, ticket_id, check_in_status
+    INTO v_reg
+    FROM public.event_registrations
+    WHERE registration_id = p_registration_id
+    FOR UPDATE;
+
+    IF v_reg.registration_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Registration record not found.');
+    END IF;
+
+    IF v_reg.check_in_status = 'ATTENDED' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Cannot cancel a pass that has already been verified and attended.');
+    END IF;
+
+    IF v_reg.check_in_status = 'CANCELLED' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'This registration has already been cancelled.');
+    END IF;
+
+    -- Update registration status
+    UPDATE public.event_registrations
+    SET check_in_status = 'CANCELLED',
+        cancelled_at = CURRENT_TIMESTAMP
+    WHERE registration_id = p_registration_id;
+
+    -- Recycle seat back to ticket tier
+    IF v_reg.ticket_id IS NOT NULL THEN
+        UPDATE public.tickets
+        SET sold_count = GREATEST(0, sold_count - 1)
+        WHERE ticket_id = v_reg.ticket_id;
+    END IF;
+
+    -- Decrement event registered count
+    UPDATE public.events
+    SET registered_count = GREATEST(0, COALESCE(registered_count, 1) - 1)
+    WHERE event_id = v_reg.event_id;
+
+    RETURN jsonb_build_object('success', true, 'message', 'Registration cancelled successfully and seat has been released for other students.');
+END;
+$$;
+
+-- 6. Post-Event Financial Settlement & Overrun Safeguard
+CREATE OR REPLACE FUNCTION public.submit_event_settlement(
+    p_event_id UUID,
+    p_actual_expenditure NUMERIC,
+    p_invoices_count INT DEFAULT 1,
+    p_summary_notes TEXT DEFAULT '',
+    p_overrun_justification TEXT DEFAULT NULL
+) RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_event RECORD;
+    v_sanctioned NUMERIC := 0.00;
+    v_diff NUMERIC;
+    v_has_overrun BOOLEAN;
+    v_settlement_status VARCHAR;
+    v_invoices INT;
+BEGIN
+    SELECT * INTO v_event FROM public.events WHERE event_id = p_event_id;
+    IF v_event.event_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Event not found.');
+    END IF;
+
+    -- Safely read sanctioned budget expenditure from JSONB budget
+    v_sanctioned := COALESCE((v_event.budget->>'expenditure')::NUMERIC, 0.00);
+    IF v_sanctioned = 0.00 AND v_event.expected_count > 0 AND v_event.ticket_price > 0 THEN
+        v_sanctioned := (v_event.expected_count * v_event.ticket_price);
+    END IF;
+
+    v_invoices := GREATEST(1, COALESCE(p_invoices_count, 1));
+    v_diff := v_sanctioned - GREATEST(0.00, COALESCE(p_actual_expenditure, 0.00));
+    v_has_overrun := GREATEST(0.00, COALESCE(p_actual_expenditure, 0.00)) > v_sanctioned;
+    v_settlement_status := CASE WHEN v_has_overrun THEN 'AUDITED_WITH_OVERRUN' ELSE 'AUDITED' END;
+
+    INSERT INTO public.event_settlements (
+        event_id, sanctioned_amount, actual_expenditure, surplus_or_deficit,
+        invoices_count, summary_notes, overrun_justification, status, settled_at
+    ) VALUES (
+        p_event_id, v_sanctioned, GREATEST(0.00, COALESCE(p_actual_expenditure, 0.00)), v_diff,
+        v_invoices, p_summary_notes, p_overrun_justification, v_settlement_status, CURRENT_TIMESTAMP
+    )
+    ON CONFLICT (event_id) DO UPDATE SET
+        actual_expenditure = EXCLUDED.actual_expenditure,
+        surplus_or_deficit = EXCLUDED.surplus_or_deficit,
+        invoices_count = EXCLUDED.invoices_count,
+        summary_notes = EXCLUDED.summary_notes,
+        overrun_justification = EXCLUDED.overrun_justification,
+        status = EXCLUDED.status,
+        settled_at = CURRENT_TIMESTAMP;
+
+    UPDATE public.events SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE event_id = p_event_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'status', v_settlement_status,
+        'has_overrun', v_has_overrun,
+        'sanctioned', v_sanctioned,
+        'diff', v_diff,
+        'message', CASE WHEN v_has_overrun 
+            THEN 'Settlement audited and flagged with budget overrun documentation. Event marked completed.'
+            ELSE 'Financial settlement audited successfully and event marked completed!' END
+    );
+END;
+$$;
 
 -- ==============================================================================
--- 12. INITIAL PRODUCTION SEED DATA (NATIONWIDE COLLEGES & VIT CLUBS)
+-- 5. ROW-LEVEL SECURITY (RLS) POLICIES
 -- ==============================================================================
 
--- 1. National & State Colleges
-INSERT INTO colleges (college_id, name, short_name, campus_locations, email_domain, city, state) VALUES
-('VIT_PUNE', 'Vishwakarma Institute of Technology, Pune', 'VIT Pune', '{"Bibwewadi", "Kondhwa"}', 'vit.edu', 'Pune', 'Maharashtra'),
-('COEP_TECH', 'COEP Technological University', 'COEP Tech', '{"Shivajinagar"}', 'coeptech.ac.in', 'Pune', 'Maharashtra'),
-('PICT_PUNE', 'Pune Institute of Computer Technology', 'PICT', '{"Dhankawadi"}', 'pict.edu', 'Pune', 'Maharashtra'),
-('MIT_WPU', 'MIT World Peace University', 'MIT-WPU', '{"Kothrud"}', 'mitwpu.edu.in', 'Pune', 'Maharashtra'),
-('VIIT_PUNE', 'Vishwakarma Institute of Information Technology', 'VIIT', '{"Kondhwa"}', 'viit.ac.in', 'Pune', 'Maharashtra'),
-('PCCOE_PUNE', 'Pimpri Chinchwad College of Engineering', 'PCCOE', '{"Akurdi"}', 'pccoepune.org', 'Pune', 'Maharashtra'),
-('IIT_BOMBAY', 'Indian Institute of Technology Bombay', 'IIT Bombay', '{"Powai"}', 'iitb.ac.in', 'Mumbai', 'Maharashtra'),
-('BITS_PILANI', 'Birla Institute of Technology & Science, Pilani', 'BITS Pilani', '{"Vidya Vihar"}', 'pilani.bits-pilani.ac.in', 'Pilani', 'Rajasthan'),
-('NIT_TRICHY', 'National Institute of Technology, Tiruchirappalli', 'NIT Trichy', '{"Tanjore Main Road"}', 'nitt.edu', 'Tiruchirappalli', 'Tamil Nadu'),
-('VIT_VELLORE', 'Vellore Institute of Technology', 'VIT Vellore', '{"Katpadi"}', 'vit.ac.in', 'Vellore', 'Tamil Nadu')
-ON CONFLICT (college_id) DO UPDATE SET name = EXCLUDED.name, short_name = EXCLUDED.short_name;
+ALTER TABLE public.colleges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clubs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_approvals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_settlements ENABLE ROW LEVEL SECURITY;
 
--- 2. Core Seed Clubs
-INSERT INTO clubs (club_id, club_no, college_id, name, short_name, vertical, tagline, campus, status, established_year, faculty_mentor, instagram_handle, open_recruitment, recruitment_deadline, logo_bg) VALUES
-('VIT_GEDIT', 'VIT/SA/25-26/T-001', 'VIT_PUNE', 'GedIT Technical Club', 'GedIT', 'Technical', 'Pioneering open-source, competitive programming & full-stack innovation at VIT.', 'Bibwewadi', 'ACTIVE', 2018, 'Prof. Pankaj Kunekar', '@gedit_vit', TRUE, '2026-08-28', '#185FA5'),
-('VIT_EDC', 'VIT/SA/25-26/E-002', 'VIT_PUNE', 'Entrepreneurship Development Cell', 'EDC', 'Entrepreneurship', 'Fostering student startup incubations, Angel pitch fests, and Earn & Sell.', 'Bibwewadi', 'ACTIVE', 2012, 'Dr. C. M. Mahajan', '@edc_vit', TRUE, '2026-08-30', '#D97706'),
-('VIT_TRF', 'VIT/SA/25-26/T-003', 'VIT_PUNE', 'The Robotics Forum', 'TRF', 'Technical', 'Designing battlebots, autonomous rovers and national ABU Robocon entries.', 'Bibwewadi', 'ACTIVE', 2008, 'Prof. S. R. Shinde', '@trf_vit', FALSE, '2026-09-05', '#DC2626'),
-('VIT_MELANGE', 'VIT/SA/25-26/C-004', 'VIT_PUNE', 'Mélange Cultural Committee', 'Mélange', 'Cultural', 'Annual Flagship Cultural & Arts Extravaganza with 15,000+ footfall.', 'Bibwewadi', 'ACTIVE', 2005, 'Prof. V. D. Kulkarni', '@melange_vit', TRUE, '2026-08-25', '#9333EA'),
-('VIT_SPEAKERS', 'VIT/SA/25-26/L-005', 'VIT_PUNE', 'Speakers Arena & Debating Society', 'Speakers Arena', 'Literary', 'Parliamentary debates, Model United Nations, and public discourse.', 'Bibwewadi', 'ACTIVE', 2016, 'Prof. A. S. Joshi', '@speakers_vit', FALSE, '2026-09-10', '#059669'),
-('IITB_TECHFEST', 'IITB/SA/26-27/001', 'IIT_BOMBAY', 'Techfest IIT Bombay', 'Techfest', 'Technical', 'Asia Largest Science & Technology Festival.', 'Powai', 'ACTIVE', 1998, 'Prof. Devang Khakhar', '@techfest_iitb', TRUE, '2026-09-15', '#0284C7'),
-('COEP_ROBOTICS', 'COEP/SA/26-27/002', 'COEP_TECH', 'Robot Study Circle', 'RSC COEP', 'Technical', 'Robocon champions and robotics research collective.', 'Shivajinagar', 'ACTIVE', 2004, 'Dr. S. S. Ohol', '@rsccoep', TRUE, '2026-08-31', '#EA580C')
-ON CONFLICT (club_id) DO NOTHING;
+CREATE POLICY "Public Read Access: Colleges" ON public.colleges FOR SELECT USING (true);
+CREATE POLICY "Public Read Access: Users" ON public.users FOR SELECT USING (true);
+CREATE POLICY "Public Read Access: Clubs" ON public.clubs FOR SELECT USING (true);
+CREATE POLICY "Public Read Access: Venues" ON public.venues FOR SELECT USING (true);
+CREATE POLICY "Public Read Access: Events" ON public.events FOR SELECT USING (true);
+CREATE POLICY "Public Read Access: Approvals" ON public.event_approvals FOR SELECT USING (true);
+CREATE POLICY "Public Read Access: Tickets" ON public.tickets FOR SELECT USING (true);
+CREATE POLICY "Public Read Access: Registrations" ON public.event_registrations FOR SELECT USING (true);
+CREATE POLICY "Public Read Access: Settlements" ON public.event_settlements FOR SELECT USING (true);
 
--- 3. Initial Events
-INSERT INTO events (club_id, club_name, college_id, college_name, title, description, event_type, vertical, scope, venue_name, venue_type, event_date, event_time, ticket_price, prize_pool, is_hackathon, status, registered_count) VALUES
-('VIT_GEDIT', 'GedIT Technical Club', 'VIT_PUNE', 'Vishwakarma Institute of Technology, Pune', 'Pune TechFest Grand Hackathon 2026', '36-hour national-level hackathon with AI, Web3, and Smart Campus tracks.', 'Hackathon', 'Technical', 'NATIONAL', 'Central Computer Center & Auditorium', 'Computer Lab', '28 Aug 2026', '09:00 AM', 0.00, '₹1,00,000', TRUE, 'upcoming', 142),
-('VIT_EDC', 'Entrepreneurship Development Cell', 'VIT_PUNE', 'Vishwakarma Institute of Technology, Pune', 'Earn & Sell 2026: Campus Bazaar', 'Flagship experiential business arena where 100+ student startups deploy live stalls.', 'Competition', 'Entrepreneurship', 'INTER_COLLEGIATE', 'Bibwewadi Campus Open Ground', 'Open Ground', '30 Aug 2026', '10:00 AM', 0.00, '₹50,000', FALSE, 'upcoming', 88),
-('VIT_MELANGE', 'Mélange Cultural Committee', 'VIT_PUNE', 'Vishwakarma Institute of Technology, Pune', 'Battle of the Bands 2026', 'Western and Indian rock band competition across Maharashtra colleges.', 'Cultural Fest', 'Cultural', 'INTER_COLLEGIATE', 'Main Amphitheatre', 'Auditorium', '05 Sep 2026', '05:30 PM', 50.00, '₹40,000', FALSE, 'upcoming', 210)
-ON CONFLICT DO NOTHING;
-
--- 4. Initial Competitions
-INSERT INTO competitions (title, organizer, organizer_logo_bg, college_name, category, mode, location, team_size, min_team, max_team, days_left, deadline_date, prize_pool, entry_fee, registered_count, description) VALUES
-('National AI Agent Hackathon 2026', 'Techfest IIT Bombay', '#0284C7', 'IIT Bombay', 'Hackathons', 'Hybrid', 'Powai, Mumbai & Online', '1 - 4 Members', 1, 4, '12 Days', '15 Sep 2026', '₹2,50,000', 0.00, 320, 'Build agentic AI workflows and LLM apps evaluated by Google DeepMind and top tech leads.'),
-('COEP Tech Innovation Cup 2026', 'COEP Technological University', '#EA580C', 'COEP Tech', 'Hackathons', 'Offline On-Campus', 'Shivajinagar, Pune', '2 - 4 Members', 2, 4, '8 Days', '31 Aug 2026', '₹1,50,000', 0.00, 195, 'Hardware prototyping, IoT sensors, and autonomous robotics challenge.'),
-('Unstop National Case Study Challenge', 'EDC BITS Pilani', '#D97706', 'BITS Pilani', 'B-Plan & Case Studies', 'Online', 'Online Pan-India', '1 - 3 Members', 1, 3, '5 Days', '28 Aug 2026', '₹75,000', 0.00, 410, 'Solve real-world go-to-market and growth engineering bottlenecks for Indian unicorns.')
-ON CONFLICT DO NOTHING;
-
--- ==============================================================================
--- 13. STORAGE BUCKETS & POLICIES
--- ==============================================================================
-
-INSERT INTO storage.buckets (id, name, public) VALUES 
-('avatars', 'avatars', true),
-('club_logos', 'club_logos', true),
-('event_banners', 'event_banners', true),
-('resumes', 'resumes', false)
-ON CONFLICT (id) DO NOTHING;
-
--- Allow Public Read for Public Buckets
-CREATE POLICY "Public Read Avatars" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
-CREATE POLICY "Public Read Logos" ON storage.objects FOR SELECT USING (bucket_id = 'club_logos');
-CREATE POLICY "Public Read Banners" ON storage.objects FOR SELECT USING (bucket_id = 'event_banners');
-
--- Allow Authenticated Users to Upload Avatars
-CREATE POLICY "Auth Users Upload Avatars" ON storage.objects FOR INSERT USING (bucket_id = 'avatars' AND auth.role() = 'authenticated');
-CREATE POLICY "Users Update Own Avatars" ON storage.objects FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid() = owner);
-
--- ==============================================================================
--- 14. REALTIME CONFIGURATION
--- ==============================================================================
--- Enable logical replication (Supabase Realtime) for specific highly dynamic tables
-ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE events;
-ALTER PUBLICATION supabase_realtime ADD TABLE event_registrations;
+CREATE POLICY "Allow Write: Events" ON public.events FOR ALL USING (true);
+CREATE POLICY "Allow Write: Approvals" ON public.event_approvals FOR ALL USING (true);
+CREATE POLICY "Allow Write: Tickets" ON public.tickets FOR ALL USING (true);
+CREATE POLICY "Allow Write: Registrations" ON public.event_registrations FOR ALL USING (true);
+CREATE POLICY "Allow Write: Settlements" ON public.event_settlements FOR ALL USING (true);

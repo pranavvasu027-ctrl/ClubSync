@@ -24,7 +24,7 @@ const OwnerLayout: React.FC = () => {
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--own-green)' }}></span>
             All systems <b>nominal</b>
           </div>
-          <div className={styles.pulseItem}><span>Colleges</span>&nbsp;<b>47</b></div>
+          <div className={styles.pulseItem}><span>Campus</span>&nbsp;<b>VIT Pune</b></div>
           <div className={styles.pulseItem}><span>Active now</span>&nbsp;<b>18.4k</b></div>
         </div>
 
@@ -47,11 +47,6 @@ const OwnerLayout: React.FC = () => {
           <div className={styles.railGroupLabel}>Overview</div>
           <NavLink to="/owner" end className={({isActive}) => `${styles.railItem} ${isActive ? styles.active : ''}`}>
             <IconGridDots size={15}/> <span>Global Analytics</span>
-          </NavLink>
-
-          <div className={styles.railGroupLabel}>Management</div>
-          <NavLink to="/owner/colleges" className={({isActive}) => `${styles.railItem} ${isActive ? styles.active : ''}`}>
-            <IconBuilding size={15}/> <span>Colleges</span>
           </NavLink>
 
           <div className={styles.railGroupLabel}>Trust & Safety</div>

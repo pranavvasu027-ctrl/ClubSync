@@ -1,140 +1,119 @@
 :root {
-  --fac-navy: #0F2540;
-  --fac-navy-deep: #0A1A2E;
-  --fac-sapphire: #1E4D8C;
-  --fac-sapphire-soft: #E8EFF8;
-  --fac-sapphire-line: #C7D8EC;
-  --fac-parchment: #F7F5EF;
-  --fac-parchment-deep: #EFEBE0;
-  --fac-card: #FFFFFF;
-  --fac-ink: #16233A;
-  --fac-ink-soft: #54627A;
-  --fac-ink-faint: #93A0B5;
-  --fac-rule: #E1E4EA;
-  --fac-gold: #B8862E;
-  --fac-gold-soft: #F6EDD9;
-  --fac-green: #2F7A4F;
-  --fac-green-soft: #E4F2E8;
-  --fac-red: #B23A2E;
-  --fac-red-soft: #FBE9E6;
-  --fac-amber: #B8792E;
-  --fac-amber-soft: #FBEEDC;
-  --fac-radius: 10px;
-  --fac-shadow-card: 0 1px 2px rgba(15,37,64,0.06), 0 8px 22px -14px rgba(15,37,64,0.22);
-  --fac-shadow-lift: 0 16px 34px -14px rgba(15,37,64,0.32);
-
-  /* Backward compat */
-  --fac-bg: var(--fac-parchment);
-  --fac-panel: var(--fac-card);
-  --fac-panel-raised: var(--fac-card);
-  --fac-panel-hover: var(--fac-parchment-deep);
-  --fac-line: var(--fac-rule);
-  --fac-line-strong: var(--fac-sapphire-line);
-  --fac-text: var(--fac-navy);
-  --fac-text-dim: var(--fac-ink-soft);
-  --fac-text-faint: var(--fac-ink-faint);
-  --fac-accent: var(--fac-navy);
-  --fac-accent-grad: var(--fac-navy);
-  --fac-green-bg: var(--fac-green-soft);
-  --fac-amber-bg: var(--fac-amber-soft);
-  --fac-red-bg: var(--fac-red-soft);
+  --bg: #f3f7fd;
+  --surface: #ffffff;
+  --ink: #0a1431;
+  --muted: #5d6a86;
+  --line: #e3e9f4;
+  --blue: #0b63f6;
+  --blue-soft: #e8f0fe;
+  --navy: #0a1f4d;
+  --soft: #f6f9fe;
+  --green: #12a37a;
+  --green-soft: #dcf5ec;
+  --amber: #f59e0b;
+  --amber-soft: #fff2d9;
+  --red: #e5484d;
+  --red-soft: #ffe9ea;
+  --purple: #7c3aed;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --shadow: 0 1px 2px rgba(10, 20, 49, .04), 0 4px 14px rgba(10, 20, 49, .05);
 }
 
 .shell {
   display: flex;
   min-height: 100vh;
-  background: var(--fac-parchment);
-  color: var(--fac-ink);
-  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
 }
 
 .rail {
-  width: 248px;
+  width: 240px;
   flex-shrink: 0;
-  background: var(--fac-navy);
-  color: #D9E3F2;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 40;
 }
 
 .railTop {
-  padding: 26px 22px 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 20px 18px 14px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
-  margin-bottom: 4px;
+  gap: 10px;
 }
 
 .brandMark {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: var(--fac-gold);
-  color: var(--fac-navy-deep);
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--blue-soft);
+  color: var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Source Serif 4', serif;
   font-weight: 700;
-  font-size: 17px;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 .brandName {
-  font-family: 'Source Serif 4', serif;
-  font-weight: 600;
-  font-size: 17.5px;
-  color: #fff;
-  letter-spacing: -0.2px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
 }
 
 .brandSub {
-  font-size: 10.5px;
-  color: #8CA3C4;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  margin-left: 47px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-top: 2px;
 }
 
 .facultyTag {
-  margin: 18px 22px 0;
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
+  margin: 12px 16px 0;
+  padding: 6px 12px;
+  background: var(--blue-soft);
+  border-radius: 999px;
   font-size: 11px;
-  color: #B9C8DF;
+  font-weight: 600;
+  color: var(--blue);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .facultyTag .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #6FCF97;
+  background: var(--green);
   flex-shrink: 0;
 }
 
 .nav {
-  padding: 18px 12px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   flex: 1;
   overflow-y: auto;
 }
 
 .navLabel {
   font-size: 10px;
-  color: #7690B4;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 12px 10px 6px;
+  padding: 12px 10px 4px;
   font-weight: 700;
 }
 
@@ -142,45 +121,47 @@
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 9px 10px;
-  border-radius: 7px;
-  color: #C3D2E7;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #2a3553;
   text-decoration: none;
-  font-size: 13.3px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
   position: relative;
+  transition: all 0.15s ease;
 }
 
 .navItem:hover {
-  background: rgba(255,255,255,0.06);
-  color: #fff;
+  background: var(--soft);
+  color: var(--ink);
 }
 
 .navItem.active {
-  background: var(--fac-gold);
-  color: var(--fac-navy-deep);
-  font-weight: 700;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.navItem.active svg {
+  color: var(--blue);
 }
 
 .nBadge {
   margin-left: auto;
   font-size: 10px;
   font-weight: 700;
-  background: var(--fac-red);
+  background: var(--red);
   color: #fff;
-  padding: 1px 6px;
-  border-radius: 8px;
-}
-
-.navItem.active .nBadge {
-  background: var(--fac-navy-deep);
-  color: var(--fac-gold-soft);
+  padding: 2px 7px;
+  border-radius: 999px;
 }
 
 .railBottom {
-  padding: 16px 22px 22px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  margin-top: auto;
 }
 
 .who {
@@ -193,26 +174,26 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--fac-sapphire);
-  color: #fff;
+  background: #cfe0ff;
+  color: var(--blue);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 12.5px;
-  font-family: 'Source Serif 4', serif;
+  font-size: 12px;
   flex-shrink: 0;
 }
 
 .whoName {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.2;
 }
 
 .whoRole {
-  font-size: 10.5px;
-  color: #8CA3C4;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .main {
@@ -223,73 +204,105 @@
 }
 
 .topbar {
-  height: 62px;
+  height: 52px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 30px;
-  border-bottom: 1px solid var(--fac-rule);
-  background: var(--fac-parchment);
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(227, 233, 244, 0.7);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .crumbs {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
-  color: var(--fac-ink-faint);
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .crumbs .current {
-  color: var(--fac-ink);
+  color: var(--ink);
   font-weight: 600;
 }
 
 .topbarRight {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #e9f0fb;
+  border-radius: 10px;
+  padding: 0 12px;
+  height: 36px;
+  color: var(--muted);
+  width: 260px;
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  height: 100%;
+  font-size: 13px;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.search input::placeholder {
+  color: #7a86a3;
 }
 
 .iconBtn {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--fac-rule);
-  background: var(--fac-card);
-  color: var(--fac-ink-soft);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
   cursor: pointer;
-  font-size: 16px;
   position: relative;
+  transition: all 0.15s ease;
 }
 
 .iconBtn:hover {
-  border-color: var(--fac-sapphire-line);
-  color: var(--fac-sapphire);
+  background: var(--soft);
+  color: var(--ink);
+  border-color: #cbd5e1;
 }
 
-.iconBtn .ping {
+.ping {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--fac-red);
-  border: 1.5px solid var(--fac-parchment);
+  background: var(--red);
+  border: 1.5px solid var(--surface);
 }
 
 .content {
   flex: 1;
   overflow-y: auto;
-  padding: 30px;
+  padding: 14px 24px 56px;
 }
 
 .wrap {
-  max-width: 1220px;
+  max-width: 1440px;
   margin: 0 auto;
 }
